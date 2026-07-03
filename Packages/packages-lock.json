@@ -1,5 +1,13 @@
 {
   "dependencies": {
+    "com.ncai.varco3d.bridge": {
+      "version": "file:VARCO3D-Bridge-for-Unity",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {
+        "com.unity.importer.usd": "1.0.0-pre.2"
+      }
+    },
     "com.unity.ai.navigation": {
       "version": "2.0.13",
       "depth": 0,
@@ -60,6 +68,19 @@
       "source": "registry",
       "dependencies": {
         "com.unity.test-framework": "1.1.33"
+      },
+      "url": "https://packages.unity.com"
+    },
+    "com.unity.importer.usd": {
+      "version": "1.0.0-pre.2",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.burst": "1.7.3",
+        "com.unity.usd.core": "1.0.0-pre.1",
+        "com.unity.collections": "1.3.1",
+        "com.unity.mathematics": "1.2.6",
+        "com.unity.shadergraph": "15.0.0"
       },
       "url": "https://packages.unity.com"
     },
@@ -182,6 +203,13 @@
         "com.unity.modules.ui": "1.0.0",
         "com.unity.modules.imgui": "1.0.0"
       }
+    },
+    "com.unity.usd.core": {
+      "version": "1.0.0-pre.1",
+      "depth": 2,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://packages.unity.com"
     },
     "com.unity.visualscripting": {
       "version": "1.9.11",

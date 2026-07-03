@@ -1,0 +1,17 @@
+{
+  "name": "com.ncai.varco3d.bridge",
+  "version": "1.1.0",
+  "displayName": "VARCO3D Bridge for Unity",
+  "description": "VARCO3D server for receiving 3D assets from a web service into Unity Editor",
+  "unity": "6000.0",
+  "author": {
+    "name": "NC AI",
+    "url": "https://3d.varco.ai/"
+  },
+  "documentationUrl": "https://3d.varco.ai/blog/2026-03-19-varco-3d-bridge-for-unity",
+  "licensesUrl": "https://terms.varco.ai/",
+  "dependencies": {
+    "com.unity.importer.usd": "1.0.0-pre.2"
+  },
+  "keywords": ["varco3d", "3d", "import", "usdz", "fbx"]
+}
