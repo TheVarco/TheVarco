@@ -3,10 +3,14 @@ using UnityEngine;
 
 public class SharkController : MonoBehaviour
 {
+    [Header("Data")]
     [SerializeField] private EnemyData enemyData;
     
+    [Header("Detection")]
     [SerializeField] private LayerMask targetLayer;
     [SerializeField] private LayerMask obstacleLayer;
+    
+    [Header("Patrol")]
 
     private Transform target;
 
@@ -33,6 +37,7 @@ public class SharkController : MonoBehaviour
         states = new Dictionary<SharkStateType, ISharkState>
         {
             { SharkStateType.Idle, new SharkIdleState(this) },
+            { SharkStateType.Patrol, new SharkPatrolState(this) },
             { SharkStateType.Chase, new SharkChaseState(this) },
             { SharkStateType.Attack, new SharkAttackState(this) },
             { SharkStateType.Hit, new SharkHitState(this) },
@@ -52,7 +57,7 @@ public class SharkController : MonoBehaviour
 
     public void ChangeState(SharkStateType newStateType)
     {
-        if (currentStateType == newStateType)
+        if (currentState != null && currentStateType == newStateType)
             return;
         
         currentState?.Exit();
