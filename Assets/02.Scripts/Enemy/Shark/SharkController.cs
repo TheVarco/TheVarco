@@ -9,12 +9,12 @@ public class SharkController : MonoBehaviour
     [Header("Detection")]
     [SerializeField] private LayerMask targetLayer;
     [SerializeField] private LayerMask obstacleLayer;
-    
-    [Header("Patrol")]
 
     private Transform target;
 
     private int currentHp;
+    
+    private Vector3 spawnPosition;
     
     private Dictionary<SharkStateType, ISharkState> states;
     private ISharkState currentState;
@@ -23,16 +23,26 @@ public class SharkController : MonoBehaviour
     public EnemyData Data => enemyData;
     public Transform Target => target;
     
+    public Vector3 SpawnPosition => spawnPosition;
+
+    #region SO 데이터 갖고오기
+    public float MoveSpeed => enemyData.moveSpeed;
     public float ViewRadius => enemyData.viewRadius;
     public float ViewAngle => enemyData.viewAngle;
     public float AttackRange => enemyData.attackRange;
     public float RotateSpeed => enemyData.rotateSpeed;
 
+    public float PatrolRadius => enemyData.patrolRadius;
+    public float PatrolArriveDistance => enemyData.patrolArriveDistance;
+    #endregion
+    
     public bool IsDead => currentHp <= 0;
 
     void Awake()
     {
         currentHp = enemyData.maxHp;
+        
+        spawnPosition = transform.position;
         
         states = new Dictionary<SharkStateType, ISharkState>
         {
@@ -47,7 +57,7 @@ public class SharkController : MonoBehaviour
 
     void Start()
     {
-        ChangeState(SharkStateType.Idle);
+        ChangeState(SharkStateType.Patrol);
     }
 
     void Update()
@@ -66,6 +76,28 @@ public class SharkController : MonoBehaviour
         currentState = states[newStateType];
         
         currentState.Enter();
+    }
+    
+    public void RotateToDirection(Vector3 direction)
+    {
+        if (direction.sqrMagnitude <= 0.001f)
+            return;
+
+        Quaternion targetRotation = Quaternion.LookRotation(direction.normalized);
+
+        transform.rotation = Quaternion.Slerp(
+            transform.rotation,
+            targetRotation,
+            RotateSpeed * Time.deltaTime
+        );
+    }
+
+    public void MoveToDirection(Vector3 direction)
+    {
+        if (direction.sqrMagnitude <= 0.001f)
+            return;
+
+        transform.position += direction.normalized * MoveSpeed * Time.deltaTime;
     }
 
     // TODO : 시야에서 사라지면 바로 추적 멈추니까 보완하기

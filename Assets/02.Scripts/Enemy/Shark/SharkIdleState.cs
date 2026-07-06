@@ -11,7 +11,7 @@ public class SharkIdleState : ISharkState
 
     public void Enter()
     {
-        
+        Debug.Log("Shark Idle");
     }
 
     public void Update()
@@ -19,6 +19,10 @@ public class SharkIdleState : ISharkState
         if (shark.TryFindTarget())
         {
             shark.ChangeState(SharkStateType.Chase);
+        }
+        else
+        {
+            shark.ChangeState(SharkStateType.Patrol);
         }
     }
 

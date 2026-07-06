@@ -11,7 +11,7 @@ public class SharkChaseState : ISharkState
 
     public void Enter()
     {
-        
+        Debug.Log("Shark Chase");
     }
 
     public void Update()
