@@ -1,30 +1,30 @@
 using UnityEngine;
 
-// ¸¶¿ì½º·Î »óÇÏÁÂ¿ì¸¦ ÀÚÀ¯·Ó°Ô µÑ·¯º¸´Â Ä«¸Ş¶ó ¸®±×.
-// PlayerControllerÀÇ lookReference ÀÚ¸®¿¡ ÀÌ ¿ÀºêÁ§Æ®¸¦ ¿¬°áÇÏ¸é µÈ´Ù.
-// 1ÀÎÄª/3ÀÎÄª ÀüÈ¯Àº ÀÌ ½ºÅ©¸³Æ® ÇÏ³ª¿¡¼­ Ã³¸®ÇÏ°í, PlayerController´Â °Çµå¸± ÇÊ¿ä ¾øÀ½.
+// ë§ˆìš°ìŠ¤ë¡œ ìƒí•˜ì¢Œìš°ë¥¼ ììœ ë¡­ê²Œ ë‘˜ëŸ¬ë³´ëŠ” ì¹´ë©”ë¼ ë¦¬ê·¸.
+// PlayerControllerì˜ lookReference ìë¦¬ì— ì´ ì˜¤ë¸Œì íŠ¸ë¥¼ ì—°ê²°í•˜ë©´ ëœë‹¤.
+// 1ì¸ì¹­/3ì¸ì¹­ ì „í™˜ì€ ì´ ìŠ¤í¬ë¦½íŠ¸ í•˜ë‚˜ì—ì„œ ì²˜ë¦¬í•˜ê³ , PlayerControllerëŠ” ê±´ë“œë¦´ í•„ìš” ì—†ìŒ.
 public class PlayerCameraRig : MonoBehaviour
 {
     public enum ViewMode { FirstPerson, ThirdPerson }
 
-    [Header("¸ğµå")]
+    [Header("ëª¨ë“œ")]
     public ViewMode viewMode = ViewMode.ThirdPerson;
 
-    [Header("¸¶¿ì½º °¨µµ")]
+    [Header("ë§ˆìš°ìŠ¤ ê°ë„")]
     public float mouseSensitivity = 2.5f;
-    [Tooltip("¼ö¿µÀÌ¹Ç·Î À§¾Æ·¡ °¢µµ Á¦ÇÑÀ» °ÉÁö ¾ÊÀ¸¸é ¿ÏÀü ÀÚÀ¯ ½ÃÁ¡ÀÌ µÊ")]
+    [Tooltip("ìˆ˜ì˜ì´ë¯€ë¡œ ìœ„ì•„ë˜ ê°ë„ ì œí•œì„ ê±¸ì§€ ì•Šìœ¼ë©´ ì™„ì „ ììœ  ì‹œì ì´ ë¨")]
     public bool clampPitch = false;
     public float minPitch = -80f;
     public float maxPitch = 80f;
 
-    [Header("3ÀÎÄª ¼³Á¤")]
-    public Transform target;              // µû¶ó´Ù´Ò ÇÃ·¹ÀÌ¾î(otter Ä³¸¯ÅÍ) Transform
+    [Header("3ì¸ì¹­ ì„¤ì •")]
+    public Transform target;              // ë”°ë¼ë‹¤ë‹ í”Œë ˆì´ì–´(otter ìºë¦­í„°) Transform
     public Vector3 thirdPersonOffset = new Vector3(0f, 1.2f, -4f);
     public float followSmoothing = 10f;
-    [Tooltip("target ÇÇ¹ş ±âÁØ ¾ó¸¶³ª À§ÂÊÀ» ¹Ù¶óº¼Áö. 0ÀÌ¸é ¹ß¹ØÀ» º¸°Ô µÇ¾î È­¸é Áß¾Ó¿¡¼­ ¹ş¾î³ª º¸ÀÓ")]
-    public float lookAtHeight = 1f; //Ä«¸Ş¶ó ±âÁØ ÇÃ·¹ÀÌ¾î ³ôÀÌ ¼³Á¤
+    [Tooltip("target í”¼ë²— ê¸°ì¤€ ì–¼ë§ˆë‚˜ ìœ„ìª½ì„ ë°”ë¼ë³¼ì§€. 0ì´ë©´ ë°œë°‘ì„ ë³´ê²Œ ë˜ì–´ í™”ë©´ ì¤‘ì•™ì—ì„œ ë²—ì–´ë‚˜ ë³´ì„")]
+    public float lookAtHeight = 1f; //ì¹´ë©”ë¼ ê¸°ì¤€ í”Œë ˆì´ì–´ ë†’ì´ ì„¤ì •
 
-    [Header("1ÀÎÄª ¼³Á¤")]
+    [Header("1ì¸ì¹­ ì„¤ì •")]
     public Vector3 firstPersonOffset = new Vector3(0f, 0.5f, 0.2f);
 
     private float yaw;
@@ -44,7 +44,7 @@ public class PlayerCameraRig : MonoBehaviour
 
         transform.rotation = Quaternion.Euler(pitch, yaw, 0f);
 
-        // Å×½ºÆ®¿ë ÀÓ½Ã ÀüÈ¯ Å° (³ªÁß¿¡ ¼³Á¤ ¸Ş´º UI·Î ±³Ã¼)
+        // í…ŒìŠ¤íŠ¸ìš© ì„ì‹œ ì „í™˜ í‚¤ (ë‚˜ì¤‘ì— ì„¤ì • ë©”ë‰´ UIë¡œ êµì²´)
         if (Input.GetKeyDown(KeyCode.V))
             viewMode = viewMode == ViewMode.FirstPerson ? ViewMode.ThirdPerson : ViewMode.FirstPerson;
     }
@@ -59,8 +59,8 @@ public class PlayerCameraRig : MonoBehaviour
         }
         else
         {
-            // ¸¶¿ì½º·Î Á¤ÇÑ yaw/pitch´Â "Ä«¸Ş¶ó°¡ target ÁÖÀ§ ¾îµğ¿¡ À§Ä¡ÇÒÁö"¸¸ Á¤ÇÏ°í,
-            // ½ÇÁ¦·Î º¸´Â ¹æÇâÀº ¾Æ·¡ LookAtÀÌ Ç×»ó targetÀ» Á¤È®È÷ Á¶ÁØÇÏµµ·Ï µ¤¾î¾¸
+            // ë§ˆìš°ìŠ¤ë¡œ ì •í•œ yaw/pitchëŠ” "ì¹´ë©”ë¼ê°€ target ì£¼ìœ„ ì–´ë””ì— ìœ„ì¹˜í• ì§€"ë§Œ ì •í•˜ê³ ,
+            // ì‹¤ì œë¡œ ë³´ëŠ” ë°©í–¥ì€ ì•„ë˜ LookAtì´ í•­ìƒ targetì„ ì •í™•íˆ ì¡°ì¤€í•˜ë„ë¡ ë®ì–´ì”€
             Vector3 desiredPosition = target.position + transform.rotation * thirdPersonOffset;
             transform.position = Vector3.Lerp(transform.position, desiredPosition, followSmoothing * Time.deltaTime);
             transform.LookAt(target.position + Vector3.up * lookAtHeight);
