@@ -12,7 +12,7 @@ public class SharkPatrolState : ISharkState
     
     public void Enter()
     {
-        Debug.Log("Shark Patrol");
+        // Debug.Log("Shark Patrol");
         SetRandomPatrolPoint();
     }
 
@@ -33,7 +33,7 @@ public class SharkPatrolState : ISharkState
         }
 
         shark.RotateToDirection(direction);
-        shark.MoveToDirection(direction);
+        shark.MoveToDirection(direction, shark.MoveSpeed);
     }
 
     public void Exit()

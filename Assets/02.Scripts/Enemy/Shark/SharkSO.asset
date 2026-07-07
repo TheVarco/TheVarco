@@ -12,13 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7d6f38e29dedf5544b61d8032bbd78ea, type: 3}
   m_Name: SharkSO
   m_EditorClassIdentifier: Assembly-CSharp::EnemyData
-  maxHp: 100
   moveSpeed: 5
   rotateSpeed: 2
   viewRadius: 10
   viewAngle: 90
-  patrolRadius: 5
+  patrolRadius: 10
   patrolArriveDistance: 0.5
-  attackRange: 2
-  bodyDamage: 0
-  biteDamage: 0
+  idleWaitMin: 1
+  idleWaitMax: 5
+  attackRange: 1.5
+  attackCooldown: 3
+  attackDamage: 30
