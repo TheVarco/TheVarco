@@ -1,19 +1,25 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+// TODO : 적 많아지면 Controller 책임 좀 분리해주기
+[RequireComponent(typeof(Health))]
 public class SharkController : MonoBehaviour
 {
     [Header("Data")]
     [SerializeField] private EnemyData enemyData;
-    
+
     [Header("Detection")]
     [SerializeField] private LayerMask targetLayer;
     [SerializeField] private LayerMask obstacleLayer;
 
+    [Header("Attack")]
+    [SerializeField] private EnemyAttackHitbox attackHitbox;
+
     private Transform target;
 
-    private int currentHp;
-    
+    // 체력 관리(저장/계산/사망 판정)는 공용 Health 컴포넌트로 관리
+    private Health health;
+
     private Vector3 spawnPosition;
     
     private Dictionary<SharkStateType, ISharkState> states;
@@ -22,28 +28,33 @@ public class SharkController : MonoBehaviour
 
     public EnemyData Data => enemyData;
     public Transform Target => target;
-    
+    public EnemyAttackHitbox AttackHitbox => attackHitbox;
+
     public Vector3 SpawnPosition => spawnPosition;
 
     #region SO 데이터 갖고오기
     public float MoveSpeed => enemyData.moveSpeed;
+    public float RotateSpeed => enemyData.rotateSpeed;
     public float ViewRadius => enemyData.viewRadius;
     public float ViewAngle => enemyData.viewAngle;
     public float AttackRange => enemyData.attackRange;
-    public float RotateSpeed => enemyData.rotateSpeed;
+    public float AttackCooldown => enemyData.attackCooldown;
+    public int AttackDamage => enemyData.attackDamage;
 
     public float PatrolRadius => enemyData.patrolRadius;
     public float PatrolArriveDistance => enemyData.patrolArriveDistance;
+    public float IdleWaitMin => enemyData.idleWaitMin;
+    public float IdleWaitMax => enemyData.idleWaitMax;
     #endregion
     
-    public bool IsDead => currentHp <= 0;
+    public bool IsDead => health != null && health.IsDead;
 
     void Awake()
     {
-        currentHp = enemyData.maxHp;
-        
+        health = GetComponent<Health>();
+
         spawnPosition = transform.position;
-        
+
         states = new Dictionary<SharkStateType, ISharkState>
         {
             { SharkStateType.Idle, new SharkIdleState(this) },
@@ -55,9 +66,22 @@ public class SharkController : MonoBehaviour
         };
     }
 
+    void OnEnable()
+    {
+        // Health 이벤트 받아오기
+        health.OnHealthChanged.AddListener(HandleHealthChanged);
+        health.OnDeath.AddListener(HandleDeath);
+    }
+
+    void OnDisable()
+    {
+        health.OnHealthChanged.RemoveListener(HandleHealthChanged);
+        health.OnDeath.RemoveListener(HandleDeath);
+    }
+
     void Start()
     {
-        ChangeState(SharkStateType.Patrol);
+        ChangeState(SharkStateType.Idle);
     }
 
     void Update()
@@ -65,6 +89,22 @@ public class SharkController : MonoBehaviour
         currentState?.Update();
     }
 
+    // 플레이어에게 공격 받았을 때(사망이 아닌 경우) 피격 상태로 전환
+    private void HandleHealthChanged(float currentHealth, float maxHealth)
+    {
+        if (health.IsDead)
+            return;
+
+        ChangeState(SharkStateType.Hit);
+    }
+
+    // 체력이 0이 되었을 때 사망 상태로 전환
+    private void HandleDeath()
+    {
+        ChangeState(SharkStateType.Dead);
+    }
+
+    // 상태 전환용
     public void ChangeState(SharkStateType newStateType)
     {
         if (currentState != null && currentStateType == newStateType)
@@ -76,6 +116,16 @@ public class SharkController : MonoBehaviour
         currentState = states[newStateType];
         
         currentState.Enter();
+    }
+
+    // TODO : 장애물 피하는 기능 구현
+    // 이동 속도는 상태마다 다를 수 있어(순찰/추격) 호출하는 쪽에서 지정해줌
+    public void MoveToDirection(Vector3 direction, float speed)
+    {
+        if (direction.sqrMagnitude <= 0.001f)
+            return;
+
+        transform.position += direction.normalized * speed * Time.deltaTime;
     }
     
     public void RotateToDirection(Vector3 direction)
@@ -90,14 +140,6 @@ public class SharkController : MonoBehaviour
             targetRotation,
             RotateSpeed * Time.deltaTime
         );
-    }
-
-    public void MoveToDirection(Vector3 direction)
-    {
-        if (direction.sqrMagnitude <= 0.001f)
-            return;
-
-        transform.position += direction.normalized * MoveSpeed * Time.deltaTime;
     }
 
     // TODO : 시야에서 사라지면 바로 추적 멈추니까 보완하기
@@ -147,7 +189,42 @@ public class SharkController : MonoBehaviour
         }
         
         target = nearestTarget;
-        
+
         return target != null;
+    }
+
+    // 상어 시야 범위/시야각을 시각화
+    private void OnDrawGizmosSelected()
+    {
+        if (enemyData == null)
+            return;
+
+        float radius = enemyData.viewRadius;
+        float halfAngle = enemyData.viewAngle * 0.5f; // TryFindTarget과 동일하게 좌우 절반씩
+
+        // 시야 반경 (탐지 거리)
+        Gizmos.color = new Color(1f, 1f, 0f, 0.3f);
+        Gizmos.DrawWireSphere(transform.position, radius);
+
+        // 시야각 경계선: 정면 기준 좌우로 halfAngle만큼 회전한 두 방향
+        Vector3 leftBoundary = Quaternion.Euler(0f, -halfAngle, 0f) * transform.forward;
+        Vector3 rightBoundary = Quaternion.Euler(0f, halfAngle, 0f) * transform.forward;
+
+        Gizmos.color = Color.red;
+        Gizmos.DrawLine(transform.position, transform.position + leftBoundary * radius);
+        Gizmos.DrawLine(transform.position, transform.position + rightBoundary * radius);
+
+        // 두 경계선 사이를 호(arc)로 이어 부채꼴 형태로 표시
+        const int segments = 20;
+        Vector3 previousPoint = transform.position + leftBoundary * radius;
+        for (int i = 1; i <= segments; i++)
+        {
+            float angle = -halfAngle + (enemyData.viewAngle * i / segments);
+            Vector3 direction = Quaternion.Euler(0f, angle, 0f) * transform.forward;
+            Vector3 currentPoint = transform.position + direction * radius;
+
+            Gizmos.DrawLine(previousPoint, currentPoint);
+            previousPoint = currentPoint;
+        }
     }
 }
