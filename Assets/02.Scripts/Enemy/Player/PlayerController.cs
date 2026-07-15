@@ -19,7 +19,9 @@ public class PlayerController : MonoBehaviour
     [Header("회전 감각")]
     [Tooltip("이동 방향으로 몸통이 얼마나 빨리 따라 도는지")]
     public float rotationSpeed = 8f;
-    [Tooltip("체크하면 카메라가 보는 방향 그대로 즉시 회전(1인칭에 적합)")]
+    [Tooltip("카메라를 연결하면 View Mode를 자동으로 읽어와서 1인칭/3인칭 전환 시 이 값을 직접 안 건드려도 됨")]
+    public PlayerCameraRig cameraRig;
+    [Tooltip("cameraRig를 연결 안 했을 때만 사용되는 수동 설정값")]
     public bool snapToLookDirection = false;
 
     [Header("참조")]
@@ -89,14 +91,22 @@ public class PlayerController : MonoBehaviour
 
     private void ApplyRotation()
     {
-        if (snapToLookDirection && lookReference != null)
+        // cameraRig가 연결되어 있으면 "1인칭이거나 조준 중"일 때 몸을 카메라 방향으로 정렬
+        // 연결 안 했으면 기존처럼 수동 체크박스(snapToLookDirection)를 따름
+        bool shouldFaceCamera = snapToLookDirection;
+        if (cameraRig != null)
         {
-            // 1인칭용: 카메라가 보는 방향으로 몸도 즉시 정렬
+            shouldFaceCamera = cameraRig.viewMode == PlayerCameraRig.ViewMode.FirstPerson || cameraRig.IsAiming;
+        }
+
+        if (shouldFaceCamera && lookReference != null)
+        {
+            // 카메라가 보는 방향으로 몸도 즉시 정렬
             transform.rotation = lookReference.rotation;
             return;
         }
 
-        // 3인칭용: 실제로 이동하는 방향으로 서서히 회전 (제자리에서 입력만 줄 땐 회전 안 함)
+        // 평소(비조준, 3인칭)에는 실제로 이동하는 방향으로 서서히 회전
         if (inputDirection.sqrMagnitude > 0.01f)
         {
             Quaternion targetRotation = Quaternion.LookRotation(inputDirection, Vector3.up);

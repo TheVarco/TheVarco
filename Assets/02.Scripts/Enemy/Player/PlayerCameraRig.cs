@@ -22,10 +22,26 @@ public class PlayerCameraRig : MonoBehaviour
     public Vector3 thirdPersonOffset = new Vector3(0f, 1.2f, -4f);
     public float followSmoothing = 10f;
     [Tooltip("target 피벗 기준 얼마나 위쪽을 바라볼지. 0이면 발밑을 보게 되어 화면 중앙에서 벗어나 보임")]
-    public float lookAtHeight = 1f; //카메라 기준 플레이어 높이 설정
+    public float lookAtHeight = 1f;
 
     [Header("1인칭 설정")]
     public Vector3 firstPersonOffset = new Vector3(0f, 0.5f, 0.2f);
+
+    [Header("조준 줌 (RangedAttack이 SetAiming으로 켜고 끔)")]
+    [Tooltip("실제 화각을 조절할 Camera 컴포넌트 연결 (Main Camera)")]
+    public Camera cam;
+    public float normalFOV = 60f;
+    public float aimFOV = 40f;
+    public float zoomSpeed = 8f;
+
+    // 지금 조준 중인지. RangedAttack이 우클릭 누르고 있는 동안 true로 설정해줌.
+    // PlayerController도 이 값을 봐서 조준 중엔 몸을 카메라 방향으로 돌린다.
+    public bool IsAiming { get; private set; }
+
+    public void SetAiming(bool aiming)
+    {
+        IsAiming = aiming;
+    }
 
     private float yaw;
     private float pitch;
@@ -47,6 +63,13 @@ public class PlayerCameraRig : MonoBehaviour
         // 테스트용 임시 전환 키 (나중에 설정 메뉴 UI로 교체)
         if (Input.GetKeyDown(KeyCode.V))
             viewMode = viewMode == ViewMode.FirstPerson ? ViewMode.ThirdPerson : ViewMode.FirstPerson;
+
+        // 조준 중이면 화각을 좁혀서(줌인) 확대된 느낌을 줌
+        if (cam != null)
+        {
+            float targetFOV = IsAiming ? aimFOV : normalFOV;
+            cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, targetFOV, zoomSpeed * Time.deltaTime);
+        }
     }
 
     void LateUpdate()

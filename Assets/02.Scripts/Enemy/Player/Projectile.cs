@@ -19,6 +19,8 @@ public class Projectile : MonoBehaviour
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
+        // 빠른 속도로 얇은 대상을 그냥 통과해버리는 터널링 현상 방지
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
     }
 
     void Start()
@@ -31,8 +33,9 @@ public class Projectile : MonoBehaviour
     {
         Debug.Log($"[Projectile] {other.gameObject.name}에 부딪힘");
 
-        // 자기를 쏜 사람은 무시 (발사되자마자 자기 콜라이더에 맞는 것 방지)
-        if (owner != null && other.gameObject == owner) return;
+        // 자기를 쏜 사람은 무시. Collider가 owner의 자식 오브젝트에 있어도 걸러지도록
+        // 정확히 같은 오브젝트가 아니라 "최상위 루트가 같은지"로 비교함
+        if (owner != null && other.transform.root == owner.transform.root) return;
 
         Damageable target = other.GetComponentInParent<Damageable>();
         if (target != null && !target.IsDead)
