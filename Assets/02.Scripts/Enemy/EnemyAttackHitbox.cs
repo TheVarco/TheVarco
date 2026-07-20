@@ -37,8 +37,19 @@ public class EnemyAttackHitbox : MonoBehaviour
     {
         hitboxCollider.enabled = false;
     }
-
+    
     void OnTriggerEnter(Collider other)
+    {
+        TryHit(other);
+    }
+
+    // 히트박스가 이미 겹쳐있을 때 Event 놓치는 거 방지용
+    void OnTriggerStay(Collider other)
+    {
+        TryHit(other);
+    }
+
+    void TryHit(Collider other)
     {
         if (hasHit)
             return;

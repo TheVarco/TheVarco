@@ -27,9 +27,14 @@ public class SharkChaseState : ISharkState
         }
 
         Vector3 direction = shark.Target.position - shark.transform.position;
+        
+        float attackDistance = Vector3.Distance(
+            shark.AttackHitbox.transform.position,
+            shark.Target.position
+        );
 
         // 공격 사거리 안에 들어오면 공격 상태로 전환
-        if (direction.magnitude <= shark.AttackRange)
+        if (attackDistance <= shark.AttackRange)
         {
             shark.ChangeState(SharkStateType.Attack);
             return;
