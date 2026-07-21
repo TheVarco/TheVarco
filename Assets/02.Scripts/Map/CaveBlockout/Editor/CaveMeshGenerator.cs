@@ -309,7 +309,7 @@ namespace CaveBlockout.Editor
         {
             TubeRings tube = new TubeRings();
             Vector3 previousWorldTangent = Vector3.forward;
-            Vector3 previousWorldUp = Vector3.up;
+            Vector3 previousWorldBaseUp = Vector3.up;
             for (int ring = 0; ring < distances.Count; ring++)
             {
                 float distance = distances[ring];
@@ -317,25 +317,29 @@ namespace CaveBlockout.Editor
                 Vector3 centerWorld = route.Container.EvaluatePosition(splineIndex, t);
                 Vector3 tangentWorld = ((Vector3)route.Container.EvaluateTangent(splineIndex, t)).normalized;
                 Vector3 packageUp = ((Vector3)route.Container.EvaluateUpVector(splineIndex, t)).normalized;
-                Vector3 upWorld;
+                Vector3 baseUpWorld;
                 if (ring == 0)
                 {
-                    upWorld = Vector3.ProjectOnPlane(packageUp, tangentWorld).normalized;
-                    if (upWorld.sqrMagnitude < 0.01f)
-                        upWorld = Vector3.ProjectOnPlane(Vector3.up, tangentWorld).normalized;
-                    if (upWorld.sqrMagnitude < 0.01f)
-                        upWorld = Vector3.right;
+                    baseUpWorld = Vector3.ProjectOnPlane(packageUp, tangentWorld).normalized;
+                    if (baseUpWorld.sqrMagnitude < 0.01f)
+                        baseUpWorld = Vector3.ProjectOnPlane(Vector3.up, tangentWorld).normalized;
+                    if (baseUpWorld.sqrMagnitude < 0.01f)
+                        baseUpWorld = Vector3.right;
                 }
                 else
                 {
-                    Vector3 transported = Quaternion.FromToRotation(previousWorldTangent, tangentWorld) * previousWorldUp;
-                    Vector3 desired = Vector3.ProjectOnPlane(packageUp, tangentWorld).normalized;
-                    if (desired.sqrMagnitude < 0.01f) desired = transported;
-                    if (Vector3.Dot(desired, transported) < 0f) desired = -desired;
-                    upWorld = Vector3.Slerp(transported, desired, 0.2f).normalized;
+                    // SplineContainer.EvaluateUpVector is derived from interpolated knot rotations. Re-blending
+                    // that authored frame at every sampled ring makes its small rotations accumulate into a
+                    // corkscrew, so even a noise-free tube develops a flower-like, jagged silhouette. Establish
+                    // the reference frame once, then parallel-transport its unrolled up vector along the curve.
+                    baseUpWorld = TransportRotationMinimizingUp(
+                        previousWorldTangent, previousWorldBaseUp, tangentWorld);
                 }
 
-                upWorld = Quaternion.AngleAxis(route.EvaluateRoll(splineIndex, t), tangentWorld) * upWorld;
+                // Roll is absolute metadata at this sample. Apply it to a copy of the transported base frame,
+                // never to the state carried into the next ring, otherwise roll is integrated once per sample.
+                Vector3 upWorld = Quaternion.AngleAxis(
+                    route.EvaluateRoll(splineIndex, t), tangentWorld) * baseUpWorld;
                 Vector3 rightWorld = Vector3.Cross(upWorld, tangentWorld).normalized;
                 upWorld = Vector3.Cross(tangentWorld, rightWorld).normalized;
                 Vector3 center = outputSpace.InverseTransformPoint(centerWorld);
@@ -364,9 +368,23 @@ namespace CaveBlockout.Editor
                 tube.ups.Add(up);
                 tube.indices.Add(ringIndices);
                 previousWorldTangent = tangentWorld;
-                previousWorldUp = upWorld;
+                previousWorldBaseUp = baseUpWorld;
             }
             return tube;
+        }
+
+        public static Vector3 TransportRotationMinimizingUp(Vector3 previousTangent, Vector3 previousUp,
+            Vector3 currentTangent)
+        {
+            previousTangent.Normalize();
+            currentTangent.Normalize();
+            Vector3 transported = Quaternion.FromToRotation(previousTangent, currentTangent) * previousUp;
+            transported = Vector3.ProjectOnPlane(transported, currentTangent).normalized;
+            if (transported.sqrMagnitude >= 0.01f)
+                return transported;
+
+            Vector3 fallback = Vector3.ProjectOnPlane(Vector3.up, currentTangent).normalized;
+            return fallback.sqrMagnitude >= 0.01f ? fallback : Vector3.right;
         }
 
         public static float EvaluateMainNoiseWeight(CaveRoute mainRoute, float distanceMeters)
@@ -949,7 +967,20 @@ namespace CaveBlockout.Editor
                 AssetDatabase.CreateAsset(generated, path);
                 return generated;
             }
-            EditorUtility.CopySerialized(generated, existing);
+
+            // CopySerialized updates the asset's serialized representation, but it does not reliably invalidate
+            // the renderer's native/GPU vertex buffer for an already-loaded Mesh. That left the MeshCollider using
+            // the newly generated smooth surface while the MeshFilter could continue displaying its old noisy one
+            // until Unity reloaded the asset. Mutate the existing Mesh through the Mesh API so every live renderer
+            // sees the replacement data immediately without changing the asset GUID.
+            existing.Clear(false);
+            existing.indexFormat = generated.indexFormat;
+            existing.vertices = generated.vertices;
+            existing.normals = generated.normals;
+            existing.uv = generated.uv;
+            existing.triangles = generated.triangles;
+            existing.bounds = generated.bounds;
+            existing.UploadMeshData(false);
             UnityEngine.Object.DestroyImmediate(generated);
             EditorUtility.SetDirty(existing);
             return existing;

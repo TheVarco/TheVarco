@@ -184,7 +184,7 @@ namespace CaveBlockout.Editor
             EditorGUILayout.Space();
             showNoise = EditorGUILayout.Foldout(showNoise, "동굴 표면 노이즈", true);
             if (!showNoise) return;
-            FindRoutes(out CaveRoute mainRoute, out _);
+            FindRoutes(out CaveRoute mainRoute, out CaveRoute branches);
             if (mainRoute == null)
             {
                 EditorGUILayout.HelpBox("MainRoute를 찾을 수 없습니다.", MessageType.Warning);
@@ -232,6 +232,12 @@ namespace CaveBlockout.Editor
                 EditorSceneManager.MarkSceneDirty(mainRoute.gameObject.scene);
             }
 
+            if (GUILayout.Button("Disable All Noise + Regenerate"))
+            {
+                DisableAllNoiseAndRegenerate(mainRoute, branches);
+                GUIUtility.ExitGUI();
+            }
+
             EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button("Smooth")) ApplyNoisePreset(mainRoute, settings.ApplySmoothPreset, "Apply smooth cave preset");
             if (GUILayout.Button("Rocky")) ApplyNoisePreset(mainRoute, settings.ApplyRockyPreset, "Apply rocky cave preset");
@@ -247,6 +253,21 @@ namespace CaveBlockout.Editor
             apply();
             EditorUtility.SetDirty(route);
             EditorSceneManager.MarkSceneDirty(route.gameObject.scene);
+        }
+
+        private void DisableAllNoiseAndRegenerate(CaveRoute mainRoute, CaveRoute branches)
+        {
+            List<CaveRoute> routes = new List<CaveRoute> { mainRoute };
+            if (branches != null) routes.Add(branches);
+            Undo.RecordObjects(routes.Cast<UnityEngine.Object>().ToArray(), "Disable all cave noise");
+            foreach (CaveRoute route in routes)
+            {
+                route.NoiseSettings.ApplySmoothPreset();
+                EditorUtility.SetDirty(route);
+                EditorSceneManager.MarkSceneDirty(route.gameObject.scene);
+            }
+
+            lastValidation = CaveBlockoutBuilder.RegenerateCurrentScene(true);
         }
 
         private void DrawValidation()

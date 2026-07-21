@@ -153,12 +153,12 @@ namespace CaveBlockout
 
         public float EvaluateWidth(int splineIndex, float normalizedT)
         {
-            return EvaluateFloat(splineIndex, WidthDataKey, normalizedT, 12f);
+            return EvaluateProfileFloat(splineIndex, WidthDataKey, normalizedT, 12f);
         }
 
         public float EvaluateHeight(int splineIndex, float normalizedT)
         {
-            return EvaluateFloat(splineIndex, HeightDataKey, normalizedT, 10f);
+            return EvaluateProfileFloat(splineIndex, HeightDataKey, normalizedT, 10f);
         }
 
         public float EvaluateRoll(int splineIndex, float normalizedT)
@@ -224,6 +224,22 @@ namespace CaveBlockout
                 return fallback;
 
             return data.Evaluate(spline, Mathf.Clamp01(normalizedT), PathIndexUnit.Normalized, new UnityEngine.Splines.Interpolators.LerpFloat());
+        }
+
+        private float EvaluateProfileFloat(int splineIndex, string key, float normalizedT, float fallback)
+        {
+            if (Container == null || splineIndex < 0 || splineIndex >= Container.Splines.Count)
+                return fallback;
+
+            Spline spline = Container[splineIndex];
+            if (!spline.TryGetFloatData(key, out SplineData<float> data) || data.Count == 0)
+                return fallback;
+
+            // Width and height are shape profiles, not generic metadata. SmoothStep is non-overshooting and
+            // reaches zero slope at each authored knot, removing the hard chamber/throat crease rings that
+            // remain visible even when procedural surface noise is disabled.
+            return data.Evaluate(spline, Mathf.Clamp01(normalizedT), PathIndexUnit.Normalized,
+                new UnityEngine.Splines.Interpolators.SmoothStepFloat());
         }
     }
 }

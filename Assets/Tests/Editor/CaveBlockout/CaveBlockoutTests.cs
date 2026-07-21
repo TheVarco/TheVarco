@@ -42,15 +42,17 @@ namespace CaveBlockout.Tests
             Spline mainSpline = mainRoute.Container[0];
             AssertEmbeddedData(mainSpline, true);
             Assert.That(mainRoute.Portals.Select(portal => portal.zoneId), Is.EquivalentTo(new[] { "Z2", "Z4", "Z6" }));
-            Assert.That(mainRoute.NoiseSettings.enabled, Is.True);
-            Assert.That(mainRoute.NoiseSettings.amplitudeMeters, Is.EqualTo(3.2f).Within(0.001f));
-            Assert.That(mainRoute.NoiseSettings.strengthGain, Is.EqualTo(1.5f).Within(0.001f));
-            Assert.That(mainRoute.NoiseSettings.maximumDisplacementRatio, Is.EqualTo(0.3f).Within(0.001f));
+            Assert.That(mainRoute.NoiseSettings.enabled, Is.False);
+            Assert.That(mainRoute.NoiseSettings.amplitudeMeters, Is.Zero.Within(0.001f));
+            Assert.That(mainRoute.NoiseSettings.visualDetailEnabled, Is.False);
 
             Assert.That(branches.Container.Splines.Count, Is.EqualTo(3));
             for (int i = 0; i < branches.Container.Splines.Count; i++)
                 AssertEmbeddedData(branches.Container[i], false);
             Assert.That(branches.Definitions.All(definition => definition.sections.Single().capEnd), Is.True);
+            Assert.That(branches.NoiseSettings.enabled, Is.False);
+            Assert.That(branches.NoiseSettings.amplitudeMeters, Is.Zero.Within(0.001f));
+            Assert.That(branches.NoiseSettings.visualDetailEnabled, Is.False);
         }
 
         [Test]
@@ -169,18 +171,24 @@ namespace CaveBlockout.Tests
         }
 
         [Test]
-        public void Noise_IsDeterministicContinuousAndFadesAtPortals()
+        public void NoiseToggle_RefreshesTheLiveVisualMeshAndRestoresExactSmoothGeometry()
         {
-            FindRoutes(out CaveRoute mainRoute, out _);
+            FindRoutes(out CaveRoute mainRoute, out CaveRoute branches);
             Transform generated = GameObject.Find(CaveBlockoutBuilder.RootName).transform.Find("Generated");
             MeshFilter filter = generated.GetComponentInChildren<MeshFilter>(true);
             MeshCollider collider = filter.GetComponent<MeshCollider>();
-            if (mainRoute.NoiseSettings.visualDetailEnabled)
-                Assert.That(filter.sharedMesh.vertices.SequenceEqual(collider.sharedMesh.vertices), Is.False,
-                    "Visual-only detail should not leak into the smooth collider mesh.");
-            else
-                CollectionAssert.AreEqual(filter.sharedMesh.vertices, collider.sharedMesh.vertices,
-                    "Structural noise must match the collider when visual detail is disabled.");
+            Mesh liveVisualAsset = filter.sharedMesh;
+
+            mainRoute.NoiseSettings.ApplySmoothPreset();
+            branches.NoiseSettings.ApplySmoothPreset();
+            CaveBlockoutBuilder.RegenerateCurrentScene(false);
+            filter = generated.GetComponentInChildren<MeshFilter>(true);
+            collider = filter.GetComponent<MeshCollider>();
+            Assert.That(filter.sharedMesh, Is.SameAs(liveVisualAsset),
+                "Regeneration must refresh the existing asset so its GUID and live renderer reference remain stable.");
+            Vector3[] smoothVertices = filter.sharedMesh.vertices;
+            CollectionAssert.AreEqual(smoothVertices, collider.sharedMesh.vertices,
+                "Disabling all noise must produce identical visual and collision geometry.");
 
             float totalLength = mainRoute.Container.CalculateLength(0);
             Assert.That(CaveMeshGenerator.EvaluateMainNoiseWeight(mainRoute, 0f), Is.Zero.Within(0.0001f));
@@ -192,17 +200,25 @@ namespace CaveBlockout.Tests
                     portal.mainDistanceMeters + 16f + mainRoute.NoiseSettings.portalFadeDistance + 0.5f), Is.GreaterThan(0.99f));
             }
 
-            Vector3[] original = filter.sharedMesh.vertices;
-            int originalSeed = mainRoute.NoiseSettings.seed;
-            mainRoute.NoiseSettings.seed = originalSeed + 1;
+            mainRoute.NoiseSettings.ApplyStrongPreset();
             CaveBlockoutBuilder.RegenerateCurrentScene(false);
-            Vector3[] changed = generated.GetComponentInChildren<MeshFilter>(true).sharedMesh.vertices;
-            Assert.That(changed.SequenceEqual(original), Is.False, "Changing the seed must change generated geometry.");
+            filter = generated.GetComponentInChildren<MeshFilter>(true);
+            collider = filter.GetComponent<MeshCollider>();
+            Assert.That(filter.sharedMesh, Is.SameAs(liveVisualAsset));
+            Assert.That(filter.sharedMesh.vertices.SequenceEqual(smoothVertices), Is.False,
+                "Enabling strong noise must immediately change the live visual mesh.");
+            Assert.That(filter.sharedMesh.vertices.SequenceEqual(collider.sharedMesh.vertices), Is.False,
+                "Visual-only detail must not leak into collision geometry.");
 
-            mainRoute.NoiseSettings.seed = originalSeed;
+            mainRoute.NoiseSettings.ApplySmoothPreset();
+            branches.NoiseSettings.ApplySmoothPreset();
             CaveBlockoutBuilder.RegenerateCurrentScene(false);
-            Vector3[] restored = generated.GetComponentInChildren<MeshFilter>(true).sharedMesh.vertices;
-            CollectionAssert.AreEqual(original, restored, "Restoring the seed must restore the exact mesh.");
+            filter = generated.GetComponentInChildren<MeshFilter>(true);
+            collider = filter.GetComponent<MeshCollider>();
+            Assert.That(filter.sharedMesh, Is.SameAs(liveVisualAsset));
+            CollectionAssert.AreEqual(smoothVertices, filter.sharedMesh.vertices,
+                "Disabling noise again must restore the exact smooth visual mesh without an asset reload.");
+            CollectionAssert.AreEqual(filter.sharedMesh.vertices, collider.sharedMesh.vertices);
         }
 
         [Test]
@@ -214,6 +230,62 @@ namespace CaveBlockout.Tests
                                                  Mathf.Pow(settings.lacunarity, settings.octaves - 1);
             Assert.That(shortestStructuralWavelength, Is.GreaterThanOrEqualTo(CaveMeshGenerator.SampleSpacing * 2f));
             Assert.That(settings.visualDetailWavelength, Is.GreaterThanOrEqualTo(CaveMeshGenerator.SampleSpacing * 2f));
+        }
+
+        [Test]
+        public void RotationMinimizingFrame_DoesNotCorkscrewAlongHorizontalTurns()
+        {
+            Vector3 previousTangent = Vector3.forward;
+            Vector3 up = Vector3.up;
+            for (int step = 1; step <= 72; step++)
+            {
+                float heading = step * 5f;
+                Vector3 tangent = Quaternion.AngleAxis(heading, Vector3.up) * Vector3.forward;
+                up = CaveMeshGenerator.TransportRotationMinimizingUp(previousTangent, up, tangent);
+
+                Assert.That(Vector3.Dot(up, Vector3.up), Is.GreaterThan(0.9999f),
+                    $"The frame accumulated unintended roll at heading {heading:F0} degrees.");
+                Assert.That(Mathf.Abs(Vector3.Dot(up, tangent)), Is.LessThan(0.0001f));
+                previousTangent = tangent;
+            }
+        }
+
+        [Test]
+        public void WidthAndHeightProfiles_AreSmoothAtKnotsAndNeverOvershoot()
+        {
+            FindRoutes(out CaveRoute mainRoute, out _);
+            Spline spline = mainRoute.Container[0];
+
+            for (int segment = 0; segment < spline.Count - 1; segment++)
+            {
+                float startT = spline.ConvertIndexUnit(segment, PathIndexUnit.Knot, PathIndexUnit.Normalized);
+                float endT = spline.ConvertIndexUnit(segment + 1, PathIndexUnit.Knot, PathIndexUnit.Normalized);
+                float startWidth = mainRoute.EvaluateWidth(0, startT);
+                float endWidth = mainRoute.EvaluateWidth(0, endT);
+                float startHeight = mainRoute.EvaluateHeight(0, startT);
+                float endHeight = mainRoute.EvaluateHeight(0, endT);
+                for (int sample = 0; sample <= 16; sample++)
+                {
+                    float t = Mathf.Lerp(startT, endT, sample / 16f);
+                    Assert.That(mainRoute.EvaluateWidth(0, t),
+                        Is.InRange(Mathf.Min(startWidth, endWidth) - 0.001f,
+                            Mathf.Max(startWidth, endWidth) + 0.001f));
+                    Assert.That(mainRoute.EvaluateHeight(0, t),
+                        Is.InRange(Mathf.Min(startHeight, endHeight) - 0.001f,
+                            Mathf.Max(startHeight, endHeight) + 0.001f));
+                }
+            }
+
+            for (int knot = 1; knot < spline.Count - 1; knot++)
+            {
+                float previousT = spline.ConvertIndexUnit(knot - 1, PathIndexUnit.Knot, PathIndexUnit.Normalized);
+                float knotT = spline.ConvertIndexUnit(knot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
+                float nextT = spline.ConvertIndexUnit(knot + 1, PathIndexUnit.Knot, PathIndexUnit.Normalized);
+                AssertProfileSlopeSettlesAtKnot(t => mainRoute.EvaluateWidth(0, t), previousT, knotT, nextT,
+                    $"width at knot {knot}");
+                AssertProfileSlopeSettlesAtKnot(t => mainRoute.EvaluateHeight(0, t), previousT, knotT, nextT,
+                    $"height at knot {knot}");
+            }
         }
 
         [Test]
@@ -253,9 +325,9 @@ namespace CaveBlockout.Tests
             Assert.That(spline.TryGetFloatData(CaveRoute.WidthDataKey, out SplineData<float> widths), Is.True);
             Assert.That(spline.TryGetFloatData(CaveRoute.HeightDataKey, out SplineData<float> heights), Is.True);
             float expectedWidth = widths.Evaluate(spline, segmentIndex + expectedCurveT, PathIndexUnit.Knot,
-                new UnityEngine.Splines.Interpolators.LerpFloat());
+                new UnityEngine.Splines.Interpolators.SmoothStepFloat());
             float expectedHeight = heights.Evaluate(spline, segmentIndex + expectedCurveT, PathIndexUnit.Knot,
-                new UnityEngine.Splines.Interpolators.LerpFloat());
+                new UnityEngine.Splines.Interpolators.SmoothStepFloat());
             float[] sectionDistances = mainRoute.Definitions.SelectMany(definition => definition.sections)
                 .SelectMany(section => new[] { section.startDistanceMeters, section.endDistanceMeters }).ToArray();
             float[] portalDistances = mainRoute.Portals.Select(portal => portal.mainDistanceMeters).ToArray();
@@ -386,6 +458,25 @@ namespace CaveBlockout.Tests
             }
             Assert.Fail($"No spline data point exists at knot {knotIndex}.");
             return default;
+        }
+
+        private static void AssertProfileSlopeSettlesAtKnot(System.Func<float, float> evaluate,
+            float previousT, float knotT, float nextT, string label)
+        {
+            float h = Mathf.Min(knotT - previousT, nextT - knotT) * 0.02f;
+            float center = evaluate(knotT);
+            AssertQuadraticConvergence(Mathf.Abs(center - evaluate(knotT - h)),
+                Mathf.Abs(center - evaluate(knotT - h * 0.5f)), label + " from the left");
+            AssertQuadraticConvergence(Mathf.Abs(evaluate(knotT + h) - center),
+                Mathf.Abs(evaluate(knotT + h * 0.5f) - center), label + " from the right");
+        }
+
+        private static void AssertQuadraticConvergence(float fullStepDelta, float halfStepDelta, string label)
+        {
+            if (fullStepDelta <= 0.00001f)
+                return;
+            Assert.That(halfStepDelta / fullStepDelta, Is.LessThan(0.35f),
+                label + " retains a linear crease instead of settling to zero slope.");
         }
 
         private static void FindRoutes(out CaveRoute mainRoute, out CaveRoute branches)

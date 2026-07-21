@@ -118,7 +118,7 @@ namespace CaveBlockout.Editor
             if (!spline.TryGetFloatData(key, out SplineData<float> data) || data.Count == 0)
                 return fallback;
             return data.Evaluate(spline, knotT, PathIndexUnit.Knot,
-                new UnityEngine.Splines.Interpolators.LerpFloat());
+                new UnityEngine.Splines.Interpolators.SmoothStepFloat());
         }
 
         private static float EvaluateAngle(Spline spline, string key, int segmentIndex, float curveT)
