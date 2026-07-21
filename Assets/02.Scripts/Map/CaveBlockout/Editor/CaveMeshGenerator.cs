@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -34,7 +35,7 @@ namespace CaveBlockout.Editor
 
     public static class CaveMeshGenerator
     {
-        public const float SampleSpacing = 3f;
+        public const float SampleSpacing = 2f;
         public const float PortalSampleSpacing = 1f;
         public const int Sides = 24;
         public const string GeneratedAssetFolder = "Assets/Generated/CaveBlockout";
@@ -68,13 +69,41 @@ namespace CaveBlockout.Editor
 
             public Mesh ToMesh(string name)
             {
+                CompactUnusedVertices();
                 Mesh mesh = new Mesh { name = name, indexFormat = IndexFormat.UInt32 };
                 mesh.SetVertices(vertices);
                 mesh.SetNormals(normals);
                 mesh.SetUVs(0, uvs);
                 mesh.SetTriangles(triangles, 0, true);
+                mesh.RecalculateNormals();
                 mesh.RecalculateBounds();
                 return mesh;
+            }
+
+            private void CompactUnusedVertices()
+            {
+                int[] remap = Enumerable.Repeat(-1, vertices.Count).ToArray();
+                List<Vector3> compactVertices = new List<Vector3>();
+                List<Vector3> compactNormals = new List<Vector3>();
+                List<Vector2> compactUvs = new List<Vector2>();
+                for (int i = 0; i < triangles.Count; i++)
+                {
+                    int source = triangles[i];
+                    if (remap[source] < 0)
+                    {
+                        remap[source] = compactVertices.Count;
+                        compactVertices.Add(vertices[source]);
+                        compactNormals.Add(normals[source]);
+                        compactUvs.Add(uvs[source]);
+                    }
+                    triangles[i] = remap[source];
+                }
+                vertices.Clear();
+                vertices.AddRange(compactVertices);
+                normals.Clear();
+                normals.AddRange(compactNormals);
+                uvs.Clear();
+                uvs.AddRange(compactUvs);
             }
         }
 
@@ -111,8 +140,8 @@ namespace CaveBlockout.Editor
             ClearChildren(generatedRoot);
             PruneLegacyMeshAssets();
 
-            Mesh visualGenerated = BuildCombinedShell(mainRoute, branches, generatedRoot, "CaveShell");
-            Mesh colliderGenerated = BuildCombinedShell(mainRoute, branches, generatedRoot, "CaveShell_Collider");
+            Mesh visualGenerated = BuildCombinedShell(mainRoute, branches, generatedRoot, "CaveShell", true);
+            Mesh colliderGenerated = BuildCombinedShell(mainRoute, branches, generatedRoot, "CaveShell_Collider", false);
             Mesh visualAsset = SaveMeshAsset(visualGenerated, VisualMeshPath);
             Mesh colliderAsset = SaveMeshAsset(colliderGenerated, ColliderMeshPath);
 
@@ -134,13 +163,15 @@ namespace CaveBlockout.Editor
             return new CaveMeshGenerationResult(visualAsset.triangles.Length / 3, topology);
         }
 
-        private static Mesh BuildCombinedShell(CaveRoute mainRoute, CaveRoute branches, Transform outputSpace, string meshName)
+        private static Mesh BuildCombinedShell(CaveRoute mainRoute, CaveRoute branches, Transform outputSpace, string meshName, bool allowVisualDetail)
         {
             CaveRouteSplineDefinition mainDefinition = mainRoute.Definitions.First(definition => definition.isMainRoute);
             float mainLength = mainRoute.Container.CalculateLength(mainDefinition.splineIndex);
             List<float> mainDistances = BuildMainDistances(mainRoute, mainLength);
             MeshBuilder builder = new MeshBuilder();
-            TubeRings main = BuildTubeVertices(builder, mainRoute, mainDefinition.splineIndex, mainDistances, Sides, outputSpace);
+            TubeRings main = BuildTubeVertices(builder, mainRoute, mainDefinition.splineIndex, mainDistances, Sides, outputSpace,
+                null, mainRoute.NoiseSettings, allowVisualDetail,
+                distance => EvaluateMainNoiseWeight(mainRoute, distance, mainLength));
             List<PortalCarve> carves = BuildPortalCarves(mainRoute, branches, main, outputSpace);
 
             for (int ring = 0; ring < main.indices.Count - 1; ring++)
@@ -169,7 +200,8 @@ namespace CaveBlockout.Editor
                 float[] branchAngles = BuildBoundaryAngles(builder.vertices, sleeveLoop, branches,
                     carve.portal.branchSplineIndex, carve.branchStartDistance, outputSpace);
                 TubeRings branch = BuildTubeVertices(builder, branches, carve.portal.branchSplineIndex, branchDistances,
-                    branchSides, outputSpace, branchAngles);
+                    branchSides, outputSpace, branchAngles, mainRoute.NoiseSettings, allowVisualDetail,
+                    distance => EvaluateBranchNoiseWeight(mainRoute.NoiseSettings, distance, carve.branchStartDistance, branchLength));
                 for (int ring = 0; ring < branch.indices.Count - 1; ring++)
                 {
                     for (int side = 0; side < branchSides; side++)
@@ -223,7 +255,8 @@ namespace CaveBlockout.Editor
         }
 
         private static TubeRings BuildTubeVertices(MeshBuilder builder, CaveRoute route, int splineIndex, IReadOnlyList<float> distances,
-            int sideCount, Transform outputSpace, IReadOnlyList<float> sideAngles = null)
+            int sideCount, Transform outputSpace, IReadOnlyList<float> sideAngles = null, CaveNoiseSettings noiseSettings = null,
+            bool allowVisualDetail = false, Func<float, float> noiseWeightResolver = null)
         {
             TubeRings tube = new TubeRings();
             Vector3 previousWorldTangent = Vector3.forward;
@@ -267,7 +300,9 @@ namespace CaveBlockout.Editor
                 {
                     float angle = sideAngles != null ? sideAngles[side] : side / (float)sideCount * Mathf.PI * 2f;
                     Vector3 radial = right * (Mathf.Cos(angle) * widthRadius) + up * (Mathf.Sin(angle) * heightRadius);
-                    ringIndices[side] = builder.AddVertex(center + radial, -radial.normalized,
+                    float noiseWeight = noiseWeightResolver != null ? Mathf.Clamp01(noiseWeightResolver(distance)) : 1f;
+                    Vector3 vertex = ApplyNoise(center + radial, radial, angle, noiseSettings, allowVisualDetail, noiseWeight);
+                    ringIndices[side] = builder.AddVertex(vertex, -radial.normalized,
                         new Vector2(side / (float)sideCount, distance / 5f));
                 }
 
@@ -282,6 +317,82 @@ namespace CaveBlockout.Editor
                 previousWorldUp = upWorld;
             }
             return tube;
+        }
+
+        public static float EvaluateMainNoiseWeight(CaveRoute mainRoute, float distanceMeters)
+        {
+            float length = mainRoute != null && mainRoute.Container.Splines.Count > 0
+                ? mainRoute.Container.CalculateLength(0)
+                : 0f;
+            return EvaluateMainNoiseWeight(mainRoute, distanceMeters, length);
+        }
+
+        private static float EvaluateMainNoiseWeight(CaveRoute mainRoute, float distanceMeters, float totalLength)
+        {
+            if (mainRoute == null) return 1f;
+            CaveNoiseSettings settings = mainRoute.NoiseSettings;
+            float fade = Mathf.Max(0.1f, settings.portalFadeDistance);
+            float weight = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(distanceMeters / fade));
+            weight = Mathf.Min(weight, Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((totalLength - distanceMeters) / fade)));
+            foreach (CavePortalDefinition portal in mainRoute.Portals)
+            {
+                float delta = Mathf.Abs(distanceMeters - ResolvePortalDistance(mainRoute, portal));
+                float portalWeight = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((delta - 16f) / fade));
+                weight = Mathf.Min(weight, portalWeight);
+            }
+            return weight;
+        }
+
+        private static float EvaluateBranchNoiseWeight(CaveNoiseSettings settings, float distance, float start, float end)
+        {
+            float fade = Mathf.Max(0.1f, settings.portalFadeDistance);
+            float fromStart = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((distance - start) / fade));
+            float fromEnd = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((end - distance) / fade));
+            return Mathf.Min(fromStart, fromEnd);
+        }
+
+        private static Vector3 ApplyNoise(Vector3 position, Vector3 radial, float angle, CaveNoiseSettings settings,
+            bool allowVisualDetail, float weight)
+        {
+            if (settings == null || !settings.enabled || settings.amplitudeMeters <= 0f || weight <= 0f)
+                return position;
+
+            float vertical = Mathf.Sin(angle);
+            float surfaceMultiplier = vertical >= 0f
+                ? Mathf.Lerp(settings.wallMultiplier, settings.ceilingMultiplier, vertical)
+                : Mathf.Lerp(settings.wallMultiplier, settings.floorMultiplier, -vertical);
+            float radius = radial.magnitude;
+            float requestedAmplitude = settings.amplitudeMeters * Mathf.Max(0f, surfaceMultiplier);
+            float clearanceSurplus = Mathf.Max(0f, radius - 2.5f);
+            float structuralAmplitude = Mathf.Min(requestedAmplitude, radius * 0.15f, clearanceSurplus) * weight;
+            float structural = FractalNoise(position, settings.seed, settings.wavelengthMeters, settings.octaves,
+                settings.lacunarity, settings.persistence) * structuralAmplitude;
+
+            float visualDetail = 0f;
+            if (allowVisualDetail && settings.visualDetailEnabled && settings.visualDetailAmplitude > 0f)
+            {
+                float signed = FractalNoise(position, settings.seed + 7919, settings.visualDetailWavelength, 2, 2f, 0.5f);
+                visualDetail = -(signed * 0.5f + 0.5f) * Mathf.Min(0.15f, settings.visualDetailAmplitude) * weight;
+            }
+            return position + radial.normalized * (structural + visualDetail);
+        }
+
+        private static float FractalNoise(Vector3 position, int seed, float wavelength, int octaves, float lacunarity, float persistence)
+        {
+            float3 sample = new float3(position.x, position.y, position.z) / Mathf.Max(0.1f, wavelength);
+            sample += new float3(seed * 0.017f, seed * 0.031f, seed * 0.047f);
+            float amplitude = 1f;
+            float total = 0f;
+            float normalization = 0f;
+            int octaveCount = Mathf.Clamp(octaves, 1, 4);
+            for (int octave = 0; octave < octaveCount; octave++)
+            {
+                total += noise.snoise(sample) * amplitude;
+                normalization += amplitude;
+                sample *= Mathf.Max(1f, lacunarity);
+                amplitude *= Mathf.Clamp(persistence, 0.1f, 0.9f);
+            }
+            return normalization > 0f ? total / normalization : 0f;
         }
 
         private static List<PortalCarve> BuildPortalCarves(CaveRoute mainRoute, CaveRoute branches, TubeRings main, Transform outputSpace)

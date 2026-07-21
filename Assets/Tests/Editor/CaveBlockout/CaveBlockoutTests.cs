@@ -42,6 +42,8 @@ namespace CaveBlockout.Tests
             Spline mainSpline = mainRoute.Container[0];
             AssertEmbeddedData(mainSpline, true);
             Assert.That(mainRoute.Portals.Select(portal => portal.zoneId), Is.EquivalentTo(new[] { "Z2", "Z4", "Z6" }));
+            Assert.That(mainRoute.NoiseSettings.enabled, Is.True);
+            Assert.That(mainRoute.NoiseSettings.amplitudeMeters, Is.EqualTo(0.8f).Within(0.001f));
 
             Assert.That(branches.Container.Splines.Count, Is.EqualTo(3));
             for (int i = 0; i < branches.Container.Splines.Count; i++)
@@ -118,6 +120,50 @@ namespace CaveBlockout.Tests
         }
 
         [Test]
+        public void Noise_IsDeterministicContinuousAndFadesAtPortals()
+        {
+            FindRoutes(out CaveRoute mainRoute, out _);
+            Transform generated = GameObject.Find(CaveBlockoutBuilder.RootName).transform.Find("Generated");
+            MeshFilter filter = generated.GetComponentInChildren<MeshFilter>(true);
+            MeshCollider collider = filter.GetComponent<MeshCollider>();
+            CollectionAssert.AreEqual(filter.sharedMesh.vertices, collider.sharedMesh.vertices,
+                "Structural noise must match the collider when visual detail is disabled.");
+
+            float totalLength = mainRoute.Container.CalculateLength(0);
+            Assert.That(CaveMeshGenerator.EvaluateMainNoiseWeight(mainRoute, 0f), Is.Zero.Within(0.0001f));
+            Assert.That(CaveMeshGenerator.EvaluateMainNoiseWeight(mainRoute, totalLength), Is.Zero.Within(0.0001f));
+            foreach (CavePortalDefinition portal in mainRoute.Portals)
+            {
+                Assert.That(CaveMeshGenerator.EvaluateMainNoiseWeight(mainRoute, portal.mainDistanceMeters), Is.Zero.Within(0.0001f));
+                Assert.That(CaveMeshGenerator.EvaluateMainNoiseWeight(mainRoute,
+                    portal.mainDistanceMeters + 16f + mainRoute.NoiseSettings.portalFadeDistance + 0.5f), Is.GreaterThan(0.99f));
+            }
+
+            Vector3[] original = filter.sharedMesh.vertices;
+            int originalSeed = mainRoute.NoiseSettings.seed;
+            mainRoute.NoiseSettings.seed = originalSeed + 1;
+            CaveBlockoutBuilder.RegenerateCurrentScene(false);
+            Vector3[] changed = generated.GetComponentInChildren<MeshFilter>(true).sharedMesh.vertices;
+            Assert.That(changed.SequenceEqual(original), Is.False, "Changing the seed must change generated geometry.");
+
+            mainRoute.NoiseSettings.seed = originalSeed;
+            CaveBlockoutBuilder.RegenerateCurrentScene(false);
+            Vector3[] restored = generated.GetComponentInChildren<MeshFilter>(true).sharedMesh.vertices;
+            CollectionAssert.AreEqual(original, restored, "Restoring the seed must restore the exact mesh.");
+        }
+
+        [Test]
+        public void RoughNoisePreset_StaysWithinMeshSamplingBandwidth()
+        {
+            CaveNoiseSettings settings = new CaveNoiseSettings();
+            settings.ApplyRoughPreset();
+            float shortestStructuralWavelength = settings.wavelengthMeters /
+                                                 Mathf.Pow(settings.lacunarity, settings.octaves - 1);
+            Assert.That(shortestStructuralWavelength, Is.GreaterThanOrEqualTo(CaveMeshGenerator.SampleSpacing * 2f));
+            Assert.That(settings.visualDetailWavelength, Is.GreaterThanOrEqualTo(CaveMeshGenerator.SampleSpacing * 2f));
+        }
+
+        [Test]
         public void ReviewCapture_WritesExpectedEvidenceWithoutDirtyingScene()
         {
             FindRoutes(out CaveRoute mainRoute, out CaveRoute branches);
@@ -142,6 +188,8 @@ namespace CaveBlockout.Tests
                 "Review renders are near-identical; output may be blank or headless.");
             Assert.That(manifest.shots.All(shot => File.Exists(Path.Combine(output, shot.file))), Is.True);
             Assert.That(manifest.shots.All(shot => new FileInfo(Path.Combine(output, shot.file)).Length > 1000), Is.True);
+            Assert.That(manifest.noise.seed, Is.EqualTo(mainRoute.NoiseSettings.seed));
+            Assert.That(manifest.noise.amplitudeMeters, Is.EqualTo(mainRoute.NoiseSettings.amplitudeMeters).Within(0.001f));
             Assert.That(EditorSceneManager.GetActiveScene().isDirty, Is.EqualTo(wasDirty));
         }
 

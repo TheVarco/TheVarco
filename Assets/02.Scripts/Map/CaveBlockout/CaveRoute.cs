@@ -6,6 +6,64 @@ using UnityEngine.Splines;
 namespace CaveBlockout
 {
     [Serializable]
+    public sealed class CaveNoiseSettings
+    {
+        public bool enabled = true;
+        public int seed = 1337;
+        [Min(0f)] public float amplitudeMeters = 0.8f;
+        [Min(1f)] public float wavelengthMeters = 12f;
+        [Range(1, 4)] public int octaves = 2;
+        [Min(1f)] public float lacunarity = 2f;
+        [Range(0.1f, 0.9f)] public float persistence = 0.5f;
+        [Range(0f, 2f)] public float floorMultiplier = 1f;
+        [Range(0f, 2f)] public float wallMultiplier = 1f;
+        [Range(0f, 2f)] public float ceilingMultiplier = 1.15f;
+        [Min(1f)] public float portalFadeDistance = 4f;
+        public bool visualDetailEnabled;
+        [Range(0f, 0.15f)] public float visualDetailAmplitude = 0.1f;
+        [Min(1f)] public float visualDetailWavelength = 4f;
+
+        public void ApplySmoothPreset()
+        {
+            enabled = false;
+            amplitudeMeters = 0f;
+            visualDetailEnabled = false;
+        }
+
+        public void ApplyRockyPreset()
+        {
+            enabled = true;
+            amplitudeMeters = 0.8f;
+            wavelengthMeters = 12f;
+            octaves = 2;
+            lacunarity = 2f;
+            persistence = 0.5f;
+            floorMultiplier = 1f;
+            wallMultiplier = 1f;
+            ceilingMultiplier = 1.15f;
+            portalFadeDistance = 4f;
+            visualDetailEnabled = false;
+        }
+
+        public void ApplyRoughPreset()
+        {
+            enabled = true;
+            amplitudeMeters = 1.4f;
+            wavelengthMeters = 8f;
+            octaves = 2;
+            lacunarity = 2f;
+            persistence = 0.5f;
+            floorMultiplier = 1.1f;
+            wallMultiplier = 1f;
+            ceilingMultiplier = 1.25f;
+            portalFadeDistance = 5f;
+            visualDetailEnabled = true;
+            visualDetailAmplitude = 0.12f;
+            visualDetailWavelength = 4f;
+        }
+    }
+
+    [Serializable]
     public sealed class CaveRouteSection
     {
         public string zoneId;
@@ -53,10 +111,12 @@ namespace CaveBlockout
 
         [SerializeField] private List<CaveRouteSplineDefinition> definitions = new List<CaveRouteSplineDefinition>();
         [SerializeField] private List<CavePortalDefinition> portals = new List<CavePortalDefinition>();
+        [SerializeField] private CaveNoiseSettings noiseSettings = new CaveNoiseSettings();
 
         public SplineContainer Container => GetComponent<SplineContainer>();
         public IReadOnlyList<CaveRouteSplineDefinition> Definitions => definitions;
         public IReadOnlyList<CavePortalDefinition> Portals => portals;
+        public CaveNoiseSettings NoiseSettings => noiseSettings;
 
         public void SetDefinitions(List<CaveRouteSplineDefinition> routeDefinitions, List<CavePortalDefinition> portalDefinitions)
         {

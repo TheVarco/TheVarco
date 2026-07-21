@@ -27,6 +27,25 @@ namespace CaveBlockout.Editor
     }
 
     [Serializable]
+    public sealed class CaveReviewNoiseManifest
+    {
+        public bool enabled;
+        public int seed;
+        public float amplitudeMeters;
+        public float wavelengthMeters;
+        public int octaves;
+        public float lacunarity;
+        public float persistence;
+        public float floorMultiplier;
+        public float wallMultiplier;
+        public float ceilingMultiplier;
+        public float portalFadeDistance;
+        public bool visualDetailEnabled;
+        public float visualDetailAmplitude;
+        public float visualDetailWavelength;
+    }
+
+    [Serializable]
     public sealed class CaveReviewManifest
     {
         public string createdUtc;
@@ -37,6 +56,7 @@ namespace CaveBlockout.Editor
         public bool clearanceValidationPassed;
         public string clearanceDetails;
         public int triangleCount;
+        public CaveReviewNoiseManifest noise;
         public List<CaveReviewShotManifest> shots = new List<CaveReviewShotManifest>();
     }
 
@@ -120,7 +140,8 @@ namespace CaveBlockout.Editor
                 routeValidationPassed = validation.Passed,
                 clearanceValidationPassed = clearancePassed,
                 clearanceDetails = clearanceDetails,
-                triangleCount = summary != null ? summary.triangleCount : -1
+                triangleCount = summary != null ? summary.triangleCount : -1,
+                noise = BuildNoiseManifest(mainRoute.NoiseSettings)
             };
 
             GameObject cameraObject = null;
@@ -204,6 +225,27 @@ namespace CaveBlockout.Editor
             string manifestPath = Path.Combine(outputDirectory, "manifest.json");
             File.WriteAllText(manifestPath, JsonUtility.ToJson(manifest, true));
             return new CaveReviewCaptureResult(outputDirectory, manifestPath, contactSheetPath, manifest.shots.Count);
+        }
+
+        private static CaveReviewNoiseManifest BuildNoiseManifest(CaveNoiseSettings settings)
+        {
+            return new CaveReviewNoiseManifest
+            {
+                enabled = settings.enabled,
+                seed = settings.seed,
+                amplitudeMeters = settings.amplitudeMeters,
+                wavelengthMeters = settings.wavelengthMeters,
+                octaves = settings.octaves,
+                lacunarity = settings.lacunarity,
+                persistence = settings.persistence,
+                floorMultiplier = settings.floorMultiplier,
+                wallMultiplier = settings.wallMultiplier,
+                ceilingMultiplier = settings.ceilingMultiplier,
+                portalFadeDistance = settings.portalFadeDistance,
+                visualDetailEnabled = settings.visualDetailEnabled,
+                visualDetailAmplitude = settings.visualDetailAmplitude,
+                visualDetailWavelength = settings.visualDetailWavelength
+            };
         }
 
         public static List<CaveReviewViewpoint> BuildViewpoints(CaveRoute mainRoute, CaveRoute branches)
