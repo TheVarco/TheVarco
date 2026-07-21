@@ -56,8 +56,8 @@ namespace CaveBlockout.Tests
             Transform generated = root.transform.Find("Generated");
             MeshFilter[] filters = generated.GetComponentsInChildren<MeshFilter>(true);
             MeshCollider[] colliders = generated.GetComponentsInChildren<MeshCollider>(true);
-            Assert.That(filters.Length, Is.EqualTo(10));
-            Assert.That(colliders.Length, Is.EqualTo(10));
+            Assert.That(filters.Length, Is.EqualTo(1));
+            Assert.That(colliders.Length, Is.EqualTo(1));
 
             int triangles = 0;
             for (int i = 0; i < filters.Length; i++)
@@ -69,14 +69,24 @@ namespace CaveBlockout.Tests
                 Assert.That(visual, Is.Not.SameAs(collision));
                 Assert.That(visual.vertexCount, Is.GreaterThan(0));
                 Assert.That(collision.vertexCount, Is.GreaterThan(0));
+                Assert.That(collision.vertexCount, Is.EqualTo(visual.vertexCount));
+                CollectionAssert.AreEqual(visual.triangles, collision.triangles);
                 Assert.That(visual.normals.All(normal => normal.sqrMagnitude > 0.9f), Is.True);
                 triangles += visual.triangles.Length / 3;
+
+                CaveMeshTopologyReport topology = CaveMeshTopologyAnalyzer.Analyze(visual);
+                Assert.That(topology.boundaryLoopCount, Is.EqualTo(1), "Only the Z7 exit may remain open.");
+                Assert.That(topology.boundaryEdgeCount, Is.EqualTo(CaveMeshGenerator.Sides));
+                Assert.That(topology.nonManifoldEdgeCount, Is.Zero);
+                Assert.That(topology.windingMismatchCount, Is.Zero);
+                Assert.That(topology.degenerateTriangleCount, Is.Zero);
             }
 
             Assert.That(triangles, Is.LessThan(50000));
             CaveValidationSummary summary = Object.FindFirstObjectByType<CaveValidationSummary>(FindObjectsInactive.Include);
             Assert.That(summary, Is.Not.Null);
             Assert.That(summary.triangleCount, Is.EqualTo(triangles));
+            Assert.That(summary.boundaryLoopCount, Is.EqualTo(1));
         }
 
         [Test]
@@ -92,12 +102,17 @@ namespace CaveBlockout.Tests
         {
             Camera camera = Object.FindFirstObjectByType<Camera>(FindObjectsInactive.Include);
             Light light = Object.FindFirstObjectByType<Light>(FindObjectsInactive.Include);
-            Dictionary<string, Hash128> before = GetGeneratedMeshHashes();
+            MeshFilter beforeFilter = GameObject.Find(CaveBlockoutBuilder.RootName).transform.Find("Generated")
+                .GetComponentInChildren<MeshFilter>(true);
+            Vector3[] beforeVertices = beforeFilter.sharedMesh.vertices;
+            int[] beforeTriangles = beforeFilter.sharedMesh.triangles;
 
             CaveBlockoutBuilder.RegenerateCurrentScene(false);
 
-            Dictionary<string, Hash128> after = GetGeneratedMeshHashes();
-            Assert.That(after, Is.EquivalentTo(before));
+            MeshFilter afterFilter = GameObject.Find(CaveBlockoutBuilder.RootName).transform.Find("Generated")
+                .GetComponentInChildren<MeshFilter>(true);
+            CollectionAssert.AreEqual(beforeVertices, afterFilter.sharedMesh.vertices);
+            CollectionAssert.AreEqual(beforeTriangles, afterFilter.sharedMesh.triangles);
             Assert.That(Object.FindFirstObjectByType<Camera>(FindObjectsInactive.Include), Is.SameAs(camera));
             Assert.That(Object.FindFirstObjectByType<Light>(FindObjectsInactive.Include), Is.SameAs(light));
         }
@@ -155,13 +170,6 @@ namespace CaveBlockout.Tests
             Assert.That(rolls.Count, Is.EqualTo(spline.Count));
             Assert.That(zones.Count, Is.EqualTo(spline.Count));
             Assert.That(portals.Any(point => point.Value > 0), Is.EqualTo(expectPortals));
-        }
-
-        private static Dictionary<string, Hash128> GetGeneratedMeshHashes()
-        {
-            return AssetDatabase.FindAssets("t:Mesh", new[] { CaveMeshGenerator.GeneratedAssetFolder })
-                .Select(AssetDatabase.GUIDToAssetPath)
-                .ToDictionary(path => path, AssetDatabase.GetAssetDependencyHash);
         }
 
         private static void FindRoutes(out CaveRoute mainRoute, out CaveRoute branches)

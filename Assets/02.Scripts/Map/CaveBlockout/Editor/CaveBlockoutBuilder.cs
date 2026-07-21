@@ -46,8 +46,9 @@ namespace CaveBlockout.Editor
             CaveValidationResult routeResult = CaveBlockoutValidator.Validate(mainRoute, branches);
             bool clearancePassed = CaveClearanceValidator.ValidateAll(mainRoute, branches, out string clearanceDetails);
             CaveValidationSummary summary = UnityEngine.Object.FindFirstObjectByType<CaveValidationSummary>(FindObjectsInactive.Include);
-            bool geometryPassed = summary != null && summary.triangleCount < 50000;
-            Debug.Log($"CAVE_VALIDATION route={(routeResult.Passed ? "PASS" : "FAIL")} clearance={(clearancePassed ? "PASS" : "FAIL")} triangles={(summary != null ? summary.triangleCount : -1)}");
+            bool geometryPassed = summary != null && summary.triangleCount < 50000 && summary.boundaryLoopCount == 1 &&
+                                  summary.nonManifoldEdgeCount == 0 && summary.windingMismatchCount == 0 && summary.degenerateTriangleCount == 0;
+            Debug.Log($"CAVE_VALIDATION route={(routeResult.Passed ? "PASS" : "FAIL")} clearance={(clearancePassed ? "PASS" : "FAIL")} triangles={(summary != null ? summary.triangleCount : -1)} boundaryLoops={(summary != null ? summary.boundaryLoopCount : -1)}");
             Debug.Log(clearanceDetails);
             if (!routeResult.Passed || !clearancePassed || !geometryPassed)
                 throw new InvalidOperationException(string.Join("\n", routeResult.issues.Concat(new[] { clearanceDetails })));
@@ -81,7 +82,7 @@ namespace CaveBlockout.Editor
             Material caveMaterial = EnsureMaterial(CaveMaterialPath, new Color(0.16f, 0.27f, 0.34f, 1f), true);
             CaveMeshGenerationResult meshResult = CaveMeshGenerator.GenerateAll(mainRoute, branches, generatedRoot, caveMaterial);
             CreateZoneMarkers(mainRoute, markersRoot);
-            CaveValidationResult validation = CreateValidation(mainRoute, branches, validationRoot, meshResult.triangleCount);
+            CaveValidationResult validation = CreateValidation(mainRoute, branches, validationRoot, meshResult);
             CreatePlaytest(mainRoute, playtestRoot, mainCamera);
 
             EditorSceneManager.MarkSceneDirty(scene);
@@ -112,7 +113,7 @@ namespace CaveBlockout.Editor
             Material caveMaterial = EnsureMaterial(CaveMaterialPath, new Color(0.16f, 0.27f, 0.34f, 1f), true);
             CaveMeshGenerationResult meshResult = CaveMeshGenerator.GenerateAll(mainRoute, branches, generatedRoot, caveMaterial);
             CreateZoneMarkers(mainRoute, markersRoot);
-            CaveValidationResult validation = CreateValidation(mainRoute, branches, validationRoot, meshResult.triangleCount);
+            CaveValidationResult validation = CreateValidation(mainRoute, branches, validationRoot, meshResult);
 
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
             if (saveScene)
@@ -121,13 +122,13 @@ namespace CaveBlockout.Editor
             return validation;
         }
 
-        private static CaveValidationResult CreateValidation(CaveRoute mainRoute, CaveRoute branches, Transform validationRoot, int triangleCount)
+        private static CaveValidationResult CreateValidation(CaveRoute mainRoute, CaveRoute branches, Transform validationRoot, CaveMeshGenerationResult meshResult)
         {
             CaveValidationResult result = CaveBlockoutValidator.Validate(mainRoute, branches);
             GameObject reportObject = new GameObject("BlockoutValidation");
             reportObject.transform.SetParent(validationRoot, false);
             CaveValidationSummary summary = reportObject.AddComponent<CaveValidationSummary>();
-            summary.passed = result.Passed && triangleCount < 50000;
+            summary.passed = result.Passed && meshResult.triangleCount < 50000 && meshResult.topology.IsValidOpenCave;
             summary.routeLength = result.routeLength;
             summary.totalRise = result.totalRise;
             summary.minimumWidth = result.minimumWidth;
@@ -136,10 +137,16 @@ namespace CaveBlockout.Editor
             summary.minimumTurnRadius = result.minimumTurnRadius;
             summary.maximumReverseDrop = result.maximumReverseDrop;
             summary.branchCount = result.branchCount;
-            summary.triangleCount = triangleCount;
+            summary.triangleCount = meshResult.triangleCount;
+            summary.boundaryLoopCount = meshResult.topology.boundaryLoopCount;
+            summary.nonManifoldEdgeCount = meshResult.topology.nonManifoldEdgeCount;
+            summary.windingMismatchCount = meshResult.topology.windingMismatchCount;
+            summary.degenerateTriangleCount = meshResult.topology.degenerateTriangleCount;
             List<string> details = new List<string>(result.issues);
-            if (triangleCount >= 50000)
-                details.Add($"Triangle budget exceeded: {triangleCount}.");
+            if (meshResult.triangleCount >= 50000)
+                details.Add($"Triangle budget exceeded: {meshResult.triangleCount}.");
+            if (!meshResult.topology.IsValidOpenCave)
+                details.Add($"Mesh topology failed: boundaryLoops={meshResult.topology.boundaryLoopCount}, nonManifold={meshResult.topology.nonManifoldEdgeCount}, winding={meshResult.topology.windingMismatchCount}, degenerate={meshResult.topology.degenerateTriangleCount}.");
             summary.details = details.Count == 0 ? "PASS - Guide dimensions and route constraints are satisfied." : string.Join("\n", details);
             return result;
         }
@@ -159,8 +166,9 @@ namespace CaveBlockout.Editor
             for (int i = 0; i < definition.sections.Count; i++)
             {
                 CaveRouteSection section = definition.sections[i];
-                float knot = (section.startKnot + section.endKnot) * 0.5f;
-                float t = spline.ConvertIndexUnit(knot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
+                float startT = mainRoute.ResolveSectionStartT(definition, section);
+                float endT = mainRoute.ResolveSectionEndT(definition, section);
+                float t = Mathf.Lerp(startT, endT, 0.5f);
                 Vector3 position = mainRoute.Container.EvaluatePosition(0, t);
                 Vector3 tangent = ((Vector3)mainRoute.Container.EvaluateTangent(0, t)).normalized;
                 GameObject markerObject = new GameObject(section.zoneId + "_GuideVolume");

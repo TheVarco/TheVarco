@@ -214,11 +214,10 @@ namespace CaveBlockout.Editor
             views.Add(LookAt("Overview_Isometric", overviewPosition, generatedBounds.center, Vector3.up));
 
             CaveRouteSplineDefinition mainDefinition = mainRoute.Definitions.First(definition => definition.isMainRoute);
-            Spline mainSpline = mainRoute.Container[mainDefinition.splineIndex];
             foreach (CaveRouteSection section in mainDefinition.sections)
             {
-                float knot = (section.startKnot + section.endKnot) * 0.5f;
-                float t = mainSpline.ConvertIndexUnit(knot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
+                float t = Mathf.Lerp(mainRoute.ResolveSectionStartT(mainDefinition, section),
+                    mainRoute.ResolveSectionEndT(mainDefinition, section), 0.5f);
                 views.Add(InsideSpline(mainRoute, mainDefinition.splineIndex, t, section.zoneId + "_Mid_Forward"));
             }
 
@@ -226,7 +225,7 @@ namespace CaveBlockout.Editor
             {
                 CaveRouteSection current = mainDefinition.sections[i];
                 CaveRouteSection next = mainDefinition.sections[i + 1];
-                float t = mainSpline.ConvertIndexUnit(current.endKnot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
+                float t = mainRoute.ResolveSectionEndT(mainDefinition, current);
                 Vector3 center = mainRoute.Container.EvaluatePosition(mainDefinition.splineIndex, t);
                 Vector3 tangent = ((Vector3)mainRoute.Container.EvaluateTangent(mainDefinition.splineIndex, t)).normalized;
                 Vector3 up = ((Vector3)mainRoute.Container.EvaluateUpVector(mainDefinition.splineIndex, t)).normalized;
@@ -238,7 +237,7 @@ namespace CaveBlockout.Editor
 
             foreach (CavePortalDefinition portal in mainRoute.Portals)
             {
-                float t = mainSpline.ConvertIndexUnit(portal.mainKnot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
+                float t = mainRoute.ResolvePortalT(portal);
                 Vector3 center = mainRoute.Container.EvaluatePosition(mainDefinition.splineIndex, t);
                 Vector3 tangent = ((Vector3)mainRoute.Container.EvaluateTangent(mainDefinition.splineIndex, t)).normalized;
                 Vector3 up = ((Vector3)mainRoute.Container.EvaluateUpVector(mainDefinition.splineIndex, t)).normalized;

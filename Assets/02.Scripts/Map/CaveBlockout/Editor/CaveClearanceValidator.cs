@@ -42,16 +42,15 @@ namespace CaveBlockout.Editor
                 }
 
                 Spline branchSpline = branches.Container[portal.branchSplineIndex];
-                float wallT = CaveMeshGenerator.FindTAtDistance(
+                float connectionT = CaveMeshGenerator.FindTAtDistance(
                     branches.Container,
                     portal.branchSplineIndex,
                     0f,
                     1f,
-                    branchDefinition.startTrimMeters);
-                float safeWallT = Mathf.Lerp(0f, wallT, 0.98f);
-                if (!ValidateDirection(branches, portal.branchSplineIndex, 0f, safeWallT, out string outwardIssue))
+                    branchDefinition.startTrimMeters + CaveMeshGenerator.BranchCollarDepth + 8f);
+                if (!ValidateDirection(branches, portal.branchSplineIndex, 0f, connectionT, out string outwardIssue))
                     failures.Add(portal.zoneId + " portal outward: " + outwardIssue);
-                if (!ValidateDirection(branches, portal.branchSplineIndex, safeWallT, 0f, out string inwardIssue))
+                if (!ValidateDirection(branches, portal.branchSplineIndex, connectionT, 0f, out string inwardIssue))
                     failures.Add(portal.zoneId + " portal inward: " + inwardIssue);
             }
         }
@@ -63,13 +62,13 @@ namespace CaveBlockout.Editor
 
             foreach (CaveRouteSplineDefinition definition in route.Definitions)
             {
-                Spline spline = route.Container[definition.splineIndex];
                 foreach (CaveRouteSection section in definition.sections)
                 {
-                    float startT = spline.ConvertIndexUnit(section.startKnot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
-                    float endT = spline.ConvertIndexUnit(section.endKnot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
-                    if (definition.startTrimMeters > 0f)
-                        startT = CaveMeshGenerator.FindTAtDistance(route.Container, definition.splineIndex, startT, endT, definition.startTrimMeters);
+                    float startT = route.ResolveSectionStartT(definition, section);
+                    float endT = route.ResolveSectionEndT(definition, section);
+                if (definition.startTrimMeters > 0f)
+                        startT = CaveMeshGenerator.FindTAtDistance(route.Container, definition.splineIndex, startT, endT,
+                            definition.startTrimMeters + CaveMeshGenerator.BranchCollarDepth + 3.5f);
 
                     if (section.capStart)
                         startT = CaveMeshGenerator.FindTAtDistance(route.Container, definition.splineIndex, startT, endT, 4.5f);
@@ -104,7 +103,7 @@ namespace CaveBlockout.Editor
                 Quaternion orientation = Quaternion.LookRotation(delta.normalized, up);
                 if (Physics.BoxCast(previous, SubmarineHalfExtents, delta.normalized, out RaycastHit hit, orientation, delta.magnitude, 1 << 0, QueryTriggerInteraction.Ignore))
                 {
-                    issue = $"blocked by {hit.collider.name} near t={t:F3}.";
+                    issue = $"blocked by {hit.collider.name} near t={t:F3}, hit={hit.point}, from={previous}, toward={current}.";
                     return false;
                 }
                 previous = current;

@@ -14,6 +14,10 @@ namespace CaveBlockout
         public float maximumReverseDrop;
         public int branchCount;
         public int triangleCount;
+        public int boundaryLoopCount;
+        public int nonManifoldEdgeCount;
+        public int windingMismatchCount;
+        public int degenerateTriangleCount;
         [TextArea(3, 12)] public string details;
     }
 }

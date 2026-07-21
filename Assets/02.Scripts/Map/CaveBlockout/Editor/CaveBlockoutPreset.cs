@@ -47,6 +47,11 @@ namespace CaveBlockout.Editor
 
             Spline mainSpline = BuildMainSpline(out List<CaveRouteSection> sections);
             mainContainer.Splines = new[] { mainSpline };
+            foreach (CaveRouteSection section in sections)
+            {
+                section.startDistanceMeters = mainSpline.ConvertIndexUnit(section.startKnot, PathIndexUnit.Knot, PathIndexUnit.Distance);
+                section.endDistanceMeters = mainSpline.ConvertIndexUnit(section.endKnot, PathIndexUnit.Knot, PathIndexUnit.Distance);
+            }
             List<CaveRouteSplineDefinition> mainDefinitions = new List<CaveRouteSplineDefinition>
             {
                 new CaveRouteSplineDefinition
@@ -112,9 +117,10 @@ namespace CaveBlockout.Editor
                 {
                     zoneId = Zones[zoneIndexes[i]].id,
                     mainKnot = mainKnot,
+                    mainDistanceMeters = mainSpline.ConvertIndexUnit(mainKnot, PathIndexUnit.Knot, PathIndexUnit.Distance),
                     branchSplineIndex = i,
                     direction = openingDirection,
-                    longitudinalHalfSize = 10f,
+                    longitudinalHalfSize = Mathf.Max(6f, Zones[zoneIndexes[i]].guideSize.y * 0.2f),
                     angularHalfSize = angularHalfSize
                 });
             }

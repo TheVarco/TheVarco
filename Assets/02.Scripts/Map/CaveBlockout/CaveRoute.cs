@@ -11,6 +11,8 @@ namespace CaveBlockout
         public string zoneId;
         public int startKnot;
         public int endKnot;
+        public float startDistanceMeters = -1f;
+        public float endDistanceMeters = -1f;
         public float nominalLength;
         public Vector2 guideSize;
         public bool capStart;
@@ -32,6 +34,7 @@ namespace CaveBlockout
     {
         public string zoneId;
         public float mainKnot;
+        public float mainDistanceMeters = -1f;
         public int branchSplineIndex;
         public Vector3 direction;
         public float longitudinalHalfSize = 7f;
@@ -74,6 +77,54 @@ namespace CaveBlockout
         public float EvaluateRoll(int splineIndex, float normalizedT)
         {
             return EvaluateFloat(splineIndex, RollDataKey, normalizedT, 0f);
+        }
+
+        public float ResolveSectionStartT(CaveRouteSplineDefinition definition, CaveRouteSection section)
+        {
+            return section.startDistanceMeters >= 0f
+                ? EvaluateTAtDistance(definition.splineIndex, section.startDistanceMeters)
+                : Container[definition.splineIndex].ConvertIndexUnit(section.startKnot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
+        }
+
+        public float ResolveSectionEndT(CaveRouteSplineDefinition definition, CaveRouteSection section)
+        {
+            return section.endDistanceMeters >= 0f
+                ? EvaluateTAtDistance(definition.splineIndex, section.endDistanceMeters)
+                : Container[definition.splineIndex].ConvertIndexUnit(section.endKnot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
+        }
+
+        public float ResolvePortalT(CavePortalDefinition portal)
+        {
+            return portal.mainDistanceMeters >= 0f
+                ? EvaluateTAtDistance(0, portal.mainDistanceMeters)
+                : Container[0].ConvertIndexUnit(portal.mainKnot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
+        }
+
+        public float EvaluateTAtDistance(int splineIndex, float distanceMeters)
+        {
+            if (Container == null || splineIndex < 0 || splineIndex >= Container.Splines.Count)
+                return 0f;
+
+            const int samples = 512;
+            float target = Mathf.Max(0f, distanceMeters);
+            float accumulated = 0f;
+            float previousT = 0f;
+            Vector3 previous = Container.EvaluatePosition(splineIndex, 0f);
+            for (int i = 1; i <= samples; i++)
+            {
+                float t = i / (float)samples;
+                Vector3 current = Container.EvaluatePosition(splineIndex, t);
+                float segment = Vector3.Distance(previous, current);
+                if (accumulated + segment >= target)
+                {
+                    float alpha = segment > 0.0001f ? (target - accumulated) / segment : 0f;
+                    return Mathf.Lerp(previousT, t, alpha);
+                }
+                accumulated += segment;
+                previous = current;
+                previousT = t;
+            }
+            return 1f;
         }
 
         private float EvaluateFloat(int splineIndex, string key, float normalizedT, float fallback)

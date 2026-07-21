@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -11,128 +12,230 @@ namespace CaveBlockout.Editor
     public readonly struct CaveMeshGenerationResult
     {
         public readonly int triangleCount;
+        public readonly CaveMeshTopologyReport topology;
 
-        public CaveMeshGenerationResult(int triangleCount)
+        public CaveMeshGenerationResult(int triangleCount, CaveMeshTopologyReport topology)
         {
             this.triangleCount = triangleCount;
+            this.topology = topology;
         }
+    }
+
+    public sealed class CaveMeshTopologyReport
+    {
+        public int boundaryEdgeCount;
+        public int boundaryLoopCount;
+        public int nonManifoldEdgeCount;
+        public int windingMismatchCount;
+        public int degenerateTriangleCount;
+        public bool IsValidOpenCave => boundaryLoopCount == 1 && nonManifoldEdgeCount == 0 &&
+                                       windingMismatchCount == 0 && degenerateTriangleCount == 0;
     }
 
     public static class CaveMeshGenerator
     {
         public const float SampleSpacing = 3f;
-        public const int Sides = 12;
-        public const float VisualJitter = 0.4f;
+        public const float PortalSampleSpacing = 1f;
+        public const int Sides = 24;
         public const string GeneratedAssetFolder = "Assets/Generated/CaveBlockout";
+        private const string VisualMeshPath = GeneratedAssetFolder + "/CaveShell.asset";
+        private const string ColliderMeshPath = GeneratedAssetFolder + "/CaveShell_Collider.asset";
+        public const float BranchCollarDepth = 10f;
+        private const float StraightSleeveDepth = 3f;
 
-        private readonly struct PortalSample
+        private sealed class MeshBuilder
         {
-            public readonly Vector3 center;
-            public readonly Vector3 direction;
-            public readonly float longitudinalHalfSize;
-            public readonly float cosineThreshold;
+            public readonly List<Vector3> vertices = new List<Vector3>();
+            public readonly List<Vector3> normals = new List<Vector3>();
+            public readonly List<Vector2> uvs = new List<Vector2>();
+            public readonly List<int> triangles = new List<int>();
 
-            public PortalSample(Vector3 center, Vector3 direction, float longitudinalHalfSize, float angularHalfSize)
+            public int AddVertex(Vector3 vertex, Vector3 normal, Vector2 uv)
             {
-                this.center = center;
-                this.direction = direction.normalized;
-                this.longitudinalHalfSize = longitudinalHalfSize;
-                cosineThreshold = Mathf.Cos(angularHalfSize * Mathf.Deg2Rad);
+                int index = vertices.Count;
+                vertices.Add(vertex);
+                normals.Add(normal);
+                uvs.Add(uv);
+                return index;
             }
+
+            public void AddTriangle(int a, int b, int c)
+            {
+                triangles.Add(a);
+                triangles.Add(b);
+                triangles.Add(c);
+            }
+
+            public Mesh ToMesh(string name)
+            {
+                Mesh mesh = new Mesh { name = name, indexFormat = IndexFormat.UInt32 };
+                mesh.SetVertices(vertices);
+                mesh.SetNormals(normals);
+                mesh.SetUVs(0, uvs);
+                mesh.SetTriangles(triangles, 0, true);
+                mesh.RecalculateBounds();
+                return mesh;
+            }
+        }
+
+        private sealed class TubeRings
+        {
+            public readonly List<float> distances = new List<float>();
+            public readonly List<float> normalizedTs = new List<float>();
+            public readonly List<Vector3> centers = new List<Vector3>();
+            public readonly List<Vector3> tangents = new List<Vector3>();
+            public readonly List<Vector3> rights = new List<Vector3>();
+            public readonly List<Vector3> ups = new List<Vector3>();
+            public readonly List<int[]> indices = new List<int[]>();
+            public int SideCount => indices.Count == 0 ? 0 : indices[0].Length;
+        }
+
+        private sealed class PortalCarve
+        {
+            public CavePortalDefinition portal;
+            public CaveRouteSplineDefinition branchDefinition;
+            public int ringStart;
+            public int ringEnd;
+            public int sideStart;
+            public int sideQuads;
+            public float branchStartDistance;
+            public int[] boundaryLoop;
         }
 
         public static CaveMeshGenerationResult GenerateAll(CaveRoute mainRoute, CaveRoute branches, Transform generatedRoot, Material material)
         {
+            if (mainRoute == null || branches == null)
+                throw new ArgumentNullException(nameof(mainRoute), "Both main and branch routes are required.");
+
             EnsureAssetFolder();
             ClearChildren(generatedRoot);
-            int triangleCount = 0;
+            PruneLegacyMeshAssets();
 
-            List<PortalSample> portals = BuildPortalSamples(mainRoute);
-            triangleCount += GenerateRoute(mainRoute, generatedRoot, material, portals);
-            triangleCount += GenerateRoute(branches, generatedRoot, material, null);
+            Mesh visualGenerated = BuildCombinedShell(mainRoute, branches, generatedRoot, "CaveShell");
+            Mesh colliderGenerated = BuildCombinedShell(mainRoute, branches, generatedRoot, "CaveShell_Collider");
+            Mesh visualAsset = SaveMeshAsset(visualGenerated, VisualMeshPath);
+            Mesh colliderAsset = SaveMeshAsset(colliderGenerated, ColliderMeshPath);
+
+            GameObject shellObject = new GameObject("CaveShell");
+            shellObject.transform.SetParent(generatedRoot, false);
+            MeshFilter filter = shellObject.AddComponent<MeshFilter>();
+            MeshRenderer renderer = shellObject.AddComponent<MeshRenderer>();
+            MeshCollider collider = shellObject.AddComponent<MeshCollider>();
+            filter.sharedMesh = visualAsset;
+            renderer.sharedMaterial = material;
+            collider.sharedMesh = colliderAsset;
+            collider.cookingOptions = MeshColliderCookingOptions.CookForFasterSimulation |
+                                      MeshColliderCookingOptions.EnableMeshCleaning |
+                                      MeshColliderCookingOptions.WeldColocatedVertices;
+            shellObject.isStatic = true;
+
+            CaveMeshTopologyReport topology = CaveMeshTopologyAnalyzer.Analyze(visualAsset);
             AssetDatabase.SaveAssets();
-            return new CaveMeshGenerationResult(triangleCount);
+            return new CaveMeshGenerationResult(visualAsset.triangles.Length / 3, topology);
         }
 
-        private static int GenerateRoute(CaveRoute route, Transform generatedRoot, Material material, IReadOnlyList<PortalSample> portals)
+        private static Mesh BuildCombinedShell(CaveRoute mainRoute, CaveRoute branches, Transform outputSpace, string meshName)
         {
-            if (route == null)
-                return 0;
+            CaveRouteSplineDefinition mainDefinition = mainRoute.Definitions.First(definition => definition.isMainRoute);
+            float mainLength = mainRoute.Container.CalculateLength(mainDefinition.splineIndex);
+            List<float> mainDistances = BuildMainDistances(mainRoute, mainLength);
+            MeshBuilder builder = new MeshBuilder();
+            TubeRings main = BuildTubeVertices(builder, mainRoute, mainDefinition.splineIndex, mainDistances, Sides, outputSpace);
+            List<PortalCarve> carves = BuildPortalCarves(mainRoute, branches, main, outputSpace);
 
-            int triangleCount = 0;
-            foreach (CaveRouteSplineDefinition definition in route.Definitions)
+            for (int ring = 0; ring < main.indices.Count - 1; ring++)
             {
-                if (definition.splineIndex < 0 || definition.splineIndex >= route.Container.Splines.Count)
-                    continue;
-
-                Spline spline = route.Container[definition.splineIndex];
-                foreach (CaveRouteSection section in definition.sections)
+                for (int side = 0; side < Sides; side++)
                 {
-                    float startT = spline.ConvertIndexUnit(section.startKnot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
-                    float endT = spline.ConvertIndexUnit(section.endKnot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
-                    if (definition.startTrimMeters > 0f)
-                        startT = FindTAtDistance(route.Container, definition.splineIndex, startT, endT, definition.startTrimMeters);
-
-                    string safeName = Sanitize(definition.routeId + "_" + section.zoneId);
-                    Mesh visualMesh = BuildTubeMesh(route, definition.splineIndex, startT, endT, section.capStart, section.capEnd, true, safeName, generatedRoot, portals);
-                    Mesh colliderMesh = BuildTubeMesh(route, definition.splineIndex, startT, endT, section.capStart, section.capEnd, false, safeName + "_Collider", generatedRoot, portals);
-
-                    Mesh visualAsset = SaveMeshAsset(visualMesh, $"{GeneratedAssetFolder}/{safeName}.asset");
-                    Mesh colliderAsset = SaveMeshAsset(colliderMesh, $"{GeneratedAssetFolder}/{safeName}_Collider.asset");
-
-                    GameObject sectionObject = new GameObject(section.zoneId);
-                    sectionObject.transform.SetParent(generatedRoot, false);
-                    MeshFilter filter = sectionObject.AddComponent<MeshFilter>();
-                    MeshRenderer renderer = sectionObject.AddComponent<MeshRenderer>();
-                    MeshCollider collider = sectionObject.AddComponent<MeshCollider>();
-                    filter.sharedMesh = visualAsset;
-                    renderer.sharedMaterial = material;
-                    collider.sharedMesh = colliderAsset;
-                    collider.cookingOptions = MeshColliderCookingOptions.CookForFasterSimulation |
-                                              MeshColliderCookingOptions.EnableMeshCleaning |
-                                              MeshColliderCookingOptions.WeldColocatedVertices;
-                    sectionObject.isStatic = true;
-                    triangleCount += visualAsset.triangles.Length / 3;
+                    if (IsPortalQuad(ring, side, carves))
+                        continue;
+                    AddTubeQuad(builder, main.indices[ring], main.indices[ring + 1], side);
                 }
             }
 
-            return triangleCount;
+            bool capMainStart = mainDefinition.sections.Count == 0 || mainDefinition.sections[0].capStart;
+            if (capMainStart)
+                AddCap(builder, main.indices[0], main.centers[0], main.tangents[0], true);
+
+            foreach (PortalCarve carve in carves)
+            {
+                carve.boundaryLoop = ExtractBoundaryLoop(main, carve);
+                float branchLength = branches.Container.CalculateLength(carve.portal.branchSplineIndex);
+                List<float> branchDistances = BuildDistanceRange(carve.branchStartDistance, branchLength, SampleSpacing);
+                int branchSides = carve.boundaryLoop.Length;
+                int[] sleeveLoop = CreateStraightSleeve(builder, carve.boundaryLoop, branches,
+                    carve.portal.branchSplineIndex, carve.branchStartDistance, outputSpace);
+                AddCollar(builder, carve.boundaryLoop, sleeveLoop);
+                float[] branchAngles = BuildBoundaryAngles(builder.vertices, sleeveLoop, branches,
+                    carve.portal.branchSplineIndex, carve.branchStartDistance, outputSpace);
+                TubeRings branch = BuildTubeVertices(builder, branches, carve.portal.branchSplineIndex, branchDistances,
+                    branchSides, outputSpace, branchAngles);
+                for (int ring = 0; ring < branch.indices.Count - 1; ring++)
+                {
+                    for (int side = 0; side < branchSides; side++)
+                        AddTubeQuad(builder, branch.indices[ring], branch.indices[ring + 1], side);
+                }
+
+                AddCollar(builder, sleeveLoop, branch.indices[0]);
+                bool capBranchEnd = carve.branchDefinition.sections.Count == 0 || carve.branchDefinition.sections[0].capEnd;
+                if (capBranchEnd)
+                {
+                    int last = branch.indices.Count - 1;
+                    AddCap(builder, branch.indices[last], branch.centers[last], -branch.tangents[last], false);
+                }
+            }
+
+            return builder.ToMesh(meshName);
         }
 
-        private static Mesh BuildTubeMesh(
-            CaveRoute route,
-            int splineIndex,
-            float startT,
-            float endT,
-            bool capStart,
-            bool capEnd,
-            bool addJitter,
-            string meshName,
-            Transform outputSpace,
-            IReadOnlyList<PortalSample> portals)
+        private static List<float> BuildMainDistances(CaveRoute mainRoute, float totalLength)
         {
-            float length = ApproximateLength(route.Container, splineIndex, startT, endT, 96);
-            int ringCount = Mathf.Max(2, Mathf.CeilToInt(length / SampleSpacing) + 1);
-            List<Vector3> vertices = new List<Vector3>(ringCount * Sides + 2);
-            List<Vector3> normals = new List<Vector3>(ringCount * Sides + 2);
-            List<Vector2> uvs = new List<Vector2>(ringCount * Sides + 2);
-            List<int> triangles = new List<int>((ringCount - 1) * Sides * 6);
-            Vector3[] centers = new Vector3[ringCount];
-            Vector3[] tangents = new Vector3[ringCount];
-            Vector3[] rights = new Vector3[ringCount];
-            Vector3[] ups = new Vector3[ringCount];
-
-            Vector3 previousTangent = Vector3.forward;
-            Vector3 previousUp = Vector3.up;
-            for (int ring = 0; ring < ringCount; ring++)
+            List<float> distances = BuildDistanceRange(0f, totalLength, SampleSpacing);
+            foreach (CavePortalDefinition portal in mainRoute.Portals)
             {
-                float alpha = ring / (float)(ringCount - 1);
-                float t = Mathf.Lerp(startT, endT, alpha);
+                float center = ResolvePortalDistance(mainRoute, portal);
+                const float halfLength = 18f;
+                for (float offset = -halfLength - 1f; offset <= halfLength + 1.001f; offset += PortalSampleSpacing)
+                    distances.Add(Mathf.Clamp(center + offset, 0f, totalLength));
+            }
+            return SortAndUnique(distances);
+        }
+
+        private static List<float> BuildDistanceRange(float start, float end, float spacing)
+        {
+            List<float> distances = new List<float> { start };
+            for (float distance = start + spacing; distance < end - 0.01f; distance += spacing)
+                distances.Add(distance);
+            distances.Add(end);
+            return SortAndUnique(distances);
+        }
+
+        private static List<float> SortAndUnique(List<float> values)
+        {
+            values.Sort();
+            List<float> result = new List<float>(values.Count);
+            foreach (float value in values)
+            {
+                if (result.Count == 0 || Mathf.Abs(result[result.Count - 1] - value) > 0.02f)
+                    result.Add(value);
+            }
+            return result;
+        }
+
+        private static TubeRings BuildTubeVertices(MeshBuilder builder, CaveRoute route, int splineIndex, IReadOnlyList<float> distances,
+            int sideCount, Transform outputSpace, IReadOnlyList<float> sideAngles = null)
+        {
+            TubeRings tube = new TubeRings();
+            Vector3 previousWorldTangent = Vector3.forward;
+            Vector3 previousWorldUp = Vector3.up;
+            for (int ring = 0; ring < distances.Count; ring++)
+            {
+                float distance = distances[ring];
+                float t = route.EvaluateTAtDistance(splineIndex, distance);
                 Vector3 centerWorld = route.Container.EvaluatePosition(splineIndex, t);
                 Vector3 tangentWorld = ((Vector3)route.Container.EvaluateTangent(splineIndex, t)).normalized;
                 Vector3 packageUp = ((Vector3)route.Container.EvaluateUpVector(splineIndex, t)).normalized;
                 Vector3 upWorld;
-
                 if (ring == 0)
                 {
                     upWorld = Vector3.ProjectOnPlane(packageUp, tangentWorld).normalized;
@@ -143,129 +246,242 @@ namespace CaveBlockout.Editor
                 }
                 else
                 {
-                    Vector3 transportedUp = Quaternion.FromToRotation(previousTangent, tangentWorld) * previousUp;
-                    Vector3 desiredUp = Vector3.ProjectOnPlane(packageUp, tangentWorld).normalized;
-                    if (desiredUp.sqrMagnitude < 0.01f)
-                        desiredUp = transportedUp;
-                    if (Vector3.Dot(desiredUp, transportedUp) < 0f)
-                        desiredUp = -desiredUp;
-                    upWorld = Vector3.Slerp(transportedUp, desiredUp, 0.2f).normalized;
+                    Vector3 transported = Quaternion.FromToRotation(previousWorldTangent, tangentWorld) * previousWorldUp;
+                    Vector3 desired = Vector3.ProjectOnPlane(packageUp, tangentWorld).normalized;
+                    if (desired.sqrMagnitude < 0.01f) desired = transported;
+                    if (Vector3.Dot(desired, transported) < 0f) desired = -desired;
+                    upWorld = Vector3.Slerp(transported, desired, 0.2f).normalized;
                 }
 
-                float roll = route.EvaluateRoll(splineIndex, t);
-                upWorld = Quaternion.AngleAxis(roll, tangentWorld) * upWorld;
+                upWorld = Quaternion.AngleAxis(route.EvaluateRoll(splineIndex, t), tangentWorld) * upWorld;
                 Vector3 rightWorld = Vector3.Cross(upWorld, tangentWorld).normalized;
                 upWorld = Vector3.Cross(tangentWorld, rightWorld).normalized;
-
-                centers[ring] = outputSpace.InverseTransformPoint(centerWorld);
-                tangents[ring] = outputSpace.InverseTransformDirection(tangentWorld).normalized;
-                rights[ring] = outputSpace.InverseTransformDirection(rightWorld).normalized;
-                ups[ring] = outputSpace.InverseTransformDirection(upWorld).normalized;
-                previousTangent = tangentWorld;
-                previousUp = upWorld;
-
+                Vector3 center = outputSpace.InverseTransformPoint(centerWorld);
+                Vector3 tangent = outputSpace.InverseTransformDirection(tangentWorld).normalized;
+                Vector3 right = outputSpace.InverseTransformDirection(rightWorld).normalized;
+                Vector3 up = outputSpace.InverseTransformDirection(upWorld).normalized;
                 float widthRadius = route.EvaluateWidth(splineIndex, t) * 0.5f;
                 float heightRadius = route.EvaluateHeight(splineIndex, t) * 0.5f;
-                for (int side = 0; side < Sides; side++)
+                int[] ringIndices = new int[sideCount];
+                for (int side = 0; side < sideCount; side++)
                 {
-                    float angle = side / (float)Sides * Mathf.PI * 2f;
-                    Vector3 radial = rights[ring] * (Mathf.Cos(angle) * widthRadius) + ups[ring] * (Mathf.Sin(angle) * heightRadius);
-                    if (addJitter)
-                        radial *= 1f + HashSigned(meshName, ring, side) * VisualJitter / Mathf.Max(1f, radial.magnitude);
-
-                    vertices.Add(centers[ring] + radial);
-                    normals.Add(-radial.normalized);
-                    uvs.Add(new Vector2(side / (float)Sides, alpha * length / 5f));
+                    float angle = sideAngles != null ? sideAngles[side] : side / (float)sideCount * Mathf.PI * 2f;
+                    Vector3 radial = right * (Mathf.Cos(angle) * widthRadius) + up * (Mathf.Sin(angle) * heightRadius);
+                    ringIndices[side] = builder.AddVertex(center + radial, -radial.normalized,
+                        new Vector2(side / (float)sideCount, distance / 5f));
                 }
+
+                tube.distances.Add(distance);
+                tube.normalizedTs.Add(t);
+                tube.centers.Add(center);
+                tube.tangents.Add(tangent);
+                tube.rights.Add(right);
+                tube.ups.Add(up);
+                tube.indices.Add(ringIndices);
+                previousWorldTangent = tangentWorld;
+                previousWorldUp = upWorld;
             }
-
-            for (int ring = 0; ring < ringCount - 1; ring++)
-            {
-                for (int side = 0; side < Sides; side++)
-                {
-                    int nextSide = (side + 1) % Sides;
-                    float midAngle = (side + 0.5f) / Sides * Mathf.PI * 2f;
-                    Vector3 radial = (rights[ring] * Mathf.Cos(midAngle) + ups[ring] * Mathf.Sin(midAngle)).normalized;
-                    Vector3 centerWorld = outputSpace.TransformPoint((centers[ring] + centers[ring + 1]) * 0.5f);
-                    Vector3 radialWorld = outputSpace.TransformDirection(radial).normalized;
-                    if (ShouldSkipForPortal(centerWorld, radialWorld, portals))
-                        continue;
-
-                    int a = ring * Sides + side;
-                    int b = ring * Sides + nextSide;
-                    int c = (ring + 1) * Sides + side;
-                    int d = (ring + 1) * Sides + nextSide;
-                    triangles.Add(a);
-                    triangles.Add(c);
-                    triangles.Add(b);
-                    triangles.Add(b);
-                    triangles.Add(c);
-                    triangles.Add(d);
-                }
-            }
-
-            if (capStart)
-                AddCap(vertices, normals, uvs, triangles, centers[0], tangents[0], 0, true);
-            if (capEnd)
-                AddCap(vertices, normals, uvs, triangles, centers[ringCount - 1], -tangents[ringCount - 1], (ringCount - 1) * Sides, false);
-
-            Mesh mesh = new Mesh { name = meshName, indexFormat = IndexFormat.UInt32 };
-            mesh.SetVertices(vertices);
-            mesh.SetNormals(normals);
-            mesh.SetUVs(0, uvs);
-            mesh.SetTriangles(triangles, 0, true);
-            mesh.RecalculateBounds();
-            return mesh;
+            return tube;
         }
 
-        private static void AddCap(List<Vector3> vertices, List<Vector3> normals, List<Vector2> uvs, List<int> triangles, Vector3 center, Vector3 desiredNormal, int ringStart, bool startCap)
+        private static List<PortalCarve> BuildPortalCarves(CaveRoute mainRoute, CaveRoute branches, TubeRings main, Transform outputSpace)
         {
-            int centerIndex = vertices.Count;
-            vertices.Add(center);
-            normals.Add(desiredNormal.normalized);
-            uvs.Add(new Vector2(0.5f, 0.5f));
-
-            for (int side = 0; side < Sides; side++)
+            List<PortalCarve> result = new List<PortalCarve>();
+            foreach (CavePortalDefinition portal in mainRoute.Portals)
             {
-                int a = ringStart + side;
-                int b = ringStart + (side + 1) % Sides;
-                Vector3 cross = Vector3.Cross(vertices[a] - center, vertices[b] - center);
-                bool correctOrder = Vector3.Dot(cross, desiredNormal) > 0f;
-                triangles.Add(centerIndex);
-                triangles.Add(correctOrder ? a : b);
-                triangles.Add(correctOrder ? b : a);
+                CaveRouteSplineDefinition branchDefinition = branches.Definitions.First(definition => definition.splineIndex == portal.branchSplineIndex);
+                float portalDistance = ResolvePortalDistance(mainRoute, portal);
+                float branchStartDistance = Mathf.Min(branches.Container.CalculateLength(portal.branchSplineIndex) - 3f,
+                    branchDefinition.startTrimMeters + BranchCollarDepth);
+                float branchStartT = branches.EvaluateTAtDistance(portal.branchSplineIndex, branchStartDistance);
+                float branchWidth = branches.EvaluateWidth(portal.branchSplineIndex, branchStartT);
+                float branchHeight = branches.EvaluateHeight(portal.branchSplineIndex, branchStartT);
+                float halfLength = Mathf.Max(16f, Mathf.Max(portal.longitudinalHalfSize, branchWidth * 0.5f + 4f));
+                int centerRing = FindClosest(main.distances, portalDistance);
+                int ringStart = FindClosest(main.distances, portalDistance - halfLength);
+                int ringEnd = FindClosest(main.distances, portalDistance + halfLength);
+                ringStart = Mathf.Clamp(ringStart, 1, main.indices.Count - 3);
+                ringEnd = Mathf.Clamp(ringEnd, ringStart + 2, main.indices.Count - 2);
+
+                Vector3 direction = outputSpace.InverseTransformDirection(mainRoute.transform.TransformDirection(portal.direction)).normalized;
+                float x = Vector3.Dot(direction, main.rights[centerRing]);
+                float y = Vector3.Dot(direction, main.ups[centerRing]);
+                float centerAngle = Mathf.Atan2(y, x);
+                if (centerAngle < 0f) centerAngle += Mathf.PI * 2f;
+                float t = main.normalizedTs[centerRing];
+                float widthRadius = mainRoute.EvaluateWidth(0, t) * 0.5f;
+                float heightRadius = mainRoute.EvaluateHeight(0, t) * 0.5f;
+                float cos = Mathf.Cos(centerAngle);
+                float sin = Mathf.Sin(centerAngle);
+                float ellipseRadius = 1f / Mathf.Sqrt(cos * cos / (widthRadius * widthRadius) + sin * sin / (heightRadius * heightRadius));
+                float desiredHalfAngle = Mathf.Asin(Mathf.Clamp((branchHeight * 0.5f + 3f) / Mathf.Max(1f, ellipseRadius), 0.1f, 0.95f));
+                int sideQuads = Mathf.Clamp(Mathf.CeilToInt(desiredHalfAngle * 2f / (Mathf.PI * 2f / Sides)), 8, Sides / 2);
+                int centerSide = Mathf.RoundToInt(centerAngle / (Mathf.PI * 2f) * Sides);
+                int sideStart = centerSide - sideQuads / 2;
+                result.Add(new PortalCarve
+                {
+                    portal = portal,
+                    branchDefinition = branchDefinition,
+                    ringStart = ringStart,
+                    ringEnd = ringEnd,
+                    sideStart = sideStart,
+                    sideQuads = sideQuads,
+                    branchStartDistance = branchStartDistance
+                });
             }
+            return result;
         }
 
-        private static bool ShouldSkipForPortal(Vector3 center, Vector3 radial, IReadOnlyList<PortalSample> portals)
+        private static bool IsPortalQuad(int ring, int side, IReadOnlyList<PortalCarve> carves)
         {
-            if (portals == null)
-                return false;
-
-            foreach (PortalSample portal in portals)
+            foreach (PortalCarve carve in carves)
             {
-                if (Vector3.Distance(center, portal.center) <= portal.longitudinalHalfSize &&
-                    Vector3.Dot(radial, portal.direction) >= portal.cosineThreshold)
+                if (ring < carve.ringStart || ring >= carve.ringEnd)
+                    continue;
+                int relative = Mod(side - carve.sideStart, Sides);
+                if (relative < carve.sideQuads)
                     return true;
             }
             return false;
         }
 
-        private static List<PortalSample> BuildPortalSamples(CaveRoute mainRoute)
+        private static int[] ExtractBoundaryLoop(TubeRings main, PortalCarve carve)
         {
-            List<PortalSample> samples = new List<PortalSample>();
-            if (mainRoute == null || mainRoute.Container.Splines.Count == 0)
-                return samples;
+            List<int> loop = new List<int>();
+            for (int sideOffset = 0; sideOffset <= carve.sideQuads; sideOffset++)
+                loop.Add(main.indices[carve.ringStart][Mod(carve.sideStart + sideOffset, Sides)]);
+            int sideEnd = Mod(carve.sideStart + carve.sideQuads, Sides);
+            for (int ring = carve.ringStart + 1; ring <= carve.ringEnd; ring++)
+                loop.Add(main.indices[ring][sideEnd]);
+            for (int sideOffset = carve.sideQuads - 1; sideOffset >= 0; sideOffset--)
+                loop.Add(main.indices[carve.ringEnd][Mod(carve.sideStart + sideOffset, Sides)]);
+            int sideStart = Mod(carve.sideStart, Sides);
+            for (int ring = carve.ringEnd - 1; ring > carve.ringStart; ring--)
+                loop.Add(main.indices[ring][sideStart]);
+            return loop.ToArray();
+        }
 
-            Spline spline = mainRoute.Container[0];
-            foreach (CavePortalDefinition portal in mainRoute.Portals)
+        private static float[] BuildBoundaryAngles(IReadOnlyList<Vector3> vertices, IReadOnlyList<int> boundaryLoop,
+            CaveRoute branchRoute, int splineIndex, float startDistance, Transform outputSpace)
+        {
+            float t = branchRoute.EvaluateTAtDistance(splineIndex, startDistance);
+            Vector3 tangentWorld = ((Vector3)branchRoute.Container.EvaluateTangent(splineIndex, t)).normalized;
+            Vector3 upWorld = Vector3.ProjectOnPlane(branchRoute.Container.EvaluateUpVector(splineIndex, t), tangentWorld).normalized;
+            if (upWorld.sqrMagnitude < 0.01f) upWorld = Vector3.ProjectOnPlane(Vector3.up, tangentWorld).normalized;
+            Vector3 rightWorld = Vector3.Cross(upWorld, tangentWorld).normalized;
+            upWorld = Vector3.Cross(tangentWorld, rightWorld).normalized;
+            Vector3 right = outputSpace.InverseTransformDirection(rightWorld).normalized;
+            Vector3 up = outputSpace.InverseTransformDirection(upWorld).normalized;
+            Vector3 centroid = Vector3.zero;
+            foreach (int index in boundaryLoop) centroid += vertices[index];
+            centroid /= boundaryLoop.Count;
+
+            Vector2[] projected = new Vector2[boundaryLoop.Count];
+            float signedArea = 0f;
+            for (int i = 0; i < boundaryLoop.Count; i++)
             {
-                float t = spline.ConvertIndexUnit(portal.mainKnot, PathIndexUnit.Knot, PathIndexUnit.Normalized);
-                Vector3 center = mainRoute.Container.EvaluatePosition(0, t);
-                Vector3 direction = mainRoute.transform.TransformDirection(portal.direction).normalized;
-                samples.Add(new PortalSample(center, direction, portal.longitudinalHalfSize, portal.angularHalfSize));
+                Vector3 relative = vertices[boundaryLoop[i]] - centroid;
+                projected[i] = new Vector2(Vector3.Dot(relative, right), Vector3.Dot(relative, up));
             }
-            return samples;
+            for (int i = 0; i < projected.Length; i++)
+            {
+                Vector2 a = projected[i];
+                Vector2 b = projected[(i + 1) % projected.Length];
+                signedArea += a.x * b.y - b.x * a.y;
+            }
+
+            float direction = signedArea >= 0f ? 1f : -1f;
+            float[] angles = new float[boundaryLoop.Count];
+            angles[0] = Mathf.Atan2(projected[0].y, projected[0].x);
+            for (int i = 1; i < projected.Length; i++)
+            {
+                float angle = Mathf.Atan2(projected[i].y, projected[i].x);
+                if (direction > 0f)
+                    while (angle <= angles[i - 1]) angle += Mathf.PI * 2f;
+                else
+                    while (angle >= angles[i - 1]) angle -= Mathf.PI * 2f;
+                angles[i] = angle;
+            }
+
+            return angles;
+        }
+
+        private static int[] CreateStraightSleeve(MeshBuilder builder, IReadOnlyList<int> boundaryLoop,
+            CaveRoute branchRoute, int splineIndex, float branchStartDistance, Transform outputSpace)
+        {
+            Vector3 centroid = Vector3.zero;
+            foreach (int index in boundaryLoop) centroid += builder.vertices[index];
+            centroid /= boundaryLoop.Count;
+            float t = branchRoute.EvaluateTAtDistance(splineIndex, branchStartDistance);
+            Vector3 branchCenter = outputSpace.InverseTransformPoint(branchRoute.Container.EvaluatePosition(splineIndex, t));
+            Vector3 direction = (branchCenter - centroid).normalized;
+            int[] sleeve = new int[boundaryLoop.Count];
+            for (int i = 0; i < boundaryLoop.Count; i++)
+            {
+                int source = boundaryLoop[i];
+                sleeve[i] = builder.AddVertex(builder.vertices[source] + direction * StraightSleeveDepth,
+                    builder.normals[source], builder.uvs[source]);
+            }
+            return sleeve;
+        }
+
+        private static void AddCollar(MeshBuilder builder, IReadOnlyList<int> mainLoop, IReadOnlyList<int> branchLoop)
+        {
+            for (int i = 0; i < mainLoop.Count; i++)
+            {
+                int next = (i + 1) % mainLoop.Count;
+                int mainA = mainLoop[i];
+                int mainB = mainLoop[next];
+                int branchA = branchLoop[i];
+                int branchB = branchLoop[next];
+                builder.AddTriangle(mainA, branchA, mainB);
+                builder.AddTriangle(mainB, branchA, branchB);
+            }
+        }
+
+        private static void AddTubeQuad(MeshBuilder builder, IReadOnlyList<int> current, IReadOnlyList<int> next, int side)
+        {
+            int nextSide = (side + 1) % current.Count;
+            int a = current[side];
+            int b = current[nextSide];
+            int c = next[side];
+            int d = next[nextSide];
+            builder.AddTriangle(a, c, b);
+            builder.AddTriangle(b, c, d);
+        }
+
+        private static void AddCap(MeshBuilder builder, IReadOnlyList<int> ring, Vector3 center, Vector3 normal, bool startCap)
+        {
+            int centerIndex = builder.AddVertex(center, normal.normalized, new Vector2(0.5f, 0.5f));
+            for (int side = 0; side < ring.Count; side++)
+            {
+                int a = ring[side];
+                int b = ring[(side + 1) % ring.Count];
+                if (startCap) builder.AddTriangle(centerIndex, a, b);
+                else builder.AddTriangle(centerIndex, b, a);
+            }
+        }
+
+        private static int FindClosest(IReadOnlyList<float> values, float target)
+        {
+            int best = 0;
+            float bestDistance = float.PositiveInfinity;
+            for (int i = 0; i < values.Count; i++)
+            {
+                float distance = Mathf.Abs(values[i] - target);
+                if (distance >= bestDistance) continue;
+                bestDistance = distance;
+                best = i;
+            }
+            return best;
+        }
+
+        private static float ResolvePortalDistance(CaveRoute mainRoute, CavePortalDefinition portal)
+        {
+            if (portal.mainDistanceMeters >= 0f)
+                return portal.mainDistanceMeters;
+            float t = mainRoute.ResolvePortalT(portal);
+            return ApproximateLength(mainRoute.Container, 0, 0f, t, 256);
         }
 
         public static float ApproximateLength(SplineContainer container, int splineIndex, float startT, float endT, int samples)
@@ -305,6 +521,12 @@ namespace CaveBlockout.Editor
             return endT;
         }
 
+        private static int Mod(int value, int modulus)
+        {
+            int result = value % modulus;
+            return result < 0 ? result + modulus : result;
+        }
+
         private static Mesh SaveMeshAsset(Mesh generated, string path)
         {
             Mesh existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
@@ -313,33 +535,20 @@ namespace CaveBlockout.Editor
                 AssetDatabase.CreateAsset(generated, path);
                 return generated;
             }
-
             EditorUtility.CopySerialized(generated, existing);
             UnityEngine.Object.DestroyImmediate(generated);
             EditorUtility.SetDirty(existing);
             return existing;
         }
 
-        private static float HashSigned(string key, int ring, int side)
+        private static void PruneLegacyMeshAssets()
         {
-            unchecked
+            foreach (string guid in AssetDatabase.FindAssets("t:Mesh", new[] { GeneratedAssetFolder }))
             {
-                uint hash = 2166136261u;
-                for (int i = 0; i < key.Length; i++)
-                    hash = (hash ^ key[i]) * 16777619u;
-                hash = (hash ^ (uint)ring) * 16777619u;
-                hash = (hash ^ (uint)side) * 16777619u;
-                hash ^= hash >> 13;
-                hash *= 1274126177u;
-                return (hash / (float)uint.MaxValue) * 2f - 1f;
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (path == VisualMeshPath || path == ColliderMeshPath) continue;
+                AssetDatabase.DeleteAsset(path);
             }
-        }
-
-        private static string Sanitize(string value)
-        {
-            foreach (char invalid in Path.GetInvalidFileNameChars())
-                value = value.Replace(invalid, '_');
-            return value.Replace(' ', '_');
         }
 
         private static void EnsureAssetFolder()
@@ -354,6 +563,110 @@ namespace CaveBlockout.Editor
         {
             for (int i = root.childCount - 1; i >= 0; i--)
                 UnityEngine.Object.DestroyImmediate(root.GetChild(i).gameObject);
+        }
+    }
+
+    public static class CaveMeshTopologyAnalyzer
+    {
+        private readonly struct EdgeKey : IEquatable<EdgeKey>
+        {
+            public readonly int min;
+            public readonly int max;
+
+            public EdgeKey(int a, int b)
+            {
+                min = Mathf.Min(a, b);
+                max = Mathf.Max(a, b);
+            }
+
+            public bool Equals(EdgeKey other) => min == other.min && max == other.max;
+            public override bool Equals(object obj) => obj is EdgeKey other && Equals(other);
+            public override int GetHashCode() => unchecked(min * 397 ^ max);
+        }
+
+        private sealed class EdgeUse
+        {
+            public int count;
+            public int directionBalance;
+        }
+
+        public static CaveMeshTopologyReport Analyze(Mesh mesh)
+        {
+            CaveMeshTopologyReport report = new CaveMeshTopologyReport();
+            if (mesh == null) return report;
+            Vector3[] vertices = mesh.vertices;
+            int[] triangles = mesh.triangles;
+            Dictionary<EdgeKey, EdgeUse> edges = new Dictionary<EdgeKey, EdgeUse>();
+            for (int i = 0; i < triangles.Length; i += 3)
+            {
+                int a = triangles[i];
+                int b = triangles[i + 1];
+                int c = triangles[i + 2];
+                if (a == b || b == c || c == a || Vector3.Cross(vertices[b] - vertices[a], vertices[c] - vertices[a]).sqrMagnitude < 0.000001f)
+                    report.degenerateTriangleCount++;
+                AddEdge(edges, a, b);
+                AddEdge(edges, b, c);
+                AddEdge(edges, c, a);
+            }
+
+            Dictionary<int, List<int>> boundaryGraph = new Dictionary<int, List<int>>();
+            foreach (KeyValuePair<EdgeKey, EdgeUse> pair in edges)
+            {
+                if (pair.Value.count == 1)
+                {
+                    report.boundaryEdgeCount++;
+                    AddNeighbor(boundaryGraph, pair.Key.min, pair.Key.max);
+                    AddNeighbor(boundaryGraph, pair.Key.max, pair.Key.min);
+                }
+                else if (pair.Value.count != 2)
+                {
+                    report.nonManifoldEdgeCount++;
+                }
+                else if (pair.Value.directionBalance != 0)
+                {
+                    report.windingMismatchCount++;
+                }
+            }
+
+            HashSet<int> visited = new HashSet<int>();
+            foreach (int vertex in boundaryGraph.Keys)
+            {
+                if (!visited.Add(vertex)) continue;
+                report.boundaryLoopCount++;
+                Queue<int> queue = new Queue<int>();
+                queue.Enqueue(vertex);
+                while (queue.Count > 0)
+                {
+                    int current = queue.Dequeue();
+                    foreach (int neighbor in boundaryGraph[current])
+                    {
+                        if (visited.Add(neighbor)) queue.Enqueue(neighbor);
+                    }
+                }
+            }
+            return report;
+        }
+
+        private static void AddEdge(Dictionary<EdgeKey, EdgeUse> edges, int from, int to)
+        {
+            EdgeKey key = new EdgeKey(from, to);
+            if (!edges.TryGetValue(key, out EdgeUse use))
+            {
+                use = new EdgeUse();
+                edges.Add(key, use);
+            }
+            use.count++;
+            use.directionBalance += from == key.min ? 1 : -1;
+        }
+
+        private static void AddNeighbor(Dictionary<int, List<int>> graph, int from, int to)
+        {
+            if (!graph.TryGetValue(from, out List<int> neighbors))
+            {
+                neighbors = new List<int>();
+                graph.Add(from, neighbors);
+            }
+            neighbors.Add(to);
         }
     }
 }
