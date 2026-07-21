@@ -27,6 +27,12 @@ public class PlayerGrabber : MonoBehaviour
 
     private Rigidbody grabbedBody;
     private GrabbableItem grabbedItem;
+    private Animator animator;
+
+    void Awake()
+    {
+        animator = GetComponentInChildren<Animator>();
+    }
 
     void Update()
     {
@@ -97,10 +103,27 @@ public class PlayerGrabber : MonoBehaviour
 
         grabbedBody = bestBody;
         grabbedItem = bestTarget;
+
+        if (animator == null)
+            animator = GetComponentInChildren<Animator>();
+
+        if (animator != null)
+        {
+            animator.SetTrigger("Getting");
+            animator.SetBool("PushPull", true);
+        }
     }
 
     private void Release()
     {
+        if (animator == null)
+            animator = GetComponentInChildren<Animator>();
+
+        if (animator != null)
+        {
+            animator.SetBool("PushPull", false);
+        }
+
         grabbedBody = null;
         grabbedItem = null;
     }
