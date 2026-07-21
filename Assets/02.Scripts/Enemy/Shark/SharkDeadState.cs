@@ -14,7 +14,7 @@ public class SharkDeadState : ISharkState
 
     public void Enter()
     {
-        // TODO : 사망 애니메이션 재생
+        shark.PlayDieAnimation();
 
         // 공격 판정이 켜진 채로 죽지 않도록 정리
         if (shark.AttackHitbox != null)

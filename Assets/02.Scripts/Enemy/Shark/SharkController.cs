@@ -19,6 +19,7 @@ public class SharkController : MonoBehaviour
     [SerializeField] private Animator animator;
     private static readonly int AttackHash = Animator.StringToHash("Attack");
     private static readonly int IdleStateHash = Animator.StringToHash("Idle");
+    private static readonly int DieHash = Animator.StringToHash("Die");
     
     private Transform target;
 
@@ -207,6 +208,11 @@ public class SharkController : MonoBehaviour
     public void PlayIdleAnimation()
     {
         animator.CrossFade(IdleStateHash, 0.1f);
+    }
+    
+    public void PlayDieAnimation()
+    {
+        animator.SetTrigger(DieHash);
     }
     
     // 히트박스 제어
