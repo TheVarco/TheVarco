@@ -17,6 +17,8 @@ public class SharkIdleState : ISharkState
 
     public void Enter()
     {
+        shark.PlayIdleAnimation();
+        
         // Debug.Log("Shark Idle");
         idleTimer = 0f;
         idleWaitTime = Random.Range(shark.IdleWaitMin, shark.IdleWaitMax);

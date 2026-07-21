@@ -14,7 +14,12 @@ public class SharkController : MonoBehaviour
 
     [Header("Attack")]
     [SerializeField] private EnemyAttackHitbox attackHitbox;
-
+    
+    [Header("Animation")]
+    [SerializeField] private Animator animator;
+    private static readonly int AttackHash = Animator.StringToHash("Attack");
+    private static readonly int IdleStateHash = Animator.StringToHash("Idle");
+    
     private Transform target;
 
     // 체력 관리(저장/계산/사망 판정)는 공용 Health 컴포넌트로 관리
@@ -191,6 +196,38 @@ public class SharkController : MonoBehaviour
         target = nearestTarget;
 
         return target != null;
+    }
+    
+    // 애니메이션
+    public void PlayAttackAnimation()
+    {
+        animator.SetTrigger(AttackHash);
+    }
+    
+    public void PlayIdleAnimation()
+    {
+        animator.CrossFade(IdleStateHash, 0.1f);
+    }
+    
+    // 히트박스 제어
+    public void BeginAttackHitbox()
+    {
+        // 공격 상태가 끝난 뒤 늦게 도착한 이벤트 방지
+        if (IsDead || currentStateType != SharkStateType.Attack)
+            return;
+
+        if (attackHitbox == null)
+            return;
+
+        attackHitbox.BeginBite(AttackDamage, gameObject);
+    }
+
+    public void EndAttackHitbox()
+    {
+        if (attackHitbox == null)
+            return;
+
+        attackHitbox.EndBite();
     }
 
     // 상어 시야 범위/시야각을 시각화
