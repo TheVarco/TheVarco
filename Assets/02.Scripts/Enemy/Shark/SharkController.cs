@@ -41,7 +41,9 @@ public class SharkController : MonoBehaviour
     #region SO 데이터 갖고오기
     public float MoveSpeed => enemyData.moveSpeed;
     public float RotateSpeed => enemyData.rotateSpeed;
-    public float ViewRadius => enemyData.viewRadius;
+    public float ProximityDetectRadius => enemyData.ProximityDetectRadius;
+    public float ForwardDetectRadius => enemyData.ForwardDetectRadius;
+    public float LoseTargetRadius => enemyData.loseTargetRadius;
     public float ViewAngle => enemyData.viewAngle;
     public float AttackRange => enemyData.attackRange;
     public float AttackCooldown => enemyData.attackCooldown;
@@ -148,18 +150,24 @@ public class SharkController : MonoBehaviour
         );
     }
 
-    // TODO : 시야에서 사라지면 바로 추적 멈추니까 보완하기
     /// <summary>
     /// 플레이어 탐지 메서드
     /// 상어의 시야각 안에 있고 장애물에 가려지지 않은 가장 가까운 플레이어 찾기
     /// </summary>
     public bool TryFindTarget()
     {
-        Collider[] targetsInRadius = Physics.OverlapSphere(
-            transform.position,
-            enemyData.viewRadius,
-            targetLayer
-            );
+        // 이미 발견한 타깃은 시야각을 벗어나도 계속 추적
+        // 추격 해제 거리 밖으로 나가거나 장애물에 가려졌을 때만 놓친다.
+        if (target != null)
+        {
+            if (CanContinueTracking(target))
+                return true;
+
+            target = null;
+        }
+
+        float searchRadius = Mathf.Max(ForwardDetectRadius, ProximityDetectRadius);
+        Collider[] targetsInRadius = Physics.OverlapSphere(transform.position, searchRadius, targetLayer);
 
         Transform nearestTarget = null;
         float nearestDistance = float.MaxValue;
@@ -168,23 +176,24 @@ public class SharkController : MonoBehaviour
         {
             Transform candidate = targetCollider.transform;
             
-            Vector3 directionToTarget = (candidate.position - transform.position).normalized;
-            
-            float angleToTarget = Vector3.Angle(transform.forward, directionToTarget);
-            
-            if (angleToTarget > enemyData.viewAngle * 0.5f)
+            Vector3 offsetToTarget = candidate.position - transform.position;
+            float distanceToTarget = offsetToTarget.magnitude;
+
+            if (distanceToTarget <= Mathf.Epsilon)
                 continue;
 
-            float distanceToTarget = Vector3.Distance(transform.position, candidate.position);
+            Vector3 directionToTarget = offsetToTarget / distanceToTarget;
+            bool isWithinProximity = distanceToTarget <= ProximityDetectRadius;
+            bool isWithinForward =
+                distanceToTarget <= ForwardDetectRadius &&
+                Vector3.Angle(transform.forward, directionToTarget) <= ViewAngle * 0.5f;
 
-            bool isBlocked = Physics.Raycast(
-                transform.position,
-                directionToTarget,
-                distanceToTarget,
-                obstacleLayer
-            );
-            
-            if (isBlocked)
+            // 가까우면 360도로 감지하고
+            // 멀리 있으면 전방 시야각 안에서만 감지
+            if (!isWithinProximity && !isWithinForward)
+                continue;
+
+            if (IsTargetBlocked(directionToTarget, distanceToTarget))
                 continue;
 
             if (distanceToTarget < nearestDistance)
@@ -197,6 +206,31 @@ public class SharkController : MonoBehaviour
         target = nearestTarget;
 
         return target != null;
+    }
+
+    private bool CanContinueTracking(Transform trackedTarget)
+    {
+        Vector3 offsetToTarget = trackedTarget.position - transform.position;
+        float distanceToTarget = offsetToTarget.magnitude;
+
+        if (distanceToTarget > LoseTargetRadius)
+            return false;
+
+        if (distanceToTarget <= Mathf.Epsilon)
+            return true;
+
+        Vector3 directionToTarget = offsetToTarget / distanceToTarget;
+        return !IsTargetBlocked(directionToTarget, distanceToTarget);
+    }
+
+    private bool IsTargetBlocked(Vector3 directionToTarget, float distanceToTarget)
+    {
+        return Physics.Raycast(
+            transform.position,
+            directionToTarget,
+            distanceToTarget,
+            obstacleLayer
+        );
     }
     
     // 애니메이션
@@ -242,12 +276,20 @@ public class SharkController : MonoBehaviour
         if (enemyData == null)
             return;
 
-        float radius = enemyData.viewRadius;
+        float radius = ForwardDetectRadius;
         float halfAngle = enemyData.viewAngle * 0.5f; // TryFindTarget과 동일하게 좌우 절반씩
 
         // 시야 반경 (탐지 거리)
         Gizmos.color = new Color(1f, 1f, 0f, 0.3f);
         Gizmos.DrawWireSphere(transform.position, radius);
+
+        // 방향과 관계없이 감지하는 근거리 범위
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(transform.position, ProximityDetectRadius);
+
+        // 이미 발견한 타깃을 놓치는 거리
+        Gizmos.color = Color.magenta;
+        Gizmos.DrawWireSphere(transform.position, LoseTargetRadius);
 
         // 시야각 경계선: 정면 기준 좌우로 halfAngle만큼 회전한 두 방향
         Vector3 leftBoundary = Quaternion.Euler(0f, -halfAngle, 0f) * transform.forward;
