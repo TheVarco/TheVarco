@@ -3007,6 +3007,63 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 9ae1d4dfc906ea34885c48c075f3ed4c, type: 3}
+--- !u!1001 &2448013424245174543
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 841731850844339163, guid: 4c25e9a6012f76c4ab59cf7b4309b069, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 841731850844339163, guid: 4c25e9a6012f76c4ab59cf7b4309b069, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 841731850844339163, guid: 4c25e9a6012f76c4ab59cf7b4309b069, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 841731850844339163, guid: 4c25e9a6012f76c4ab59cf7b4309b069, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 841731850844339163, guid: 4c25e9a6012f76c4ab59cf7b4309b069, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 841731850844339163, guid: 4c25e9a6012f76c4ab59cf7b4309b069, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 841731850844339163, guid: 4c25e9a6012f76c4ab59cf7b4309b069, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 841731850844339163, guid: 4c25e9a6012f76c4ab59cf7b4309b069, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 841731850844339163, guid: 4c25e9a6012f76c4ab59cf7b4309b069, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 841731850844339163, guid: 4c25e9a6012f76c4ab59cf7b4309b069, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8677332698467392810, guid: 4c25e9a6012f76c4ab59cf7b4309b069, type: 3}
+      propertyPath: m_Name
+      value: OxygenTank
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 4c25e9a6012f76c4ab59cf7b4309b069, type: 3}
 --- !u!1001 &3085304070260099040
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3018,6 +3075,10 @@ PrefabInstance:
     - target: {fileID: 3442563439716620189, guid: 0b598cb281d78094d90437bc9fdfa153, type: 3}
       propertyPath: m_Name
       value: OxytenItem
+      objectReference: {fileID: 0}
+    - target: {fileID: 3442563439716620189, guid: 0b598cb281d78094d90437bc9fdfa153, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5226237020376369950, guid: 0b598cb281d78094d90437bc9fdfa153, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -3159,6 +3220,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Shark
       objectReference: {fileID: 0}
+    - target: {fileID: 4880988355093290315, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5359532772366295979, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
       propertyPath: animator
       value: 
@@ -3189,6 +3254,7 @@ SceneRoots:
   - {fileID: 994243994}
   - {fileID: 1694831523}
   - {fileID: 184061254}
+  - {fileID: 2448013424245174543}
   - {fileID: 3085304070260099040}
   - {fileID: 2160708911185441949}
   - {fileID: 1848434113}
