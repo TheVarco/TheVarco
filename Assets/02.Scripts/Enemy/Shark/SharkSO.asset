@@ -14,7 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyData
   moveSpeed: 7
   rotateSpeed: 2
-  viewRadius: 10
+  ProximityDetectRadius: 15
+  ForwardDetectRadius: 20
+  loseTargetRadius: 20
   viewAngle: 90
   patrolRadius: 25
   patrolArriveDistance: 0.5
