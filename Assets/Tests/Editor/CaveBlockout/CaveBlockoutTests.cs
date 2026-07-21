@@ -74,6 +74,19 @@ namespace CaveBlockout.Tests
                 Assert.That(collision.vertexCount, Is.EqualTo(visual.vertexCount));
                 CollectionAssert.AreEqual(visual.triangles, collision.triangles);
                 Assert.That(visual.normals.All(normal => normal.sqrMagnitude > 0.9f), Is.True);
+                float maximumTriangleEdge = 0f;
+                Vector3[] vertices = visual.vertices;
+                int[] meshTriangles = visual.triangles;
+                for (int triangle = 0; triangle < meshTriangles.Length; triangle += 3)
+                {
+                    Vector3 a = vertices[meshTriangles[triangle]];
+                    Vector3 b = vertices[meshTriangles[triangle + 1]];
+                    Vector3 c = vertices[meshTriangles[triangle + 2]];
+                    maximumTriangleEdge = Mathf.Max(maximumTriangleEdge,
+                        Vector3.Distance(a, b), Vector3.Distance(b, c), Vector3.Distance(c, a));
+                }
+                Assert.That(maximumTriangleEdge, Is.LessThan(18f),
+                    "An oversized triangle usually means a portal correspondence crossed the junction.");
                 triangles += visual.triangles.Length / 3;
 
                 CaveMeshTopologyReport topology = CaveMeshTopologyAnalyzer.Analyze(visual);
@@ -97,6 +110,40 @@ namespace CaveBlockout.Tests
             FindRoutes(out CaveRoute mainRoute, out CaveRoute branches);
             bool passed = CaveClearanceValidator.ValidateAll(mainRoute, branches, out string details);
             Assert.That(passed, Is.True, details);
+        }
+
+        [Test]
+        public void BranchDeadEnds_UseRoundedCapsBeyondSplineEndpoints()
+        {
+            FindRoutes(out _, out CaveRoute branches);
+            MeshFilter filter = GameObject.Find(CaveBlockoutBuilder.RootName).transform.Find("Generated")
+                .GetComponentInChildren<MeshFilter>(true);
+            Vector3[] vertices = filter.sharedMesh.vertices
+                .Select(filter.transform.TransformPoint).ToArray();
+
+            foreach (CaveRouteSplineDefinition definition in branches.Definitions)
+            {
+                int splineIndex = definition.splineIndex;
+                Vector3 endCenter = branches.Container.EvaluatePosition(splineIndex, 1f);
+                Vector3 endTangent = ((Vector3)branches.Container.EvaluateTangent(splineIndex, 1f)).normalized;
+                float maximumRadius = Mathf.Max(branches.EvaluateWidth(splineIndex, 1f),
+                    branches.EvaluateHeight(splineIndex, 1f)) * 0.5f + 1f;
+
+                List<float> capOffsets = vertices.Select(vertex => vertex - endCenter)
+                    .Where(relative => Vector3.Dot(relative, endTangent) > 0.2f)
+                    .Where(relative => Vector3.ProjectOnPlane(relative, endTangent).magnitude <= maximumRadius)
+                    .Select(relative => Vector3.Dot(relative, endTangent))
+                    .Where(offset => offset < 15f)
+                    .OrderBy(offset => offset)
+                    .ToList();
+
+                Assert.That(capOffsets, Is.Not.Empty, definition.routeId + " has no geometry beyond its endpoint.");
+                Assert.That(capOffsets.Max(), Is.GreaterThanOrEqualTo(3f),
+                    definition.routeId + " still looks like a flat end cap.");
+                int distinctLatitudes = capOffsets.Select(offset => Mathf.RoundToInt(offset * 4f)).Distinct().Count();
+                Assert.That(distinctLatitudes, Is.GreaterThanOrEqualTo(CaveMeshGenerator.RoundedCapLatitudeCount),
+                    definition.routeId + " does not contain enough rounded cap bands.");
+            }
         }
 
         [Test]
@@ -246,7 +293,7 @@ namespace CaveBlockout.Tests
         {
             FindRoutes(out CaveRoute mainRoute, out CaveRoute branches);
             List<CaveReviewViewpoint> viewpoints = CaveReviewCapture.BuildViewpoints(mainRoute, branches);
-            Assert.That(viewpoints.Count, Is.EqualTo(33));
+            Assert.That(viewpoints.Count, Is.EqualTo(39));
             Assert.That(viewpoints.Select(view => view.name), Is.Unique);
 
             bool wasDirty = EditorSceneManager.GetActiveScene().isDirty;

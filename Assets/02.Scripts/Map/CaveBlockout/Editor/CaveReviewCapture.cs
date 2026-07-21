@@ -159,6 +159,11 @@ namespace CaveBlockout.Editor
                 camera.farClipPlane = 1400f;
                 camera.allowHDR = false;
                 camera.allowMSAA = true;
+                Light reviewLight = cameraObject.AddComponent<Light>();
+                reviewLight.type = LightType.Directional;
+                reviewLight.color = new Color(0.65f, 0.8f, 1f, 1f);
+                reviewLight.intensity = 1.8f;
+                reviewLight.shadows = LightShadows.None;
 
                 renderTexture = new RenderTexture(CaptureWidth, CaptureHeight, 24, RenderTextureFormat.ARGB32)
                 {
@@ -287,6 +292,9 @@ namespace CaveBlockout.Editor
                 Vector3 cameraPosition = center - tangent * 9f;
                 views.Add(LookAt(portal.zoneId + "_Portal_FromMain", cameraPosition, center + direction * 10f, up));
                 views.Add(LookAt(portal.zoneId + "_Portal_Wire", cameraPosition, center + direction * 10f, up, true));
+                Vector3 profilePosition = center + tangent * 7f + up * 4f;
+                views.Add(LookAt(portal.zoneId + "_Portal_Profile_Wire", profilePosition,
+                    center + direction * CaveMeshGenerator.BranchCollarDepth, up, true));
 
                 CaveRouteSplineDefinition branchDefinition = branches.Definitions.First(definition => definition.splineIndex == portal.branchSplineIndex);
                 float branchLength = branches.Container.CalculateLength(portal.branchSplineIndex);
@@ -302,9 +310,27 @@ namespace CaveBlockout.Editor
             }
 
             foreach (CaveRouteSplineDefinition branchDefinition in branches.Definitions)
-                views.Add(InsideSpline(branches, branchDefinition.splineIndex, 0.9f, branchDefinition.routeId + "_DeadEnd"));
+            {
+                views.Add(DeadEndView(branches, branchDefinition, branchDefinition.routeId + "_DeadEnd"));
+                views.Add(DeadEndView(branches, branchDefinition, branchDefinition.routeId + "_DeadEnd_Wire", true));
+            }
             views.Add(InsideSpline(mainRoute, mainDefinition.splineIndex, 0.985f, "Z7_OpenExit"));
             return views;
+        }
+
+        private static CaveReviewViewpoint DeadEndView(CaveRoute route, CaveRouteSplineDefinition definition,
+            string name, bool wireframe = false)
+        {
+            float length = route.Container.CalculateLength(definition.splineIndex);
+            float reviewDistance = Mathf.Max(definition.startTrimMeters + CaveMeshGenerator.BranchCollarDepth + 2f,
+                length - 10f);
+            float reviewT = CaveMeshGenerator.FindTAtDistance(route.Container, definition.splineIndex,
+                0f, 1f, reviewDistance);
+            Vector3 position = route.Container.EvaluatePosition(definition.splineIndex, reviewT);
+            Vector3 endCenter = route.Container.EvaluatePosition(definition.splineIndex, 1f);
+            Vector3 endTangent = ((Vector3)route.Container.EvaluateTangent(definition.splineIndex, 1f)).normalized;
+            Vector3 up = ((Vector3)route.Container.EvaluateUpVector(definition.splineIndex, reviewT)).normalized;
+            return LookAt(name, position, endCenter + endTangent * 2f, up, wireframe);
         }
 
         private static CaveReviewViewpoint InsideSpline(CaveRoute route, int splineIndex, float t, string name)

@@ -103,7 +103,9 @@ namespace CaveBlockout.Editor
                 Quaternion orientation = Quaternion.LookRotation(delta.normalized, up);
                 if (Physics.BoxCast(previous, SubmarineHalfExtents, delta.normalized, out RaycastHit hit, orientation, delta.magnitude, 1 << 0, QueryTriggerInteraction.Ignore))
                 {
-                    issue = $"blocked by {hit.collider.name} near t={t:F3}, hit={hit.point}, from={previous}, toward={current}.";
+                    string triangleVertices = DescribeHitTriangle(hit);
+                    issue = $"blocked by {hit.collider.name} near t={t:F3}, triangle={hit.triangleIndex}, " +
+                            $"hit={hit.point}, normal={hit.normal}, from={previous}, toward={current}{triangleVertices}.";
                     return false;
                 }
                 previous = current;
@@ -111,6 +113,24 @@ namespace CaveBlockout.Editor
 
             issue = string.Empty;
             return true;
+        }
+
+        private static string DescribeHitTriangle(RaycastHit hit)
+        {
+            if (!(hit.collider is MeshCollider meshCollider) || meshCollider.sharedMesh == null || hit.triangleIndex < 0)
+                return string.Empty;
+
+            int triangleOffset = hit.triangleIndex * 3;
+            int[] triangles = meshCollider.sharedMesh.triangles;
+            Vector3[] vertices = meshCollider.sharedMesh.vertices;
+            if (triangleOffset + 2 >= triangles.Length)
+                return string.Empty;
+
+            Transform meshTransform = meshCollider.transform;
+            Vector3 a = meshTransform.TransformPoint(vertices[triangles[triangleOffset]]);
+            Vector3 b = meshTransform.TransformPoint(vertices[triangles[triangleOffset + 1]]);
+            Vector3 c = meshTransform.TransformPoint(vertices[triangles[triangleOffset + 2]]);
+            return $", triangleVertices=({a} | {b} | {c})";
         }
     }
 }

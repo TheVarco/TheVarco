@@ -37,6 +37,15 @@ namespace CaveBlockout.Editor
                 Debug.LogWarning("CAVE_BLOCKOUT: " + issue);
         }
 
+        public static void RegenerateMainMapBatch()
+        {
+            EditorSceneManager.OpenScene(MainMapPath, OpenSceneMode.Single);
+            CaveValidationResult result = RegenerateCurrentScene(true);
+            Debug.Log($"CAVE_BLOCKOUT_REGENERATE {(result.Passed ? "PASS" : "WARN")} length={result.routeLength:F1}m rise={result.totalRise:F1}m slope={result.maximumSlope:F1} radius={result.minimumTurnRadius:F1}");
+            foreach (string issue in result.issues)
+                Debug.LogWarning("CAVE_BLOCKOUT: " + issue);
+        }
+
         public static void ValidateMainMapBatch()
         {
             EditorSceneManager.OpenScene(MainMapPath, OpenSceneMode.Single);
