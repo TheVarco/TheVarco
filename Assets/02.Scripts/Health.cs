@@ -12,6 +12,7 @@ public class Health : MonoBehaviour, Damageable
     [Header("이벤트 (UI 체력바, 사망 연출 등에서 구독해서 사용)")]
     public UnityEvent<float, float> OnHealthChanged; // (현재 체력, 최대 체력)
     public UnityEvent OnDeath;
+    public UnityEvent OnRevived;
 
     public float CurrentHealth { get; private set; }
     public bool IsDead { get; private set; }
@@ -43,5 +44,16 @@ public class Health : MonoBehaviour, Damageable
 
         CurrentHealth = Mathf.Min(maxHealth, CurrentHealth + amount);
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
+    }
+
+    // 기절(사망) 상태에서 동료가 부활시켰을 때 호출. 최대 체력의 특정 비율로 되살아남.
+    public void ReviveWithRatio(float ratio)
+    {
+        if (!IsDead) return;
+
+        IsDead = false;
+        CurrentHealth = maxHealth * Mathf.Clamp01(ratio);
+        OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
+        OnRevived?.Invoke();
     }
 }
