@@ -4,7 +4,8 @@
   "references": [
     "CaveBlockout.Runtime",
     "CaveBlockout.Editor",
-    "Unity.Splines"
+    "Unity.Splines",
+    "Unity.Mathematics"
   ],
   "includePlatforms": ["Editor"],
   "excludePlatforms": [],

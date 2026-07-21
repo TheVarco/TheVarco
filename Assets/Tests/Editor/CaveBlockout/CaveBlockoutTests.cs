@@ -164,6 +164,84 @@ namespace CaveBlockout.Tests
         }
 
         [Test]
+        public void MidpointInsertion_PreservesCurveMetadataUndoAndGeneratedTopology()
+        {
+            FindRoutes(out CaveRoute mainRoute, out _);
+            const int splineIndex = 0;
+            const int segmentIndex = 1;
+            Spline spline = mainRoute.Container[splineIndex];
+            int originalKnotCount = spline.Count;
+            float originalLength = spline.GetLength();
+            BezierCurve originalCurve = spline.GetCurve(segmentIndex);
+            float expectedCurveT = spline.GetCurveInterpolation(segmentIndex, spline.GetCurveLength(segmentIndex) * 0.5f);
+            Assert.That(spline.TryGetFloatData(CaveRoute.WidthDataKey, out SplineData<float> widths), Is.True);
+            Assert.That(spline.TryGetFloatData(CaveRoute.HeightDataKey, out SplineData<float> heights), Is.True);
+            float expectedWidth = widths.Evaluate(spline, segmentIndex + expectedCurveT, PathIndexUnit.Knot,
+                new UnityEngine.Splines.Interpolators.LerpFloat());
+            float expectedHeight = heights.Evaluate(spline, segmentIndex + expectedCurveT, PathIndexUnit.Knot,
+                new UnityEngine.Splines.Interpolators.LerpFloat());
+            float[] sectionDistances = mainRoute.Definitions.SelectMany(definition => definition.sections)
+                .SelectMany(section => new[] { section.startDistanceMeters, section.endDistanceMeters }).ToArray();
+            float[] portalDistances = mainRoute.Portals.Select(portal => portal.mainDistanceMeters).ToArray();
+
+            Undo.IncrementCurrentGroup();
+            int undoGroup = Undo.GetCurrentGroup();
+            Undo.SetCurrentGroupName("Test cave midpoint insertion");
+            try
+            {
+                CaveRouteKnotInsertionResult result = CaveRouteEditingUtility.InsertKnotAtSegmentMidpoint(
+                    mainRoute, splineIndex, segmentIndex, false);
+
+                Assert.That(result.knotIndex, Is.EqualTo(segmentIndex + 1));
+                Assert.That(result.curveT, Is.EqualTo(expectedCurveT).Within(0.0001f));
+                Assert.That(spline.Count, Is.EqualTo(originalKnotCount + 1));
+                Assert.That(spline.GetLength(), Is.EqualTo(originalLength).Within(0.002f),
+                    "Adding an editing point must not move or resize the authored route.");
+
+                BezierCurve left = spline.GetCurve(segmentIndex);
+                BezierCurve right = spline.GetCurve(segmentIndex + 1);
+                for (int i = 0; i <= 32; i++)
+                {
+                    float sourceT = i / 32f;
+                    Vector3 expected = CurveUtility.EvaluatePosition(originalCurve, sourceT);
+                    Vector3 actual = sourceT <= result.curveT
+                        ? CurveUtility.EvaluatePosition(left, sourceT / result.curveT)
+                        : CurveUtility.EvaluatePosition(right, (sourceT - result.curveT) / (1f - result.curveT));
+                    Assert.That(Vector3.Distance(actual, expected), Is.LessThan(0.002f));
+                }
+
+                AssertEmbeddedData(spline, true);
+                Assert.That(GetDataValueAtKnot(widths, result.knotIndex), Is.EqualTo(expectedWidth).Within(0.001f));
+                Assert.That(GetDataValueAtKnot(heights, result.knotIndex), Is.EqualTo(expectedHeight).Within(0.001f));
+                Assert.That(spline.TryGetIntData(CaveRoute.PortalDataKey, out SplineData<int> portals), Is.True);
+                Assert.That(GetDataValueAtKnot(portals, result.knotIndex), Is.Zero,
+                    "A midpoint must not accidentally become another branch portal.");
+                CollectionAssert.AreEqual(sectionDistances, mainRoute.Definitions.SelectMany(definition => definition.sections)
+                    .SelectMany(section => new[] { section.startDistanceMeters, section.endDistanceMeters }).ToArray());
+                CollectionAssert.AreEqual(portalDistances,
+                    mainRoute.Portals.Select(portal => portal.mainDistanceMeters).ToArray());
+
+                CaveBlockoutBuilder.RegenerateCurrentScene(false);
+                Mesh generated = GameObject.Find(CaveBlockoutBuilder.RootName).transform.Find("Generated")
+                    .GetComponentInChildren<MeshFilter>(true).sharedMesh;
+                CaveMeshTopologyReport topology = CaveMeshTopologyAnalyzer.Analyze(generated);
+                Assert.That(topology.IsValidOpenCave, Is.True);
+                Assert.That(topology.boundaryLoopCount, Is.EqualTo(1));
+            }
+            finally
+            {
+                Undo.FlushUndoRecordObjects();
+                Undo.RevertAllDownToGroup(undoGroup);
+                Assert.That(mainRoute.Container[splineIndex].Count, Is.EqualTo(originalKnotCount),
+                    "Ctrl+Z must restore the original spline and metadata.");
+                // Reload the serialized source before restoring generated assets. Undo can retain harmless
+                // sub-float tangent differences that should not become the baseline for the next test.
+                EditorSceneManager.OpenScene(CaveBlockoutBuilder.MainMapPath, OpenSceneMode.Single);
+                CaveBlockoutBuilder.RegenerateCurrentScene(false);
+            }
+        }
+
+        [Test]
         public void ReviewCapture_WritesExpectedEvidenceWithoutDirtyingScene()
         {
             FindRoutes(out CaveRoute mainRoute, out CaveRoute branches);
@@ -218,6 +296,17 @@ namespace CaveBlockout.Tests
             Assert.That(rolls.Count, Is.EqualTo(spline.Count));
             Assert.That(zones.Count, Is.EqualTo(spline.Count));
             Assert.That(portals.Any(point => point.Value > 0), Is.EqualTo(expectPortals));
+        }
+
+        private static T GetDataValueAtKnot<T>(SplineData<T> data, int knotIndex)
+        {
+            for (int i = 0; i < data.Count; i++)
+            {
+                if (Mathf.Approximately(data[i].Index, knotIndex))
+                    return data[i].Value;
+            }
+            Assert.Fail($"No spline data point exists at knot {knotIndex}.");
+            return default;
         }
 
         private static void FindRoutes(out CaveRoute mainRoute, out CaveRoute branches)

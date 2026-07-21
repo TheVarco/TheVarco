@@ -1,7 +1,11 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.EditorTools;
 using UnityEditor.SceneManagement;
+using UnityEditor.Splines;
 using UnityEngine;
+using UnityEngine.Splines;
 
 namespace CaveBlockout.Editor
 {
@@ -11,6 +15,10 @@ namespace CaveBlockout.Editor
         private CaveValidationResult lastValidation;
         private string clearanceResult;
         private bool showNoise = true;
+        private bool showSplineHelp = true;
+        private int editingSplineIndex;
+        private int editingSegmentIndex;
+        private string editingStatus;
 
         [MenuItem("Tools/Underwater Cave/Blockout Window")]
         public static void ShowWindow()
@@ -23,7 +31,7 @@ namespace CaveBlockout.Editor
             scroll = EditorGUILayout.BeginScrollView(scroll);
             EditorGUILayout.LabelField("Underwater Cave Blockout", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
-                "Edit MainRoute and Branches with Unity's Spline tools. Select a CaveRoute to expose width, height and roll handles at every knot. Meshes update only when Regenerate is pressed.",
+                "경로 편집과 메시 생성을 분리한 블록아웃 도구입니다. Spline 점을 바꾼 뒤에는 반드시 재생성 버튼을 눌러야 메시와 Collider가 갱신됩니다.",
                 MessageType.Info);
 
             EditorGUILayout.Space();
@@ -70,10 +78,105 @@ namespace CaveBlockout.Editor
                 if (branches != null) Selection.activeGameObject = branches.gameObject;
             }
 
+            DrawSplineEditingTools();
             DrawNoiseSettings();
 
             DrawValidation();
             EditorGUILayout.EndScrollView();
+        }
+
+        private void DrawSplineEditingTools()
+        {
+            EditorGUILayout.Space();
+            showSplineHelp = EditorGUILayout.Foldout(showSplineHelp, "Spline 경로 편집 도움말", true);
+            if (!showSplineHelp)
+                return;
+
+            CaveRoute route = FindSelectedRoute();
+            if (route == null || route.Container == null || route.Container.Splines.Count == 0)
+            {
+                EditorGUILayout.HelpBox("먼저 Main Route 또는 Branch Routes를 선택하세요.", MessageType.Warning);
+                return;
+            }
+
+            EditorGUILayout.LabelField("현재 경로", route.name);
+            SyncActiveSplineElement(route);
+            editingSplineIndex = EditorGUILayout.IntSlider(
+                "Spline 번호", editingSplineIndex, 0, route.Container.Splines.Count - 1);
+            Spline spline = route.Container[editingSplineIndex];
+            if (spline.Count < 2)
+            {
+                EditorGUILayout.HelpBox("점이 2개 이상인 Spline에서만 구간을 나눌 수 있습니다.", MessageType.Warning);
+                return;
+            }
+
+            editingSegmentIndex = Mathf.Clamp(editingSegmentIndex, 0, spline.Count - 2);
+            editingSegmentIndex = EditorGUILayout.IntSlider(
+                $"나눌 구간 (K{editingSegmentIndex} → K{editingSegmentIndex + 1})",
+                editingSegmentIndex, 0, spline.Count - 2);
+
+            if (GUILayout.Button("점 이동 도구 (W)"))
+            {
+                Selection.activeGameObject = route.gameObject;
+                ToolManager.SetActiveContext<SplineToolContext>();
+                ToolManager.SetActiveTool<SplineMoveTool>();
+                editingStatus = "Scene 창에서 점 또는 탄젠트를 선택해 이동할 수 있습니다.";
+            }
+
+            if (GUILayout.Button("선택 구간의 실제 길이 중간에 점 추가"))
+            {
+                CaveRouteKnotInsertionResult result = CaveRouteEditingUtility.InsertKnotAtSegmentMidpoint(
+                    route, editingSplineIndex, editingSegmentIndex);
+                editingSegmentIndex = Mathf.Clamp(result.knotIndex, 0, spline.Count - 2);
+                editingStatus = $"K{result.knotIndex} 점을 추가했습니다. 경로 모양과 기존 폭·높이·구역·분기 정보는 보존됩니다.";
+            }
+
+            if (GUILayout.Button("현재 경로를 Scene 화면에 맞추기"))
+            {
+                Selection.activeGameObject = route.gameObject;
+                SceneView.lastActiveSceneView?.FrameSelected();
+            }
+
+            EditorGUILayout.HelpBox(
+                "1. Main/Branch 경로 선택 → 2. 점 이동 도구에서 점을 클릭하고 W로 이동 → " +
+                "3. 구간 중간점이 필요하면 Spline 번호와 K구간을 정해 위 버튼 사용 → " +
+                "4. 청록색 단면 손잡이로 폭·높이 조절 → 5. Regenerate로 메시·Collider 갱신 → " +
+                "6. Validate와 Capture Review Sweep으로 확인\n\n" +
+                "Shift: 여러 점 선택 · C: 탄젠트 모드 순환 · X: 핸들 기준 전환 · Ctrl+Z: 실행 취소\n" +
+                "선을 통째로 옮기려면 Shift로 여러 점을 고른 뒤 이동하세요. 분기 입구 주변은 편집 후 반드시 Clearance 검사를 실행하세요.\n" +
+                "중간점 추가 시 원래 곡선을 정확히 유지하기 위해 양옆 점의 탄젠트 모드는 Broken으로 고정됩니다. 이후 C로 모드를 바꾸면 곡선 모양이 달라질 수 있습니다.",
+                MessageType.Info);
+
+            if (!string.IsNullOrEmpty(editingStatus))
+                EditorGUILayout.HelpBox(editingStatus, MessageType.None);
+        }
+
+        private void SyncActiveSplineElement(CaveRoute route)
+        {
+            List<SplineInfo> infos = new List<SplineInfo>();
+            for (int i = 0; i < route.Container.Splines.Count; i++)
+                infos.Add(new SplineInfo(route.Container, i));
+            ISelectableElement active = SplineSelection.GetActiveElement(infos);
+            if (active == null)
+                return;
+
+            editingSplineIndex = active.SplineInfo.Index;
+            editingSegmentIndex = Mathf.Clamp(active.KnotIndex, 0,
+                route.Container[editingSplineIndex].Count - 2);
+        }
+
+        private static CaveRoute FindSelectedRoute()
+        {
+            GameObject selected = Selection.activeGameObject;
+            if (selected != null)
+            {
+                CaveRoute selectedRoute = selected.GetComponentInParent<CaveRoute>();
+                if (selectedRoute != null)
+                    return selectedRoute;
+            }
+
+            FindRoutes(out CaveRoute mainRoute, out _);
+            return mainRoute;
         }
 
         private void DrawNoiseSettings()
