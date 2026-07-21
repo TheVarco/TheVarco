@@ -139,6 +139,7 @@ namespace CaveBlockout.Editor
             public float longitudinalHalfLength;
             public float centerAngle;
             public float angularHalfWidth;
+            public float angularPhysicalHalfLength;
             public Vector3 mainTangent;
             public readonly HashSet<long> removedQuads = new HashSet<long>();
             public int[] boundaryLoop;
@@ -213,8 +214,7 @@ namespace CaveBlockout.Editor
             List<float> mainDistances = BuildMainDistances(mainRoute, mainLength);
             MeshBuilder builder = new MeshBuilder();
             TubeRings main = BuildTubeVertices(builder, mainRoute, mainDefinition.splineIndex, mainDistances, Sides, outputSpace,
-                null, mainRoute.NoiseSettings, allowVisualDetail,
-                distance => EvaluateMainNoiseWeight(mainRoute, distance, mainLength));
+                null, null, false);
             List<PortalCarve> carves = BuildPortalCarves(mainRoute, branches, main, outputSpace);
 
             foreach (PortalCarve carve in carves)
@@ -222,6 +222,7 @@ namespace CaveBlockout.Editor
                 carve.boundaryLoop = ExtractBoundaryLoop(main, carve);
                 RelaxPortalBoundary(builder, mainRoute, main, carve);
             }
+            ApplyMainNoise(builder, main, mainRoute.NoiseSettings, allowVisualDetail, mainLength, carves);
 
             for (int ring = 0; ring < main.indices.Count - 1; ring++)
             {
@@ -392,28 +393,101 @@ namespace CaveBlockout.Editor
             float length = mainRoute != null && mainRoute.Container.Splines.Count > 0
                 ? mainRoute.Container.CalculateLength(0)
                 : 0f;
-            return EvaluateMainNoiseWeight(mainRoute, distanceMeters, length);
+            return EvaluateEndpointNoiseWeight(mainRoute != null ? mainRoute.NoiseSettings : null,
+                distanceMeters, length);
         }
 
-        private static float EvaluateMainNoiseWeight(CaveRoute mainRoute, float distanceMeters, float totalLength)
+        private static void ApplyMainNoise(MeshBuilder builder, TubeRings main, CaveNoiseSettings settings,
+            bool allowVisualDetail, float totalLength, IReadOnlyList<PortalCarve> carves)
         {
-            if (mainRoute == null) return 1f;
-            CaveNoiseSettings settings = mainRoute.NoiseSettings;
-            float fade = Mathf.Max(0.1f, settings.portalFadeDistance);
-            float weight = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(distanceMeters / fade));
-            weight = Mathf.Min(weight, Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((totalLength - distanceMeters) / fade)));
-            foreach (CavePortalDefinition portal in mainRoute.Portals)
+            if (settings == null || !settings.enabled || settings.amplitudeMeters <= 0f)
+                return;
+
+            HashSet<int> protectedBoundaryVertices = new HashSet<int>();
+            foreach (PortalCarve carve in carves)
             {
-                float delta = Mathf.Abs(distanceMeters - ResolvePortalDistance(mainRoute, portal));
-                float portalWeight = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((delta - 16f) / fade));
+                if (carve.boundaryLoop == null)
+                    continue;
+                foreach (int vertexIndex in carve.boundaryLoop)
+                    protectedBoundaryVertices.Add(vertexIndex);
+            }
+
+            float cellAngle = Mathf.PI * 2f / main.SideCount;
+            for (int ring = 0; ring < main.indices.Count; ring++)
+            {
+                float distance = main.distances[ring];
+                for (int side = 0; side < main.SideCount; side++)
+                {
+                    int vertexIndex = main.indices[ring][side];
+                    // The organic collar shares these vertices. Keeping the exact rim smooth prevents a
+                    // structural-noise displacement from reopening a hairline crack after the weld.
+                    if (protectedBoundaryVertices.Contains(vertexIndex))
+                        continue;
+
+                    float angle = side * cellAngle;
+                    float weight = EvaluateMainNoiseWeight(settings, distance, totalLength, angle, carves);
+                    Vector3 basePosition = builder.vertices[vertexIndex];
+                    Vector3 radial = Vector3.ProjectOnPlane(basePosition - main.centers[ring], main.tangents[ring]);
+                    if (radial.sqrMagnitude < 0.0001f)
+                        continue;
+                    Vector3 noisyPosition = ApplyNoise(basePosition, radial, angle, settings, allowVisualDetail, weight);
+                    builder.vertices[vertexIndex] = noisyPosition;
+                    builder.normals[vertexIndex] = -(noisyPosition - main.centers[ring]).normalized;
+                }
+            }
+        }
+
+        private static float EvaluateMainNoiseWeight(CaveNoiseSettings settings, float distanceMeters, float totalLength,
+            float angleRadians, IReadOnlyList<PortalCarve> carves)
+        {
+            float weight = EvaluateEndpointNoiseWeight(settings, distanceMeters, totalLength);
+            float fade = Mathf.Max(0.1f, settings != null ? settings.portalFadeDistance : 5f);
+            foreach (PortalCarve carve in carves)
+            {
+                float portalWeight = EvaluatePortalNoiseWeight(distanceMeters, angleRadians,
+                    carve.portalDistance, carve.longitudinalHalfLength, carve.centerAngle,
+                    carve.angularHalfWidth, carve.angularPhysicalHalfLength, fade);
                 weight = Mathf.Min(weight, portalWeight);
             }
             return weight;
         }
 
-        private static float EvaluateBranchNoiseWeight(CaveNoiseSettings settings, float distance, float start, float end)
+        private static float EvaluateEndpointNoiseWeight(CaveNoiseSettings settings, float distance, float end)
         {
-            float fade = Mathf.Max(0.1f, settings.portalFadeDistance);
+            float fade = Mathf.Max(0.1f, settings != null ? settings.portalFadeDistance : 5f);
+            float fromStart = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(distance / fade));
+            float fromEnd = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((end - distance) / fade));
+            return Mathf.Min(fromStart, fromEnd);
+        }
+
+        public static float EvaluatePortalNoiseWeight(float distanceMeters, float angleRadians,
+            float portalDistance, float longitudinalHalfLength, float centerAngle,
+            float angularHalfWidth, float angularPhysicalHalfLength, float fadeDistance)
+        {
+            float longitudinalRadius = Mathf.Max(0.1f, longitudinalHalfLength);
+            float angularRadius = Mathf.Max(0.1f, angularPhysicalHalfLength);
+            float safeAngularHalfWidth = Mathf.Max(0.001f, angularHalfWidth);
+            float longitudinalMeters = distanceMeters - portalDistance;
+            float angularDelta = Mathf.Abs(Mathf.DeltaAngle(
+                angleRadians * Mathf.Rad2Deg, centerAngle * Mathf.Rad2Deg)) * Mathf.Deg2Rad;
+            float angularMeters = angularDelta * angularRadius / safeAngularHalfWidth;
+            float ellipseRadius = Mathf.Sqrt(
+                longitudinalMeters * longitudinalMeters / (longitudinalRadius * longitudinalRadius) +
+                angularMeters * angularMeters / (angularRadius * angularRadius));
+            if (ellipseRadius <= 1f)
+                return 0f;
+
+            // Measure the distance from the aperture along the sample's radial ray in physical metres.
+            // This gives portalFadeDistance its literal, local meaning regardless of ellipse aspect ratio.
+            float centerDistance = Mathf.Sqrt(longitudinalMeters * longitudinalMeters + angularMeters * angularMeters);
+            float outsideDistance = centerDistance - centerDistance / ellipseRadius;
+            return Mathf.SmoothStep(0f, 1f,
+                Mathf.Clamp01(outsideDistance / Mathf.Max(0.1f, fadeDistance)));
+        }
+
+        public static float EvaluateBranchNoiseWeight(CaveNoiseSettings settings, float distance, float start, float end)
+        {
+            float fade = Mathf.Max(0.1f, settings != null ? settings.portalFadeDistance : 5f);
             float fromStart = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((distance - start) / fade));
             float fromEnd = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((end - distance) / fade));
             return Mathf.Min(fromStart, fromEnd);
@@ -528,6 +602,7 @@ namespace CaveBlockout.Editor
                     longitudinalHalfLength = halfLength,
                     centerAngle = centerAngle,
                     angularHalfWidth = angularHalfWidth,
+                    angularPhysicalHalfLength = angularTangentRadius * angularHalfWidth,
                     mainTangent = main.tangents[centerRing]
                 };
 

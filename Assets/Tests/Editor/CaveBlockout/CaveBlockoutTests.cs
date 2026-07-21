@@ -42,9 +42,12 @@ namespace CaveBlockout.Tests
             Spline mainSpline = mainRoute.Container[0];
             AssertEmbeddedData(mainSpline, true);
             Assert.That(mainRoute.Portals.Select(portal => portal.zoneId), Is.EquivalentTo(new[] { "Z2", "Z4", "Z6" }));
-            Assert.That(mainRoute.NoiseSettings.enabled, Is.False);
-            Assert.That(mainRoute.NoiseSettings.amplitudeMeters, Is.Zero.Within(0.001f));
-            Assert.That(mainRoute.NoiseSettings.visualDetailEnabled, Is.False);
+            Assert.That(mainRoute.NoiseSettings.enabled, Is.True);
+            Assert.That(mainRoute.NoiseSettings.amplitudeMeters, Is.EqualTo(3.2f).Within(0.001f));
+            Assert.That(mainRoute.NoiseSettings.strengthGain, Is.EqualTo(1.5f).Within(0.001f));
+            Assert.That(mainRoute.NoiseSettings.maximumDisplacementRatio, Is.EqualTo(0.3f).Within(0.001f));
+            Assert.That(mainRoute.NoiseSettings.visualDetailEnabled, Is.True);
+            Assert.That(mainRoute.NoiseSettings.visualDetailAmplitude, Is.EqualTo(0.4f).Within(0.001f));
 
             Assert.That(branches.Container.Splines.Count, Is.EqualTo(3));
             for (int i = 0; i < branches.Container.Splines.Count; i++)
@@ -178,6 +181,7 @@ namespace CaveBlockout.Tests
             MeshFilter filter = generated.GetComponentInChildren<MeshFilter>(true);
             MeshCollider collider = filter.GetComponent<MeshCollider>();
             Mesh liveVisualAsset = filter.sharedMesh;
+            Vector3[] serializedStrongVertices = filter.sharedMesh.vertices;
 
             mainRoute.NoiseSettings.ApplySmoothPreset();
             branches.NoiseSettings.ApplySmoothPreset();
@@ -193,22 +197,24 @@ namespace CaveBlockout.Tests
             float totalLength = mainRoute.Container.CalculateLength(0);
             Assert.That(CaveMeshGenerator.EvaluateMainNoiseWeight(mainRoute, 0f), Is.Zero.Within(0.0001f));
             Assert.That(CaveMeshGenerator.EvaluateMainNoiseWeight(mainRoute, totalLength), Is.Zero.Within(0.0001f));
-            foreach (CavePortalDefinition portal in mainRoute.Portals)
-            {
-                Assert.That(CaveMeshGenerator.EvaluateMainNoiseWeight(mainRoute, portal.mainDistanceMeters), Is.Zero.Within(0.0001f));
-                Assert.That(CaveMeshGenerator.EvaluateMainNoiseWeight(mainRoute,
-                    portal.mainDistanceMeters + 16f + mainRoute.NoiseSettings.portalFadeDistance + 0.5f), Is.GreaterThan(0.99f));
-            }
 
             mainRoute.NoiseSettings.ApplyStrongPreset();
             CaveBlockoutBuilder.RegenerateCurrentScene(false);
             filter = generated.GetComponentInChildren<MeshFilter>(true);
             collider = filter.GetComponent<MeshCollider>();
+            Vector3[] strongVisualVertices = filter.sharedMesh.vertices;
+            Vector3[] strongColliderVertices = collider.sharedMesh.vertices;
             Assert.That(filter.sharedMesh, Is.SameAs(liveVisualAsset));
-            Assert.That(filter.sharedMesh.vertices.SequenceEqual(smoothVertices), Is.False,
+            Assert.That(strongVisualVertices.SequenceEqual(smoothVertices), Is.False,
                 "Enabling strong noise must immediately change the live visual mesh.");
-            Assert.That(filter.sharedMesh.vertices.SequenceEqual(collider.sharedMesh.vertices), Is.False,
+            Assert.That(strongVisualVertices.SequenceEqual(strongColliderVertices), Is.False,
                 "Visual-only detail must not leak into collision geometry.");
+            float maximumVisualDetail = strongVisualVertices.Zip(strongColliderVertices, Vector3.Distance).Max();
+            Assert.That(maximumVisualDetail, Is.GreaterThan(0.01f));
+            Assert.That(maximumVisualDetail, Is.LessThanOrEqualTo(mainRoute.NoiseSettings.visualDetailAmplitude + 0.001f),
+                "Visual and collider meshes may differ only by the configured visual-detail displacement.");
+            AssertBranchesContainStructuralNoise(branches, filter.transform, smoothVertices, strongColliderVertices,
+                mainRoute.NoiseSettings);
 
             mainRoute.NoiseSettings.ApplySmoothPreset();
             branches.NoiseSettings.ApplySmoothPreset();
@@ -219,6 +225,41 @@ namespace CaveBlockout.Tests
             CollectionAssert.AreEqual(smoothVertices, filter.sharedMesh.vertices,
                 "Disabling noise again must restore the exact smooth visual mesh without an asset reload.");
             CollectionAssert.AreEqual(filter.sharedMesh.vertices, collider.sharedMesh.vertices);
+
+            // Generated mesh assets are shared across tests. Restore the scene's serialized Strong default so
+            // test ordering cannot leave a smooth asset behind for the deterministic-regeneration check.
+            mainRoute.NoiseSettings.ApplyStrongPreset();
+            CaveBlockoutBuilder.RegenerateCurrentScene(false);
+            filter = generated.GetComponentInChildren<MeshFilter>(true);
+            CollectionAssert.AreEqual(serializedStrongVertices, filter.sharedMesh.vertices,
+                "The test must restore the exact Strong geometry serialized by MainMap.");
+        }
+
+        [Test]
+        public void PortalNoiseMask_ProtectsOnlyTheLocalEllipticalAperture()
+        {
+            const float portalDistance = 100f;
+            const float longitudinalHalfLength = 12f;
+            const float centerAngle = 0.35f;
+            const float angularHalfWidth = 0.6f;
+            const float angularPhysicalHalfLength = 8f;
+            const float fadeDistance = 5f;
+
+            Assert.That(CaveMeshGenerator.EvaluatePortalNoiseWeight(
+                portalDistance, centerAngle, portalDistance, longitudinalHalfLength, centerAngle,
+                angularHalfWidth, angularPhysicalHalfLength, fadeDistance), Is.Zero.Within(0.0001f));
+            Assert.That(CaveMeshGenerator.EvaluatePortalNoiseWeight(
+                portalDistance + longitudinalHalfLength, centerAngle, portalDistance, longitudinalHalfLength,
+                centerAngle, angularHalfWidth, angularPhysicalHalfLength, fadeDistance), Is.Zero.Within(0.0001f),
+                "The aperture boundary must remain welded and noise-free.");
+            Assert.That(CaveMeshGenerator.EvaluatePortalNoiseWeight(
+                portalDistance, centerAngle + Mathf.PI, portalDistance, longitudinalHalfLength, centerAngle,
+                angularHalfWidth, angularPhysicalHalfLength, fadeDistance), Is.GreaterThan(0.99f),
+                "The opposite cave wall must keep Strong noise at the same longitudinal distance.");
+            Assert.That(CaveMeshGenerator.EvaluatePortalNoiseWeight(
+                portalDistance + longitudinalHalfLength + fadeDistance, centerAngle, portalDistance,
+                longitudinalHalfLength, centerAngle, angularHalfWidth, angularPhysicalHalfLength, fadeDistance),
+                Is.GreaterThan(0.99f), "Noise must be fully restored five metres beyond the aperture boundary.");
         }
 
         [Test]
@@ -458,6 +499,45 @@ namespace CaveBlockout.Tests
             }
             Assert.Fail($"No spline data point exists at knot {knotIndex}.");
             return default;
+        }
+
+        private static void AssertBranchesContainStructuralNoise(CaveRoute branches, Transform meshTransform,
+            IReadOnlyList<Vector3> smoothVertices, IReadOnlyList<Vector3> colliderVertices,
+            CaveNoiseSettings settings)
+        {
+            foreach (CaveRouteSplineDefinition definition in branches.Definitions)
+            {
+                float branchLength = branches.Container.CalculateLength(definition.splineIndex);
+                float start = Mathf.Min(branchLength - 3f,
+                    definition.startTrimMeters + CaveMeshGenerator.BranchCollarDepth);
+                float midpointDistance = (start + branchLength) * 0.5f;
+                float midpointT = branches.EvaluateTAtDistance(definition.splineIndex, midpointDistance);
+                Vector3 center = branches.Container.EvaluatePosition(definition.splineIndex, midpointT);
+                Vector3 tangent = ((Vector3)branches.Container.EvaluateTangent(definition.splineIndex, midpointT)).normalized;
+                float searchRadius = Mathf.Max(branches.EvaluateWidth(definition.splineIndex, midpointT),
+                    branches.EvaluateHeight(definition.splineIndex, midpointT)) * 0.5f + settings.amplitudeMeters + 2f;
+                float maximumDisplacement = 0f;
+                int sampleCount = 0;
+                for (int vertex = 0; vertex < smoothVertices.Count; vertex++)
+                {
+                    Vector3 smoothWorld = meshTransform.TransformPoint(smoothVertices[vertex]);
+                    Vector3 relative = smoothWorld - center;
+                    if (Mathf.Abs(Vector3.Dot(relative, tangent)) > CaveMeshGenerator.SampleSpacing * 1.1f ||
+                        Vector3.ProjectOnPlane(relative, tangent).magnitude > searchRadius)
+                        continue;
+
+                    sampleCount++;
+                    Vector3 colliderWorld = meshTransform.TransformPoint(colliderVertices[vertex]);
+                    maximumDisplacement = Mathf.Max(maximumDisplacement,
+                        Vector3.Distance(smoothWorld, colliderWorld));
+                }
+
+                Assert.That(CaveMeshGenerator.EvaluateBranchNoiseWeight(
+                    settings, midpointDistance, start, branchLength), Is.GreaterThan(0.99f));
+                Assert.That(sampleCount, Is.GreaterThan(0), definition.routeId + " has no sampled midpoint vertices.");
+                Assert.That(maximumDisplacement, Is.GreaterThan(0.05f),
+                    definition.routeId + " remains smooth in the middle despite Strong structural noise.");
+            }
         }
 
         private static void AssertProfileSlopeSettlesAtKnot(System.Func<float, float> evaluate,
