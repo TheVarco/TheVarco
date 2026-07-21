@@ -11,22 +11,26 @@ namespace CaveBlockout
         public bool enabled = true;
         public int seed = 1337;
         [Min(0f)] public float amplitudeMeters = 0.8f;
+        [Range(0.5f, 2.5f)] public float strengthGain = 1f;
+        [Range(0.05f, 0.35f)] public float maximumDisplacementRatio = 0.15f;
         [Min(1f)] public float wavelengthMeters = 12f;
         [Range(1, 4)] public int octaves = 2;
         [Min(1f)] public float lacunarity = 2f;
         [Range(0.1f, 0.9f)] public float persistence = 0.5f;
-        [Range(0f, 2f)] public float floorMultiplier = 1f;
-        [Range(0f, 2f)] public float wallMultiplier = 1f;
-        [Range(0f, 2f)] public float ceilingMultiplier = 1.15f;
+        [Range(0f, 3f)] public float floorMultiplier = 1f;
+        [Range(0f, 3f)] public float wallMultiplier = 1f;
+        [Range(0f, 3f)] public float ceilingMultiplier = 1.15f;
         [Min(1f)] public float portalFadeDistance = 4f;
         public bool visualDetailEnabled;
-        [Range(0f, 0.15f)] public float visualDetailAmplitude = 0.1f;
+        [Range(0f, 0.75f)] public float visualDetailAmplitude = 0.1f;
         [Min(1f)] public float visualDetailWavelength = 4f;
 
         public void ApplySmoothPreset()
         {
             enabled = false;
             amplitudeMeters = 0f;
+            strengthGain = 1f;
+            maximumDisplacementRatio = 0.15f;
             visualDetailEnabled = false;
         }
 
@@ -34,6 +38,8 @@ namespace CaveBlockout
         {
             enabled = true;
             amplitudeMeters = 0.8f;
+            strengthGain = 1f;
+            maximumDisplacementRatio = 0.15f;
             wavelengthMeters = 12f;
             octaves = 2;
             lacunarity = 2f;
@@ -48,7 +54,9 @@ namespace CaveBlockout
         public void ApplyRoughPreset()
         {
             enabled = true;
-            amplitudeMeters = 1.4f;
+            amplitudeMeters = 1.8f;
+            strengthGain = 1.2f;
+            maximumDisplacementRatio = 0.22f;
             wavelengthMeters = 8f;
             octaves = 2;
             lacunarity = 2f;
@@ -58,8 +66,27 @@ namespace CaveBlockout
             ceilingMultiplier = 1.25f;
             portalFadeDistance = 5f;
             visualDetailEnabled = true;
-            visualDetailAmplitude = 0.12f;
-            visualDetailWavelength = 4f;
+            visualDetailAmplitude = 0.2f;
+            visualDetailWavelength = 8f;
+        }
+
+        public void ApplyStrongPreset()
+        {
+            enabled = true;
+            amplitudeMeters = 3.2f;
+            strengthGain = 1.5f;
+            maximumDisplacementRatio = 0.3f;
+            wavelengthMeters = 8f;
+            octaves = 2;
+            lacunarity = 2f;
+            persistence = 0.6f;
+            floorMultiplier = 1.2f;
+            wallMultiplier = 1.3f;
+            ceilingMultiplier = 1.5f;
+            portalFadeDistance = 5f;
+            visualDetailEnabled = true;
+            visualDetailAmplitude = 0.4f;
+            visualDetailWavelength = 8f;
         }
     }
 

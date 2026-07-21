@@ -46,6 +46,22 @@ namespace CaveBlockout.Editor
                 Debug.LogWarning("CAVE_BLOCKOUT: " + issue);
         }
 
+        public static void ApplyStrongNoiseMainMapBatch()
+        {
+            EditorSceneManager.OpenScene(MainMapPath, OpenSceneMode.Single);
+            CaveRoute mainRoute = UnityEngine.Object.FindObjectsByType<CaveRoute>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .FirstOrDefault(route => route.Definitions.Any(definition => definition.isMainRoute));
+            if (mainRoute == null)
+                throw new InvalidOperationException("Main cave route was not found.");
+
+            mainRoute.NoiseSettings.ApplyStrongPreset();
+            EditorUtility.SetDirty(mainRoute);
+            EditorSceneManager.MarkSceneDirty(mainRoute.gameObject.scene);
+            CaveValidationResult result = RegenerateCurrentScene(true);
+            Debug.Log($"CAVE_STRONG_NOISE {(result.Passed ? "PASS" : "WARN")} amplitude={mainRoute.NoiseSettings.amplitudeMeters:F2} " +
+                      $"gain={mainRoute.NoiseSettings.strengthGain:F2} ratio={mainRoute.NoiseSettings.maximumDisplacementRatio:F2}");
+        }
+
         public static void ValidateMainMapBatch()
         {
             EditorSceneManager.OpenScene(MainMapPath, OpenSceneMode.Single);

@@ -49,6 +49,7 @@ namespace CaveBlockout.Editor
         public const float JunctionFlareLength = 10f;
         public const float JunctionWidthPadding = 8f;
         public const float JunctionHeightPadding = 8f;
+        public const float MinimumNoiseClearanceRadius = 3.5f;
         private const float PortalWidthClearance = 6f;
         private const float PortalHeightClearance = 4f;
 
@@ -419,16 +420,19 @@ namespace CaveBlockout.Editor
                 : Mathf.Lerp(settings.wallMultiplier, settings.floorMultiplier, -vertical);
             float radius = radial.magnitude;
             float requestedAmplitude = settings.amplitudeMeters * Mathf.Max(0f, surfaceMultiplier);
-            float clearanceSurplus = Mathf.Max(0f, radius - 2.5f);
-            float structuralAmplitude = Mathf.Min(requestedAmplitude, radius * 0.15f, clearanceSurplus) * weight;
-            float structural = FractalNoise(position, settings.seed, settings.wavelengthMeters, settings.octaves,
-                settings.lacunarity, settings.persistence) * structuralAmplitude;
+            float clearanceSurplus = Mathf.Max(0f, radius - MinimumNoiseClearanceRadius);
+            float displacementRatio = Mathf.Clamp(settings.maximumDisplacementRatio, 0.05f, 0.35f);
+            float structuralAmplitude = Mathf.Min(requestedAmplitude, radius * displacementRatio, clearanceSurplus) * weight;
+            float structuralNoise = FractalNoise(position, settings.seed, settings.wavelengthMeters, settings.octaves,
+                settings.lacunarity, settings.persistence);
+            structuralNoise = Mathf.Clamp(structuralNoise * Mathf.Clamp(settings.strengthGain, 0.5f, 2.5f), -1f, 1f);
+            float structural = structuralNoise * structuralAmplitude;
 
             float visualDetail = 0f;
             if (allowVisualDetail && settings.visualDetailEnabled && settings.visualDetailAmplitude > 0f)
             {
                 float signed = FractalNoise(position, settings.seed + 7919, settings.visualDetailWavelength, 2, 2f, 0.5f);
-                visualDetail = -(signed * 0.5f + 0.5f) * Mathf.Min(0.15f, settings.visualDetailAmplitude) * weight;
+                visualDetail = -(signed * 0.5f + 0.5f) * Mathf.Min(0.75f, settings.visualDetailAmplitude) * weight;
             }
             return position + radial.normalized * (structural + visualDetail);
         }

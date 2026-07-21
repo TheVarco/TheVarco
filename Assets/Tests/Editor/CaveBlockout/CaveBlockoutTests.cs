@@ -43,7 +43,9 @@ namespace CaveBlockout.Tests
             AssertEmbeddedData(mainSpline, true);
             Assert.That(mainRoute.Portals.Select(portal => portal.zoneId), Is.EquivalentTo(new[] { "Z2", "Z4", "Z6" }));
             Assert.That(mainRoute.NoiseSettings.enabled, Is.True);
-            Assert.That(mainRoute.NoiseSettings.amplitudeMeters, Is.EqualTo(0.8f).Within(0.001f));
+            Assert.That(mainRoute.NoiseSettings.amplitudeMeters, Is.EqualTo(3.2f).Within(0.001f));
+            Assert.That(mainRoute.NoiseSettings.strengthGain, Is.EqualTo(1.5f).Within(0.001f));
+            Assert.That(mainRoute.NoiseSettings.maximumDisplacementRatio, Is.EqualTo(0.3f).Within(0.001f));
 
             Assert.That(branches.Container.Splines.Count, Is.EqualTo(3));
             for (int i = 0; i < branches.Container.Splines.Count; i++)
@@ -173,8 +175,12 @@ namespace CaveBlockout.Tests
             Transform generated = GameObject.Find(CaveBlockoutBuilder.RootName).transform.Find("Generated");
             MeshFilter filter = generated.GetComponentInChildren<MeshFilter>(true);
             MeshCollider collider = filter.GetComponent<MeshCollider>();
-            CollectionAssert.AreEqual(filter.sharedMesh.vertices, collider.sharedMesh.vertices,
-                "Structural noise must match the collider when visual detail is disabled.");
+            if (mainRoute.NoiseSettings.visualDetailEnabled)
+                Assert.That(filter.sharedMesh.vertices.SequenceEqual(collider.sharedMesh.vertices), Is.False,
+                    "Visual-only detail should not leak into the smooth collider mesh.");
+            else
+                CollectionAssert.AreEqual(filter.sharedMesh.vertices, collider.sharedMesh.vertices,
+                    "Structural noise must match the collider when visual detail is disabled.");
 
             float totalLength = mainRoute.Container.CalculateLength(0);
             Assert.That(CaveMeshGenerator.EvaluateMainNoiseWeight(mainRoute, 0f), Is.Zero.Within(0.0001f));
@@ -208,6 +214,29 @@ namespace CaveBlockout.Tests
                                                  Mathf.Pow(settings.lacunarity, settings.octaves - 1);
             Assert.That(shortestStructuralWavelength, Is.GreaterThanOrEqualTo(CaveMeshGenerator.SampleSpacing * 2f));
             Assert.That(settings.visualDetailWavelength, Is.GreaterThanOrEqualTo(CaveMeshGenerator.SampleSpacing * 2f));
+        }
+
+        [Test]
+        public void StrongNoisePreset_IsMateriallyStrongerAndKeepsTheMinimumSafeRadius()
+        {
+            CaveNoiseSettings rough = new CaveNoiseSettings();
+            rough.ApplyRoughPreset();
+            CaveNoiseSettings strong = new CaveNoiseSettings();
+            strong.ApplyStrongPreset();
+
+            Assert.That(strong.amplitudeMeters, Is.GreaterThan(rough.amplitudeMeters));
+            Assert.That(strong.strengthGain, Is.GreaterThan(rough.strengthGain));
+            Assert.That(strong.maximumDisplacementRatio, Is.EqualTo(0.3f).Within(0.001f));
+            Assert.That(strong.visualDetailAmplitude, Is.GreaterThan(rough.visualDetailAmplitude));
+            float shortestStructuralWavelength = strong.wavelengthMeters /
+                                                 Mathf.Pow(strong.lacunarity, strong.octaves - 1);
+            Assert.That(shortestStructuralWavelength, Is.GreaterThanOrEqualTo(CaveMeshGenerator.SampleSpacing * 2f));
+            float minimumBranchRadius = 5f;
+            float maximumInwardDisplacement = Mathf.Min(strong.amplitudeMeters,
+                minimumBranchRadius * strong.maximumDisplacementRatio,
+                minimumBranchRadius - CaveMeshGenerator.MinimumNoiseClearanceRadius);
+            Assert.That(minimumBranchRadius - maximumInwardDisplacement,
+                Is.GreaterThanOrEqualTo(CaveMeshGenerator.MinimumNoiseClearanceRadius));
         }
 
         [Test]
@@ -315,6 +344,9 @@ namespace CaveBlockout.Tests
             Assert.That(manifest.shots.All(shot => new FileInfo(Path.Combine(output, shot.file)).Length > 1000), Is.True);
             Assert.That(manifest.noise.seed, Is.EqualTo(mainRoute.NoiseSettings.seed));
             Assert.That(manifest.noise.amplitudeMeters, Is.EqualTo(mainRoute.NoiseSettings.amplitudeMeters).Within(0.001f));
+            Assert.That(manifest.noise.strengthGain, Is.EqualTo(mainRoute.NoiseSettings.strengthGain).Within(0.001f));
+            Assert.That(manifest.noise.maximumDisplacementRatio,
+                Is.EqualTo(mainRoute.NoiseSettings.maximumDisplacementRatio).Within(0.001f));
             Assert.That(EditorSceneManager.GetActiveScene().isDirty, Is.EqualTo(wasDirty));
         }
 

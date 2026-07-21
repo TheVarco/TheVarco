@@ -32,6 +32,8 @@ namespace CaveBlockout.Editor
         public bool enabled;
         public int seed;
         public float amplitudeMeters;
+        public float strengthGain;
+        public float maximumDisplacementRatio;
         public float wavelengthMeters;
         public int octaves;
         public float lacunarity;
@@ -239,6 +241,8 @@ namespace CaveBlockout.Editor
                 enabled = settings.enabled,
                 seed = settings.seed,
                 amplitudeMeters = settings.amplitudeMeters,
+                strengthGain = settings.strengthGain,
+                maximumDisplacementRatio = settings.maximumDisplacementRatio,
                 wavelengthMeters = settings.wavelengthMeters,
                 octaves = settings.octaves,
                 lacunarity = settings.lacunarity,
