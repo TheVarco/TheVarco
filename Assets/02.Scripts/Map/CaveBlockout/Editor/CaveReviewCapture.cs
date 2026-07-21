@@ -289,9 +289,16 @@ namespace CaveBlockout.Editor
                 views.Add(LookAt(portal.zoneId + "_Portal_Wire", cameraPosition, center + direction * 10f, up, true));
 
                 CaveRouteSplineDefinition branchDefinition = branches.Definitions.First(definition => definition.splineIndex == portal.branchSplineIndex);
-                float wallT = CaveMeshGenerator.FindTAtDistance(branches.Container, portal.branchSplineIndex, 0f, 1f, branchDefinition.startTrimMeters + 5f);
-                Vector3 branchPosition = branches.Container.EvaluatePosition(portal.branchSplineIndex, wallT);
-                views.Add(LookAt(portal.zoneId + "_Portal_FromBranch", branchPosition, center, up));
+                float branchLength = branches.Container.CalculateLength(portal.branchSplineIndex);
+                float branchStartDistance = Mathf.Min(branchLength - 3f,
+                    branchDefinition.startTrimMeters + CaveMeshGenerator.BranchCollarDepth);
+                float reviewDistance = Mathf.Min(branchLength - 2f, branchStartDistance + 8f);
+                float branchReviewT = CaveMeshGenerator.FindTAtDistance(branches.Container,
+                    portal.branchSplineIndex, 0f, 1f, reviewDistance);
+                // Use the same safely traversable centerline region as the clearance test, beyond the welded collar.
+                // The extra setback keeps the full aperture frame inside the review camera's field of view.
+                Vector3 branchPosition = branches.Container.EvaluatePosition(portal.branchSplineIndex, branchReviewT);
+                views.Add(LookAt(portal.zoneId + "_Portal_FromBranch_Wire", branchPosition, center, up, true));
             }
 
             foreach (CaveRouteSplineDefinition branchDefinition in branches.Definitions)
