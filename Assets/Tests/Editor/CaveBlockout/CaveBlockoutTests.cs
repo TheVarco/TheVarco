@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using CaveBlockout.Editor;
 using NUnit.Framework;
@@ -99,6 +100,34 @@ namespace CaveBlockout.Tests
             Assert.That(after, Is.EquivalentTo(before));
             Assert.That(Object.FindFirstObjectByType<Camera>(FindObjectsInactive.Include), Is.SameAs(camera));
             Assert.That(Object.FindFirstObjectByType<Light>(FindObjectsInactive.Include), Is.SameAs(light));
+        }
+
+        [Test]
+        public void ReviewCapture_WritesExpectedEvidenceWithoutDirtyingScene()
+        {
+            FindRoutes(out CaveRoute mainRoute, out CaveRoute branches);
+            List<CaveReviewViewpoint> viewpoints = CaveReviewCapture.BuildViewpoints(mainRoute, branches);
+            Assert.That(viewpoints.Count, Is.EqualTo(33));
+            Assert.That(viewpoints.Select(view => view.name), Is.Unique);
+
+            bool wasDirty = EditorSceneManager.GetActiveScene().isDirty;
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string output = Path.Combine(projectRoot, CaveReviewCapture.ArtifactFolder, "EditMode-" + System.Guid.NewGuid().ToString("N"));
+            CaveReviewCaptureResult result = CaveReviewCapture.CaptureCurrentScene(output);
+
+            Assert.That(result.shotCount, Is.EqualTo(viewpoints.Count));
+            Assert.That(File.Exists(result.manifestPath), Is.True);
+            Assert.That(new FileInfo(result.manifestPath).Length, Is.GreaterThan(100));
+            Assert.That(File.Exists(result.contactSheetPath), Is.True);
+            Assert.That(new FileInfo(result.contactSheetPath).Length, Is.GreaterThan(1000));
+            CaveReviewManifest manifest = JsonUtility.FromJson<CaveReviewManifest>(File.ReadAllText(result.manifestPath));
+            Assert.That(manifest.shots.Count, Is.EqualTo(viewpoints.Count));
+            Assert.That(manifest.shots.All(shot => shot.sha256.Length == 64), Is.True);
+            Assert.That(manifest.shots.Select(shot => shot.sha256).Distinct().Count(), Is.GreaterThan(viewpoints.Count / 2),
+                "Review renders are near-identical; output may be blank or headless.");
+            Assert.That(manifest.shots.All(shot => File.Exists(Path.Combine(output, shot.file))), Is.True);
+            Assert.That(manifest.shots.All(shot => new FileInfo(Path.Combine(output, shot.file)).Length > 1000), Is.True);
+            Assert.That(EditorSceneManager.GetActiveScene().isDirty, Is.EqualTo(wasDirty));
         }
 
         [Test]

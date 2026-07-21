@@ -50,6 +50,12 @@ namespace CaveBlockout.Editor
                 else Debug.Log(clearanceResult);
             }
 
+            if (GUILayout.Button("Capture Review Sweep"))
+            {
+                CaveReviewCaptureResult result = CaveReviewCapture.CaptureCurrentScene();
+                EditorUtility.RevealInFinder(result.contactSheetPath);
+            }
+
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Route Selection", EditorStyles.boldLabel);
             if (GUILayout.Button("Select Main Route"))

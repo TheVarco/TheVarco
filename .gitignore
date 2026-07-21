@@ -12,6 +12,7 @@
 /[Bb]uild/
 /[Bb]uilds/
 /[Ll]ogs/
+/[Aa]rtifacts/
 /[Uu]ser[Ss]ettings/
 *.log
 # **/99.Resources/
