@@ -22,12 +22,6 @@ public class PlayerInteractor : MonoBehaviour
     public System.Action<string> OnPromptChanged;
 
     private Interactable currentTarget;
-    private Animator animator;
-
-    void Awake()
-    {
-        animator = GetComponentInChildren<Animator>();
-    }
 
     void Update()
     {
@@ -35,14 +29,6 @@ public class PlayerInteractor : MonoBehaviour
 
         if (currentTarget != null && Input.GetKeyDown(interactKey))
         {
-            if (animator == null)
-                animator = GetComponentInChildren<Animator>();
-
-            if (animator != null)
-            {
-                animator.SetTrigger("Getting");
-            }
-
             currentTarget.Interact(gameObject);
         }
     }

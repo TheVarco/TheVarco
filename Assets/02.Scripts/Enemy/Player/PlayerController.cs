@@ -30,12 +30,10 @@ public class PlayerController : MonoBehaviour
 
     private Rigidbody rb;
     private Vector3 inputDirection;
-    private Animator animator;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
-        animator = GetComponentInChildren<Animator>();
         rb.useGravity = false;      // 부력/중력은 별도 시스템에서 다룰 예정
         rb.linearDamping = 0f;      // 감속은 이 스크립트가 직접 처리
         rb.constraints = RigidbodyConstraints.FreezeRotation; // 회전은 물리 대신 스크립트가 담당
@@ -46,22 +44,6 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         ReadInput();
-        UpdateAnimator();
-    }
-
-    private void UpdateAnimator()
-    {
-        if (animator == null)
-            animator = GetComponentInChildren<Animator>();
-
-        if (animator != null)
-        {
-            bool isMoving = inputDirection.sqrMagnitude > 0.01f;
-            float speed = isMoving ? inputDirection.magnitude * moveSpeed : 0f;
-
-            animator.SetBool("IsSwimming", isMoving);
-            animator.SetFloat("Speed", speed);
-        }
     }
 
     void FixedUpdate()
