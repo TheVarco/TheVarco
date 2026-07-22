@@ -27,7 +27,7 @@ public class SharkIdleState : ISharkState
     public void Update()
     {
         // 대기 중에도 플레이어를 발견하면 즉시 추적으로 전환
-        if (shark.TryFindTarget())
+        if (shark.Targeting.TryFindTarget())
         {
             shark.ChangeState(SharkStateType.Chase);
             return;

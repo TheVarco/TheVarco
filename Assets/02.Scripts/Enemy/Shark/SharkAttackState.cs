@@ -21,17 +21,17 @@ public class SharkAttackState : ISharkState
     public void Update()
     {
         // 타겟을 놓치면 순찰로 복귀
-        if (!shark.TryFindTarget())
+        if (!shark.Targeting.TryFindTarget())
         {
             shark.ChangeState(SharkStateType.Patrol);
             return;
         }
 
-        Vector3 direction = shark.Target.position - shark.transform.position;
+        Vector3 direction = shark.Targeting.Target.position - shark.transform.position;
         
         float attackDistance = Vector3.Distance(
             shark.AttackHitbox.transform.position,
-            shark.Target.position
+            shark.Targeting.Target.position
         );
 
         // 사거리를 벗어나면 다시 추격
@@ -42,7 +42,7 @@ public class SharkAttackState : ISharkState
         }
 
         // 무는 동안에도 플레이어를 향해 바라본다
-        shark.RotateToDirection(direction);
+        shark.Navigator.RotateToDirection(direction);
 
         UpdateCooldown();
     }

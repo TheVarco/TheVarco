@@ -13,6 +13,7 @@ public class Health : MonoBehaviour, Damageable
     public UnityEvent<float, float> OnHealthChanged; // (현재 체력, 최대 체력)
     public UnityEvent OnDeath;
     public UnityEvent OnRevived;
+    public event System.Action<float, GameObject> OnDamaged; // 서영 추가
 
     public float CurrentHealth { get; private set; }
     public bool IsDead { get; private set; }
@@ -29,6 +30,7 @@ public class Health : MonoBehaviour, Damageable
         CurrentHealth = Mathf.Max(0f, CurrentHealth - amount);
         Debug.Log($"[Health] {gameObject.name}이(가) {source.name}에게 {amount} 데미지를 받음. 남은 체력: {CurrentHealth}/{maxHealth}");
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
+        OnDamaged?.Invoke(amount, source); // 서영 추가
 
         if (CurrentHealth <= 0f)
         {

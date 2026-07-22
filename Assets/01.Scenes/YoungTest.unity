@@ -119,6 +119,166 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &4122149
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4122150}
+  - component: {fileID: 4122151}
+  m_Layer: 6
+  m_Name: Z6_GuideVolume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4122150
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4122149}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.22460762, y: 0.3894331, z: 0.09852419, w: 0.8877986}
+  m_LocalPosition: {x: 39.538925, y: 174.42152, z: 365.63516}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 128617759}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4122151
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4122149}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d3dd760d82ff51429307e0d6cf55c27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveZoneMarker
+  zoneId: Z6
+  guideSize: {x: 30, y: 60, z: 110}
+  color: {r: 1, g: 0.45, b: 0.2, a: 0.3}
+--- !u!1 &36009198
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 36009199}
+  - component: {fileID: 36009202}
+  - component: {fileID: 36009201}
+  - component: {fileID: 36009200}
+  m_Layer: 6
+  m_Name: CaveShell
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!4 &36009199
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 36009198}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 548403723}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!64 &36009200
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 36009198}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 14
+  m_Mesh: {fileID: 4300000, guid: 9029f1ad23982e541bbaedf5cd5dae59, type: 2}
+--- !u!23 &36009201
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 36009198}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: e7e2cf4292b3273439bb2c6b5bafdcdb, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &36009202
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 36009198}
+  m_Mesh: {fileID: 4300000, guid: f9b1e5023264214408372bc0df78f6ce, type: 2}
 --- !u!1 &37748575
 GameObject:
   m_ObjectHideFlags: 0
@@ -275,7 +435,7 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 86812062}
   m_CullTransparentMesh: 1
---- !u!1 &184061250
+--- !u!1 &97752326
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -283,24 +443,24 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 184061254}
-  - component: {fileID: 184061253}
-  - component: {fileID: 184061252}
-  - component: {fileID: 184061251}
-  m_Layer: 0
-  m_Name: Plane
+  - component: {fileID: 97752330}
+  - component: {fileID: 97752329}
+  - component: {fileID: 97752328}
+  - component: {fileID: 97752327}
+  m_Layer: 6
+  m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!64 &184061251
-MeshCollider:
+  m_IsActive: 0
+--- !u!65 &97752327
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 184061250}
+  m_GameObject: {fileID: 97752326}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -312,17 +472,16 @@ MeshCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
---- !u!23 &184061252
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &97752328
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 184061250}
+  m_GameObject: {fileID: 97752326}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -365,28 +524,66 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!33 &184061253
+--- !u!33 &97752329
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 184061250}
-  m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
---- !u!4 &184061254
+  m_GameObject: {fileID: 97752326}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &97752330
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 184061250}
+  m_GameObject: {fileID: 97752326}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -1, z: 0}
-  m_LocalScale: {x: 10, y: 10, z: 10}
+  m_LocalPosition: {x: 0, y: 2.12, z: 6.63}
+  m_LocalScale: {x: 20.724068, y: 9.3838415, z: 0.3155766}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &128617758
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 128617759}
+  m_Layer: 6
+  m_Name: Markers
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &128617759
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 128617758}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1195118785}
+  - {fileID: 1098179666}
+  - {fileID: 906765180}
+  - {fileID: 1042249850}
+  - {fileID: 1889458702}
+  - {fileID: 4122150}
+  - {fileID: 866613127}
+  m_Father: {fileID: 1319602851}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &204704316
 GameObject:
@@ -567,7 +764,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OxygenStat
   maxValue: 100
-  depletionRatePerSecond: 5
+  depletionRatePerSecond: 0.1
   OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -803,6 +1000,38 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 499699258}
   m_CullTransparentMesh: 1
+--- !u!1 &548403722
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 548403723}
+  m_Layer: 6
+  m_Name: Generated
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &548403723
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 548403722}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 36009199}
+  m_Father: {fileID: 1319602851}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &655372937
 GameObject:
   m_ObjectHideFlags: 0
@@ -878,56 +1107,658 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 655372937}
   m_CullTransparentMesh: 1
---- !u!1 &788395343 stripped
+--- !u!1 &866613126
 GameObject:
-  m_CorrespondingSourceObject: {fileID: 3442563439716620189, guid: 0b598cb281d78094d90437bc9fdfa153, type: 3}
-  m_PrefabInstance: {fileID: 3085304070260099040}
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &788395349
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 866613127}
+  - component: {fileID: 866613128}
+  m_Layer: 6
+  m_Name: Z7_GuideVolume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &866613127
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 866613126}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.25427553, y: 0.18930016, z: 0.050824977, w: 0.9470619}
+  m_LocalPosition: {x: 121.697685, y: 230.93684, z: 428.40686}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 128617759}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &866613128
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 788395343}
+  m_GameObject: {fileID: 866613126}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a4fd13e5bd32d2941aa1cc197ca4a73d, type: 3}
+  m_Script: {fileID: 11500000, guid: 4d3dd760d82ff51429307e0d6cf55c27, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::OxygenTankItem
-  itemName: "\uC0B0\uC18C\uD1B5"
-  isConsumable: 1
-  icon: {fileID: 0}
-  holdPositionOffset: {x: 0, y: 0, z: 0}
-  holdRotationOffset: {x: 0, y: 0, z: 0}
-  refillAmount: 50
---- !u!54 &788395350
-Rigidbody:
+  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveZoneMarker
+  zoneId: Z7
+  guideSize: {x: 85, y: 50, z: 120}
+  color: {r: 0.9, g: 0.25, b: 0.5, a: 0.3}
+--- !u!1 &876645102
+GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 788395343}
-  serializedVersion: 5
-  m_Mass: 1
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 876645103}
+  - component: {fileID: 876645105}
+  - component: {fileID: 876645104}
+  m_Layer: 6
+  m_Name: Branches_Z2_Z4_Z6
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &876645103
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 876645102}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1324051738}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &876645104
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 876645102}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24d1f5822da08254d88e71d06ac50dae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveRoute
+  definitions:
+  - routeId: Z2_Branch
+    splineIndex: 0
+    isMainRoute: 0
+    startTrimMeters: 31.5
+    sections:
+    - zoneId: Z2_Branch
+      startKnot: 0
+      endKnot: 3
+      startDistanceMeters: -1
+      endDistanceMeters: -1
+      nominalLength: 40
+      guideSize: {x: 14, y: 10}
+      capStart: 0
+      capEnd: 1
+  - routeId: Z4_Branch
+    splineIndex: 1
+    isMainRoute: 0
+    startTrimMeters: 8
+    sections:
+    - zoneId: Z4_Branch
+      startKnot: 0
+      endKnot: 3
+      startDistanceMeters: -1
+      endDistanceMeters: -1
+      nominalLength: 45
+      guideSize: {x: 14, y: 10}
+      capStart: 0
+      capEnd: 1
+  - routeId: Z6_Branch
+    splineIndex: 2
+    isMainRoute: 0
+    startTrimMeters: 14
+    sections:
+    - zoneId: Z6_Branch
+      startKnot: 0
+      endKnot: 3
+      startDistanceMeters: -1
+      endDistanceMeters: -1
+      nominalLength: 45
+      guideSize: {x: 14, y: 14}
+      capStart: 0
+      capEnd: 1
+  portals: []
+  noiseSettings:
+    enabled: 0
+    seed: 1337
+    amplitudeMeters: 0
+    strengthGain: 1
+    maximumDisplacementRatio: 0.15
+    wavelengthMeters: 12
+    octaves: 2
+    lacunarity: 2
+    persistence: 0.5
+    floorMultiplier: 1
+    wallMultiplier: 1
+    ceilingMultiplier: 1.15
+    portalFadeDistance: 4
+    visualDetailEnabled: 0
+    visualDetailAmplitude: 0.1
+    visualDetailWavelength: 4
+--- !u!114 &876645105
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 876645102}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dab5c7d4c32e743048dfca98e2d5914f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Splines::UnityEngine.Splines.SplineContainer
+  m_Spline:
+    m_EditModeType: 1
+    m_Knots: []
+    m_MetaData: []
+    m_Closed: 0
+    m_IntData:
+      m_Data: []
+    m_FloatData:
+      m_Data: []
+    m_Float4Data:
+      m_Data: []
+    m_ObjectData:
+      m_Data: []
+  m_Splines:
+  - m_EditModeType: 1
+    m_Knots:
+    - Position:
+        x: 24.334787
+        y: 30
+        z: 85.86567
+      TangentIn:
+        x: -0
+        y: -0
+        z: -3.1499999
+      TangentOut:
+        x: 0
+        y: 0
+        z: 3.1499999
+      Rotation:
+        value:
+          x: 0
+          y: 0.94693005
+          z: 0
+          w: 0.32143965
+    - Position:
+        x: 43.51078
+        y: 30
+        z: 60.875046
+      TangentIn:
+        x: -0
+        y: -0
+        z: -8.7950325
+      TangentOut:
+        x: 0
+        y: 0
+        z: 7.860633
+      Rotation:
+        value:
+          x: -0.00570956
+          y: 0.9667206
+          z: 0.021657871
+          w: 0.2548519
+    - Position:
+        x: 50.186924
+        y: 32
+        z: 42.022217
+      TangentIn:
+        x: -0
+        y: -0
+        z: -6.6999164
+      TangentOut:
+        x: 0
+        y: 0
+        z: 6.6999164
+      Rotation:
+        value:
+          x: -0.0084359385
+          y: 0.98433244
+          z: 0.04909421
+          w: 0.16913946
+    - Position:
+        x: 56.863068
+        y: 34
+        z: 23.169392
+      TangentIn:
+        x: -0
+        y: -0
+        z: -2.009975
+      TangentOut:
+        x: 0
+        y: 0
+        z: 2.009975
+      Rotation:
+        value:
+          x: -0.008435938
+          y: 0.98433244
+          z: 0.0490942
+          w: 0.16913944
+    m_MetaData:
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    m_Closed: 0
+    m_IntData:
+      m_Data:
+      - Key: cave.zone
+        Value:
+          m_IndexUnit: 2
+          m_DefaultValue: 0
+          m_DataPoints:
+          - m_Index: 0
+            m_Value: 0
+          - m_Index: 1
+            m_Value: 0
+          - m_Index: 2
+            m_Value: 0
+          - m_Index: 3
+            m_Value: 0
+      - Key: cave.portal
+        Value:
+          m_IndexUnit: 2
+          m_DefaultValue: 0
+          m_DataPoints:
+          - m_Index: 0
+            m_Value: 0
+          - m_Index: 1
+            m_Value: 0
+          - m_Index: 2
+            m_Value: 0
+          - m_Index: 3
+            m_Value: 0
+    m_FloatData:
+      m_Data:
+      - Key: cave.width
+        Value:
+          m_IndexUnit: 2
+          m_DefaultValue: 0
+          m_DataPoints:
+          - m_Index: 0
+            m_Value: 14
+          - m_Index: 1
+            m_Value: 14
+          - m_Index: 2
+            m_Value: 14
+          - m_Index: 3
+            m_Value: 12
+      - Key: cave.height
+        Value:
+          m_IndexUnit: 2
+          m_DefaultValue: 0
+          m_DataPoints:
+          - m_Index: 0
+            m_Value: 10
+          - m_Index: 1
+            m_Value: 10
+          - m_Index: 2
+            m_Value: 10
+          - m_Index: 3
+            m_Value: 10
+      - Key: cave.roll
+        Value:
+          m_IndexUnit: 2
+          m_DefaultValue: 0
+          m_DataPoints:
+          - m_Index: 0
+            m_Value: 0
+          - m_Index: 1
+            m_Value: 0
+          - m_Index: 2
+            m_Value: 0
+          - m_Index: 3
+            m_Value: 0
+    m_Float4Data:
+      m_Data: []
+    m_ObjectData:
+      m_Data: []
+  - m_EditModeType: 1
+    m_Knots:
+    - Position:
+        x: 86.32217
+        y: 101
+        z: 226.6193
+      TangentIn:
+        x: -0
+        y: -0
+        z: -0.7999999
+      TangentOut:
+        x: 0
+        y: 0
+        z: 0.7999999
+      Rotation:
+        value:
+          x: 0
+          y: 0.9469298
+          z: 0
+          w: -0.32144028
+    - Position:
+        x: 81.452065
+        y: 101
+        z: 220.27248
+      TangentIn:
+        x: -0
+        y: -0
+        z: -3.984902
+      TangentOut:
+        x: 0
+        y: 0
+        z: 5.1655674
+      Rotation:
+        value:
+          x: 0.0063753123
+          y: 0.9735622
+          z: 0.027380504
+          w: -0.22668552
+    - Position:
+        x: 73.941376
+        y: 103
+        z: 199.06305
+      TangentIn:
+        x: -0
+        y: -0
+        z: -7.529575
+      TangentOut:
+        x: 0
+        y: 0
+        z: 7.5295734
+      Rotation:
+        value:
+          x: 0.007504486
+          y: 0.9845877
+          z: 0.043673344
+          w: -0.1691839
+    - Position:
+        x: 66.43069
+        y: 105
+        z: 177.85364
+      TangentIn:
+        x: -0
+        y: -0
+        z: -2.2588704
+      TangentOut:
+        x: 0
+        y: 0
+        z: 2.2588704
+      Rotation:
+        value:
+          x: 0.007504498
+          y: 0.9845877
+          z: 0.043673374
+          w: -0.16918401
+    m_MetaData:
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    m_Closed: 0
+    m_IntData:
+      m_Data:
+      - Key: cave.zone
+        Value:
+          m_IndexUnit: 2
+          m_DefaultValue: 0
+          m_DataPoints:
+          - m_Index: 0
+            m_Value: 0
+          - m_Index: 1
+            m_Value: 0
+          - m_Index: 2
+            m_Value: 0
+          - m_Index: 3
+            m_Value: 0
+      - Key: cave.portal
+        Value:
+          m_IndexUnit: 2
+          m_DefaultValue: 0
+          m_DataPoints:
+          - m_Index: 0
+            m_Value: 0
+          - m_Index: 1
+            m_Value: 0
+          - m_Index: 2
+            m_Value: 0
+          - m_Index: 3
+            m_Value: 0
+    m_FloatData:
+      m_Data:
+      - Key: cave.width
+        Value:
+          m_IndexUnit: 2
+          m_DefaultValue: 0
+          m_DataPoints:
+          - m_Index: 0
+            m_Value: 14
+          - m_Index: 1
+            m_Value: 14
+          - m_Index: 2
+            m_Value: 14
+          - m_Index: 3
+            m_Value: 12
+      - Key: cave.height
+        Value:
+          m_IndexUnit: 2
+          m_DefaultValue: 0
+          m_DataPoints:
+          - m_Index: 0
+            m_Value: 10
+          - m_Index: 1
+            m_Value: 10
+          - m_Index: 2
+            m_Value: 10
+          - m_Index: 3
+            m_Value: 10
+      - Key: cave.roll
+        Value:
+          m_IndexUnit: 2
+          m_DefaultValue: 0
+          m_DataPoints:
+          - m_Index: 0
+            m_Value: 0
+          - m_Index: 1
+            m_Value: 0
+          - m_Index: 2
+            m_Value: 0
+          - m_Index: 3
+            m_Value: 0
+    m_Float4Data:
+      m_Data: []
+    m_ObjectData:
+      m_Data: []
+  - m_EditModeType: 1
+    m_Knots:
+    - Position:
+        x: 39.645824
+        y: 174.5
+        z: 365.7333
+      TangentIn:
+        x: -0
+        y: -0
+        z: -1.399999
+      TangentOut:
+        x: 0
+        y: 0
+        z: 1.399999
+      Rotation:
+        value:
+          x: 0
+          y: 0.9320078
+          z: 0
+          w: 0.36243835
+    - Position:
+        x: 49.104088
+        y: 174.5
+        z: 355.41144
+      TangentIn:
+        x: -0
+        y: -0
+        z: -5.558179
+      TangentOut:
+        x: 0
+        y: 0
+        z: 6.2959743
+      Rotation:
+        value:
+          x: -0.017391086
+          y: 0.95823425
+          z: 0.05969968
+          w: 0.27914274
+    - Position:
+        x: 58.43468
+        y: 179.5
+        z: 334.93732
+      TangentIn:
+        x: -0
+        y: -0
+        z: -7.682953
+      TangentOut:
+        x: 0
+        y: 0
+        z: 7.6829557
+      Rotation:
+        value:
+          x: -0.02315215
+          y: 0.9713961
+          z: 0.10663231
+          w: 0.21091062
+    - Position:
+        x: 67.765274
+        y: 184.5
+        z: 314.46317
+      TangentIn:
+        x: -0
+        y: -0
+        z: -2.304888
+      TangentOut:
+        x: 0
+        y: 0
+        z: 2.304888
+      Rotation:
+        value:
+          x: -0.023152089
+          y: 0.9713961
+          z: 0.10663223
+          w: 0.21091044
+    m_MetaData:
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    m_Closed: 0
+    m_IntData:
+      m_Data:
+      - Key: cave.zone
+        Value:
+          m_IndexUnit: 2
+          m_DefaultValue: 0
+          m_DataPoints:
+          - m_Index: 0
+            m_Value: 0
+          - m_Index: 1
+            m_Value: 0
+          - m_Index: 2
+            m_Value: 0
+          - m_Index: 3
+            m_Value: 0
+      - Key: cave.portal
+        Value:
+          m_IndexUnit: 2
+          m_DefaultValue: 0
+          m_DataPoints:
+          - m_Index: 0
+            m_Value: 0
+          - m_Index: 1
+            m_Value: 0
+          - m_Index: 2
+            m_Value: 0
+          - m_Index: 3
+            m_Value: 0
+    m_FloatData:
+      m_Data:
+      - Key: cave.width
+        Value:
+          m_IndexUnit: 2
+          m_DefaultValue: 0
+          m_DataPoints:
+          - m_Index: 0
+            m_Value: 14
+          - m_Index: 1
+            m_Value: 14
+          - m_Index: 2
+            m_Value: 14
+          - m_Index: 3
+            m_Value: 12
+      - Key: cave.height
+        Value:
+          m_IndexUnit: 2
+          m_DefaultValue: 0
+          m_DataPoints:
+          - m_Index: 0
+            m_Value: 14
+          - m_Index: 1
+            m_Value: 14
+          - m_Index: 2
+            m_Value: 14
+          - m_Index: 3
+            m_Value: 10
+      - Key: cave.roll
+        Value:
+          m_IndexUnit: 2
+          m_DefaultValue: 0
+          m_DataPoints:
+          - m_Index: 0
+            m_Value: 0
+          - m_Index: 1
+            m_Value: 0
+          - m_Index: 2
+            m_Value: 0
+          - m_Index: 3
+            m_Value: 0
+    m_Float4Data:
+      m_Data: []
+    m_ObjectData:
+      m_Data: []
+  m_Knots:
+    m_KnotsLink: []
 --- !u!1 &876866131
 GameObject:
   m_ObjectHideFlags: 0
@@ -1044,7 +1875,7 @@ Transform:
   m_GameObject: {fileID: 876866131}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 18.76}
+  m_LocalPosition: {x: 0, y: 2.6, z: -3.2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1066,7 +1897,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 314c4735ce646c54bb15aa62d613d343, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
-  moveSpeed: 4
+  moveSpeed: 10
   acceleration: 8
   drag: 3
   rotationSpeed: 8
@@ -1342,6 +2173,53 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 888298960}
   m_CullTransparentMesh: 1
+--- !u!1 &906765179
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 906765180}
+  - component: {fileID: 906765181}
+  m_Layer: 6
+  m_Name: Z3_GuideVolume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &906765180
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 906765179}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.1970697, y: 0.21115217, z: 0.043509044, w: 0.9563918}
+  m_LocalPosition: {x: 103.56803, y: 67.53585, z: 139.78221}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 128617759}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &906765181
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 906765179}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d3dd760d82ff51429307e0d6cf55c27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveZoneMarker
+  zoneId: Z3
+  guideSize: {x: 25, y: 25, z: 120}
+  color: {r: 0.2, g: 0.9, b: 0.75, a: 0.3}
 --- !u!1 &947260587
 GameObject:
   m_ObjectHideFlags: 0
@@ -1848,6 +2726,100 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1013517730}
   m_CullTransparentMesh: 1
+--- !u!1 &1042249849
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1042249850}
+  - component: {fileID: 1042249851}
+  m_Layer: 6
+  m_Name: Z4_GuideVolume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1042249850
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1042249849}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.12948252, y: -0.43635082, z: -0.06361617, w: 0.88813585}
+  m_LocalPosition: {x: 86.50721, y: 100.93021, z: 226.47687}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 128617759}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1042249851
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1042249849}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d3dd760d82ff51429307e0d6cf55c27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveZoneMarker
+  zoneId: Z4
+  guideSize: {x: 18, y: 18, z: 80}
+  color: {r: 0.45, g: 0.8, b: 0.4, a: 0.3}
+--- !u!1 &1098179665
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1098179666}
+  - component: {fileID: 1098179667}
+  m_Layer: 6
+  m_Name: Z2_GuideVolume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1098179666
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1098179665}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.15837789, y: 0.43517795, z: 0.078067355, w: 0.8828602}
+  m_LocalPosition: {x: 24.324299, y: 29.9951, z: 85.85762}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 128617759}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1098179667
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1098179665}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d3dd760d82ff51429307e0d6cf55c27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveZoneMarker
+  zoneId: Z2
+  guideSize: {x: 65, y: 30, z: 90}
+  color: {r: 0.15, g: 0.8, b: 1, a: 0.3}
 --- !u!1 &1098469563
 GameObject:
   m_ObjectHideFlags: 0
@@ -1884,6 +2856,53 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &1195118784
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1195118785}
+  - component: {fileID: 1195118786}
+  m_Layer: 6
+  m_Name: Z1_GuideVolume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1195118785
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1195118784}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.14206012, y: 0.0006888121, z: 0.00009885534, w: 0.9898578}
+  m_LocalPosition: {x: -6.847662, y: 7.5195494, z: 25.622654}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 128617759}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1195118786
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1195118784}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d3dd760d82ff51429307e0d6cf55c27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveZoneMarker
+  zoneId: Z1
+  guideSize: {x: 35, y: 20, z: 55}
+  color: {r: 0.1, g: 0.55, b: 1, a: 0.3}
 --- !u!1 &1251394071
 GameObject:
   m_ObjectHideFlags: 0
@@ -2018,6 +3037,74 @@ MonoBehaviour:
   normalFOV: 60
   aimFOV: 50
   zoomSpeed: 8
+--- !u!1 &1319602850
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1319602851}
+  m_Layer: 6
+  m_Name: CaveBlockout
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1319602851
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1319602850}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1324051738}
+  - {fileID: 548403723}
+  - {fileID: 128617759}
+  - {fileID: 1730821671}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1324051737
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1324051738}
+  m_Layer: 6
+  m_Name: Routes
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1324051738
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1324051737}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1733374726}
+  - {fileID: 876645103}
+  m_Father: {fileID: 1319602851}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1341791258
 GameObject:
   m_ObjectHideFlags: 0
@@ -2271,6 +3358,65 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1418858117}
   m_CullTransparentMesh: 1
+--- !u!1 &1423135636
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1423135637}
+  - component: {fileID: 1423135638}
+  m_Layer: 6
+  m_Name: BlockoutValidation
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1423135637
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1423135636}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1730821671}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1423135638
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1423135636}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ee9269448304d843989287161f62c47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveValidationSummary
+  passed: 1
+  routeLength: 691.33356
+  totalRise: 260
+  minimumWidth: 16.003363
+  minimumHeight: 12.004856
+  maximumSlope: 30.035955
+  minimumTurnRadius: 24.874237
+  maximumReverseDrop: 0
+  branchCount: 3
+  triangleCount: 46016
+  boundaryLoopCount: 1
+  nonManifoldEdgeCount: 0
+  windingMismatchCount: 0
+  degenerateTriangleCount: 0
+  details: PASS - Guide dimensions and route constraints are satisfied.
 --- !u!1 &1492513249
 GameObject:
   m_ObjectHideFlags: 0
@@ -2487,6 +3633,706 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1730821670
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1730821671}
+  m_Layer: 6
+  m_Name: Validation
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1730821671
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1730821670}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1423135637}
+  m_Father: {fileID: 1319602851}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1733374725
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1733374726}
+  - component: {fileID: 1733374728}
+  - component: {fileID: 1733374727}
+  m_Layer: 6
+  m_Name: MainRoute
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1733374726
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1733374725}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1324051738}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1733374727
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1733374725}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24d1f5822da08254d88e71d06ac50dae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveRoute
+  definitions:
+  - routeId: MainRoute
+    splineIndex: 0
+    isMainRoute: 1
+    startTrimMeters: 0
+    sections:
+    - zoneId: Z1
+      startKnot: 0
+      endKnot: 2
+      startDistanceMeters: 0
+      endDistanceMeters: 55.34737
+      nominalLength: 55
+      guideSize: {x: 35, y: 20}
+      capStart: 1
+      capEnd: 0
+    - zoneId: Z2
+      startKnot: 2
+      endKnot: 4
+      startDistanceMeters: 55.34737
+      endDistanceMeters: 145.96786
+      nominalLength: 90
+      guideSize: {x: 65, y: 30}
+      capStart: 0
+      capEnd: 0
+    - zoneId: Z3
+      startKnot: 4
+      endKnot: 6
+      startDistanceMeters: 145.96786
+      endDistanceMeters: 267.333
+      nominalLength: 120
+      guideSize: {x: 25, y: 25}
+      capStart: 0
+      capEnd: 0
+    - zoneId: Z4
+      startKnot: 6
+      endKnot: 8
+      startDistanceMeters: 267.333
+      endDistanceMeters: 348.35248
+      nominalLength: 80
+      guideSize: {x: 18, y: 18}
+      capStart: 0
+      capEnd: 0
+    - zoneId: Z5
+      startKnot: 8
+      endKnot: 10
+      startDistanceMeters: 348.35248
+      endDistanceMeters: 449.62662
+      nominalLength: 100
+      guideSize: {x: 70, y: 35}
+      capStart: 0
+      capEnd: 0
+    - zoneId: Z6
+      startKnot: 10
+      endKnot: 12
+      startDistanceMeters: 449.62662
+      endDistanceMeters: 570.5788
+      nominalLength: 110
+      guideSize: {x: 30, y: 60}
+      capStart: 0
+      capEnd: 0
+    - zoneId: Z7
+      startKnot: 12
+      endKnot: 14
+      startDistanceMeters: 570.5788
+      endDistanceMeters: 691.3335
+      nominalLength: 120
+      guideSize: {x: 85, y: 50}
+      capStart: 0
+      capEnd: 0
+  portals:
+  - zoneId: Z2
+    mainKnot: 3
+    mainDistanceMeters: 100.67311
+    branchSplineIndex: 0
+    direction: {x: 0.6087617, y: 0, z: -0.7933531}
+    longitudinalHalfSize: 6
+    angularHalfSize: 30
+  - zoneId: Z4
+    mainKnot: 7
+    mainDistanceMeters: 308.0859
+    branchSplineIndex: 1
+    direction: {x: -0.60876274, y: 0, z: -0.79335237}
+    longitudinalHalfSize: 6
+    angularHalfSize: 51.05756
+  - zoneId: Z6
+    mainKnot: 11
+    mainDistanceMeters: 510.26648
+    branchSplineIndex: 2
+    direction: {x: 0.6755901, y: 0, z: -0.73727745}
+    longitudinalHalfSize: 12
+    angularHalfSize: 30
+  noiseSettings:
+    enabled: 1
+    seed: 1337
+    amplitudeMeters: 3.2
+    strengthGain: 1.5
+    maximumDisplacementRatio: 0.3
+    wavelengthMeters: 8
+    octaves: 2
+    lacunarity: 2
+    persistence: 0.6
+    floorMultiplier: 1.2
+    wallMultiplier: 1.3
+    ceilingMultiplier: 1.5
+    portalFadeDistance: 5
+    visualDetailEnabled: 1
+    visualDetailAmplitude: 0.4
+    visualDetailWavelength: 8
+--- !u!114 &1733374728
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1733374725}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dab5c7d4c32e743048dfca98e2d5914f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Splines::UnityEngine.Splines.SplineContainer
+  m_Spline:
+    m_EditModeType: 1
+    m_Knots: []
+    m_MetaData: []
+    m_Closed: 0
+    m_IntData:
+      m_Data: []
+    m_FloatData:
+      m_Data: []
+    m_Float4Data:
+      m_Data: []
+    m_ObjectData:
+      m_Data: []
+  m_Splines:
+  - m_EditModeType: 1
+    m_Knots:
+    - Position:
+        x: 0
+        y: 0
+        z: 0
+      TangentIn:
+        x: -0
+        y: -0
+        z: -2.7500002
+      TangentOut:
+        x: 0
+        y: 0
+        z: 2.7500002
+      Rotation:
+        value:
+          x: -0.1364968
+          y: -0.12928323
+          z: -0.017970147
+          w: 0.9820038
+    - Position:
+        x: -6.847708
+        y: 7.5
+        z: 25.555996
+      TangentIn:
+        x: -0
+        y: -0
+        z: -8.877931
+      TangentOut:
+        x: 0
+        y: 0
+        z: 8.877931
+      Rotation:
+        value:
+          x: -0.14215624
+          y: -0.0050242855
+          z: -0.03496219
+          w: 0.9892138
+    - Position:
+        x: 0
+        y: 15
+        z: 51.11199
+      TangentIn:
+        x: -0
+        y: -0
+        z: -10.932626
+      TangentOut:
+        x: 0
+        y: 0
+        z: 12.365011
+      Rotation:
+        value:
+          x: -0.15928231
+          y: 0.21916455
+          z: 0.010235734
+          w: 0.96254414
+    - Position:
+        x: 24.334787
+        y: 30
+        z: 85.86567
+      TangentIn:
+        x: -0
+        y: -0
+        z: -14.384547
+      TangentOut:
+        x: 0
+        y: 0
+        z: 14.384547
+      Rotation:
+        value:
+          x: -0.18001823
+          y: 0.4268401
+          z: 0.033679113
+          w: 0.88558835
+    - Position:
+        x: 64.20257
+        y: 45
+        z: 100.37636
+      TangentIn:
+        x: -0
+        y: -0
+        z: -16.392406
+      TangentOut:
+        x: 0
+        y: 0
+        z: 17.614788
+      Rotation:
+        value:
+          x: -0.1445908
+          y: 0.47254205
+          z: 0.12090672
+          w: 0.8609176
+    - Position:
+        x: 103.5329
+        y: 67.5
+        z: 139.7067
+      TangentIn:
+        x: -0
+        y: -0
+        z: -18.968102
+      TangentOut:
+        x: 0
+        y: 0
+        z: 18.968102
+      Rotation:
+        value:
+          x: -0.18302755
+          y: 0.22422105
+          z: 0.105102755
+          w: 0.9514091
+    - Position:
+        x: 108.38063
+        y: 90
+        z: 195.11653
+      TangentIn:
+        x: -0
+        y: -0
+        z: -16.305838
+      TangentOut:
+        x: 0
+        y: 0
+        z: 14.733986
+      Rotation:
+        value:
+          x: -0.18254545
+          y: -0.1031482
+          z: 0.03710984
+          w: 0.97706723
+    - Position:
+        x: 86.32216
+        y: 101
+        z: 226.6193
+      TangentIn:
+        x: -0
+        y: -0
+        z: -12.763941
+      TangentOut:
+        x: 0
+        y: 0
+        z: 12.763941
+      Rotation:
+        value:
+          x: -0.14820373
+          y: -0.43183836
+          z: -0.027419657
+          w: 0.88926893
+    - Position:
+        x: 50.183678
+        y: 112
+        z: 239.77263
+      TangentIn:
+        x: -0
+        y: -0
+        z: -14.193942
+      TangentOut:
+        x: 0
+        y: 0
+        z: 15.008269
+      Rotation:
+        value:
+          x: -0.1285983
+          y: -0.47467834
+          z: -0.10466242
+          w: 0.8644007
+    - Position:
+        x: 17.064575
+        y: 129.5
+        z: 272.89172
+      TangentIn:
+        x: -0
+        y: -0
+        z: -15.788109
+      TangentOut:
+        x: 0
+        y: 0
+        z: 15.788108
+      Rotation:
+        value:
+          x: -0.17054911
+          y: -0.22321345
+          z: -0.09818054
+          w: 0.9546986
+    - Position:
+        x: 12.98242
+        y: 147
+        z: 319.55096
+      TangentIn:
+        x: -0
+        y: -0
+        z: -17.143402
+      TangentOut:
+        x: 0
+        y: 0
+        z: 17.942888
+      Rotation:
+        value:
+          x: -0.22120163
+          y: 0.0974301
+          z: -0.028101066
+          w: 0.9699421
+    - Position:
+        x: 39.645832
+        y: 174.5
+        z: 365.73334
+      TangentIn:
+        x: -0
+        y: -0
+        z: -19.272478
+      TangentOut:
+        x: 0
+        y: 0
+        z: 19.27248
+      Rotation:
+        value:
+          x: -0.25099117
+          y: 0.37398458
+          z: 0.037222993
+          w: 0.8920501
+    - Position:
+        x: 87.97635
+        y: 202
+        z: 388.27023
+      TangentIn:
+        x: -0
+        y: -0
+        z: -19.630077
+      TangentOut:
+        x: 0
+        y: 0
+        z: 19.630077
+      Rotation:
+        value:
+          x: -0.20049916
+          y: 0.4396721
+          z: 0.15237844
+          w: 0.86213064
+    - Position:
+        x: 121.73953
+        y: 231
+        z: 428.50763
+      TangentIn:
+        x: -0
+        y: -0
+        z: -19.294558
+      TangentOut:
+        x: 0
+        y: 0
+        z: 19.294556
+      Rotation:
+        value:
+          x: -0.2399789
+          y: 0.20646289
+          z: 0.11954072
+          w: 0.94100654
+    - Position:
+        x: 126.31749
+        y: 260
+        z: 480.83392
+      TangentIn:
+        x: -0
+        y: -0
+        z: -5.999999
+      TangentOut:
+        x: 0
+        y: 0
+        z: 5.999999
+      Rotation:
+        value:
+          x: -0.24932575
+          y: 0.042239197
+          z: 0.0108857965
+          w: 0.96743685
+    m_MetaData:
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    - Mode: 0
+      Tension: 0.25
+    m_Closed: 0
+    m_IntData:
+      m_Data:
+      - Key: cave.zone
+        Value:
+          m_IndexUnit: 2
+          m_DefaultValue: 0
+          m_DataPoints:
+          - m_Index: 0
+            m_Value: 1
+          - m_Index: 1
+            m_Value: 1
+          - m_Index: 2
+            m_Value: 2
+          - m_Index: 3
+            m_Value: 2
+          - m_Index: 4
+            m_Value: 3
+          - m_Index: 5
+            m_Value: 3
+          - m_Index: 6
+            m_Value: 4
+          - m_Index: 7
+            m_Value: 4
+          - m_Index: 8
+            m_Value: 5
+          - m_Index: 9
+            m_Value: 5
+          - m_Index: 10
+            m_Value: 6
+          - m_Index: 11
+            m_Value: 6
+          - m_Index: 12
+            m_Value: 7
+          - m_Index: 13
+            m_Value: 7
+          - m_Index: 14
+            m_Value: 7
+      - Key: cave.portal
+        Value:
+          m_IndexUnit: 2
+          m_DefaultValue: 0
+          m_DataPoints:
+          - m_Index: 0
+            m_Value: 0
+          - m_Index: 1
+            m_Value: 0
+          - m_Index: 2
+            m_Value: 0
+          - m_Index: 3
+            m_Value: 1
+          - m_Index: 4
+            m_Value: 0
+          - m_Index: 5
+            m_Value: 0
+          - m_Index: 6
+            m_Value: 0
+          - m_Index: 7
+            m_Value: 2
+          - m_Index: 8
+            m_Value: 0
+          - m_Index: 9
+            m_Value: 0
+          - m_Index: 10
+            m_Value: 0
+          - m_Index: 11
+            m_Value: 3
+          - m_Index: 12
+            m_Value: 0
+          - m_Index: 13
+            m_Value: 0
+          - m_Index: 14
+            m_Value: 0
+    m_FloatData:
+      m_Data:
+      - Key: cave.width
+        Value:
+          m_IndexUnit: 2
+          m_DefaultValue: 0
+          m_DataPoints:
+          - m_Index: 0
+            m_Value: 35
+          - m_Index: 1
+            m_Value: 35
+          - m_Index: 2
+            m_Value: 16
+          - m_Index: 3
+            m_Value: 65
+          - m_Index: 4
+            m_Value: 16
+          - m_Index: 5
+            m_Value: 25
+          - m_Index: 6
+            m_Value: 16
+          - m_Index: 7
+            m_Value: 18
+          - m_Index: 8
+            m_Value: 16
+          - m_Index: 9
+            m_Value: 70
+          - m_Index: 10
+            m_Value: 16
+          - m_Index: 11
+            m_Value: 30
+          - m_Index: 12
+            m_Value: 16
+          - m_Index: 13
+            m_Value: 85
+          - m_Index: 14
+            m_Value: 85
+      - Key: cave.height
+        Value:
+          m_IndexUnit: 2
+          m_DefaultValue: 0
+          m_DataPoints:
+          - m_Index: 0
+            m_Value: 20
+          - m_Index: 1
+            m_Value: 20
+          - m_Index: 2
+            m_Value: 12
+          - m_Index: 3
+            m_Value: 30
+          - m_Index: 4
+            m_Value: 12
+          - m_Index: 5
+            m_Value: 25
+          - m_Index: 6
+            m_Value: 12
+          - m_Index: 7
+            m_Value: 18
+          - m_Index: 8
+            m_Value: 12
+          - m_Index: 9
+            m_Value: 35
+          - m_Index: 10
+            m_Value: 12
+          - m_Index: 11
+            m_Value: 60
+          - m_Index: 12
+            m_Value: 12
+          - m_Index: 13
+            m_Value: 50
+          - m_Index: 14
+            m_Value: 50
+      - Key: cave.roll
+        Value:
+          m_IndexUnit: 2
+          m_DefaultValue: 0
+          m_DataPoints:
+          - m_Index: 0
+            m_Value: 0
+          - m_Index: 1
+            m_Value: 0
+          - m_Index: 2
+            m_Value: 0
+          - m_Index: 3
+            m_Value: 0
+          - m_Index: 4
+            m_Value: 0
+          - m_Index: 5
+            m_Value: 0
+          - m_Index: 6
+            m_Value: 0
+          - m_Index: 7
+            m_Value: 0
+          - m_Index: 8
+            m_Value: 0
+          - m_Index: 9
+            m_Value: 0
+          - m_Index: 10
+            m_Value: 0
+          - m_Index: 11
+            m_Value: 0
+          - m_Index: 12
+            m_Value: 0
+          - m_Index: 13
+            m_Value: 0
+          - m_Index: 14
+            m_Value: 0
+    m_Float4Data:
+      m_Data: []
+    m_ObjectData:
+      m_Data: []
+  m_Knots:
+    m_KnotsLink: []
 --- !u!1 &1815122238
 GameObject:
   m_ObjectHideFlags: 0
@@ -2627,7 +4473,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: e1b45563ead835141aad1ab98e58cbf7, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -2753,6 +4599,53 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1889458701
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1889458702}
+  - component: {fileID: 1889458703}
+  m_Layer: 6
+  m_Name: Z5_GuideVolume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1889458702
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1889458701}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.18335046, y: -0.2115476, z: -0.040438715, w: 0.95916367}
+  m_LocalPosition: {x: 17.018896, y: 129.54303, z: 272.98996}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 128617759}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1889458703
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1889458701}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d3dd760d82ff51429307e0d6cf55c27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveZoneMarker
+  zoneId: Z5
+  guideSize: {x: 70, y: 35, z: 100}
+  color: {r: 0.85, g: 0.75, b: 0.25, a: 0.3}
 --- !u!1 &1939891702
 GameObject:
   m_ObjectHideFlags: 0
@@ -2956,11 +4849,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4496379754624556189, guid: 9ae1d4dfc906ea34885c48c075f3ed4c, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.25
+      value: 6.2
       objectReference: {fileID: 0}
     - target: {fileID: 4496379754624556189, guid: 9ae1d4dfc906ea34885c48c075f3ed4c, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 1.72
+      value: -0.72
       objectReference: {fileID: 0}
     - target: {fileID: 4496379754624556189, guid: 9ae1d4dfc906ea34885c48c075f3ed4c, type: 3}
       propertyPath: m_LocalRotation.w
@@ -3021,11 +4914,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 841731850844339163, guid: 4c25e9a6012f76c4ab59cf7b4309b069, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 4.74
       objectReference: {fileID: 0}
     - target: {fileID: 841731850844339163, guid: 4c25e9a6012f76c4ab59cf7b4309b069, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: 4.620001
       objectReference: {fileID: 0}
     - target: {fileID: 841731850844339163, guid: 4c25e9a6012f76c4ab59cf7b4309b069, type: 3}
       propertyPath: m_LocalRotation.w
@@ -3053,6 +4946,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 841731850844339163, guid: 4c25e9a6012f76c4ab59cf7b4309b069, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1731377030182209832, guid: 4c25e9a6012f76c4ab59cf7b4309b069, type: 3}
+      propertyPath: m_UseGravity
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8677332698467392810, guid: 4c25e9a6012f76c4ab59cf7b4309b069, type: 3}
@@ -3064,78 +4961,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 4c25e9a6012f76c4ab59cf7b4309b069, type: 3}
---- !u!1001 &3085304070260099040
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 3442563439716620189, guid: 0b598cb281d78094d90437bc9fdfa153, type: 3}
-      propertyPath: m_Name
-      value: OxytenItem
-      objectReference: {fileID: 0}
-    - target: {fileID: 3442563439716620189, guid: 0b598cb281d78094d90437bc9fdfa153, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5226237020376369950, guid: 0b598cb281d78094d90437bc9fdfa153, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: dcf5f1c2173e4fc4db437bc5a8a0dcd7, type: 2}
-    - target: {fileID: 6800865464644984752, guid: 0b598cb281d78094d90437bc9fdfa153, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 1.93
-      objectReference: {fileID: 0}
-    - target: {fileID: 6800865464644984752, guid: 0b598cb281d78094d90437bc9fdfa153, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -0.25
-      objectReference: {fileID: 0}
-    - target: {fileID: 6800865464644984752, guid: 0b598cb281d78094d90437bc9fdfa153, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0.74
-      objectReference: {fileID: 0}
-    - target: {fileID: 6800865464644984752, guid: 0b598cb281d78094d90437bc9fdfa153, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6800865464644984752, guid: 0b598cb281d78094d90437bc9fdfa153, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6800865464644984752, guid: 0b598cb281d78094d90437bc9fdfa153, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6800865464644984752, guid: 0b598cb281d78094d90437bc9fdfa153, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6800865464644984752, guid: 0b598cb281d78094d90437bc9fdfa153, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6800865464644984752, guid: 0b598cb281d78094d90437bc9fdfa153, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6800865464644984752, guid: 0b598cb281d78094d90437bc9fdfa153, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 4810876736771655386, guid: 0b598cb281d78094d90437bc9fdfa153, type: 3}
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 3442563439716620189, guid: 0b598cb281d78094d90437bc9fdfa153, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 788395349}
-    - targetCorrespondingSourceObject: {fileID: 3442563439716620189, guid: 0b598cb281d78094d90437bc9fdfa153, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 788395350}
-  m_SourcePrefab: {fileID: 100100000, guid: 0b598cb281d78094d90437bc9fdfa153, type: 3}
 --- !u!1001 &3773360979517748284
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3144,45 +4969,29 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 391807514338358538, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
+    - target: {fileID: 911000000000000002, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
+      propertyPath: obstacleLayer.m_Bits
+      value: 64
       objectReference: {fileID: 0}
-    - target: {fileID: 391807514338358538, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
+    - target: {fileID: 3206915547288056510, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
+      propertyPath: m_Constraints
+      value: 112
       objectReference: {fileID: 0}
-    - target: {fileID: 391807514338358538, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -3
-      objectReference: {fileID: 0}
-    - target: {fileID: 3136500912921972039, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 1.5940295
-      objectReference: {fileID: 0}
-    - target: {fileID: 3136500912921972039, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 1.8194067
-      objectReference: {fileID: 0}
-    - target: {fileID: 3136500912921972039, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -0.23
-      objectReference: {fileID: 0}
-    - target: {fileID: 3136500912921972039, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0.622
-      objectReference: {fileID: 0}
-    - target: {fileID: 4286707753645374202, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4286707753645374202, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
-      propertyPath: m_LocalPosition.y
+    - target: {fileID: 3206915547288056510, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
+      propertyPath: m_CollisionDetection
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4286707753645374202, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 22.65
+      objectReference: {fileID: 0}
+    - target: {fileID: 4286707753645374202, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 24.65
+      objectReference: {fileID: 0}
+    - target: {fileID: 4286707753645374202, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -14.32
+      value: 82.24
       objectReference: {fileID: 0}
     - target: {fileID: 4286707753645374202, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
       propertyPath: m_LocalRotation.w
@@ -3213,39 +5022,26 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4792781458925263662, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
-      propertyPath: m_IsTrigger
-      value: 1
+      propertyPath: m_Size.z
+      value: 1.4504598
+      objectReference: {fileID: 0}
+    - target: {fileID: 4792781458925263662, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
+      propertyPath: m_Center.z
+      value: 0.22523084
+      objectReference: {fileID: 0}
+    - target: {fileID: 4816400313698311707, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
+      propertyPath: maxHealth
+      value: 30
       objectReference: {fileID: 0}
     - target: {fileID: 4880988355093290315, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
       propertyPath: m_Name
       value: Shark
-      objectReference: {fileID: 0}
-    - target: {fileID: 4880988355093290315, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5359532772366295979, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
-      propertyPath: animator
-      value: 
-      objectReference: {fileID: 5866666020885205146}
-    - target: {fileID: 8010080037413460847, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
-      propertyPath: m_Center.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8010080037413460847, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
-      propertyPath: m_Center.z
-      value: -2.3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
---- !u!95 &5866666020885205146 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: 2655575706075899168, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
-  m_PrefabInstance: {fileID: 3773360979517748284}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -3253,9 +5049,9 @@ SceneRoots:
   - {fileID: 1957934843}
   - {fileID: 994243994}
   - {fileID: 1694831523}
-  - {fileID: 184061254}
+  - {fileID: 1319602851}
+  - {fileID: 97752330}
   - {fileID: 2448013424245174543}
-  - {fileID: 3085304070260099040}
   - {fileID: 2160708911185441949}
   - {fileID: 1848434113}
   - {fileID: 1939891703}

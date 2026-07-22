@@ -17,11 +17,14 @@ MonoBehaviour:
   ProximityDetectRadius: 15
   ForwardDetectRadius: 20
   loseTargetRadius: 20
+  damageTargetLockDuration: 1.5
+  retargetInterval: 0.25
+  targetSwitchDistanceMargin: 1
   viewAngle: 90
   patrolRadius: 25
   patrolArriveDistance: 0.5
   idleWaitMin: 1
   idleWaitMax: 5
-  attackRange: 1.5
+  attackRange: 2
   attackCooldown: 3
   attackDamage: 30

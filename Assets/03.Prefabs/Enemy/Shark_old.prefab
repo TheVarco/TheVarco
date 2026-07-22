@@ -200,8 +200,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7041042670665740666}
-  - component: {fileID: 1425759289757014570}
-  - component: {fileID: 2890068025720059935}
+  - component: {fileID: 8214846034429719640}
   m_Layer: 0
   m_Name: Shark_old
   m_TagString: Untagged
@@ -226,42 +225,30 @@ Transform:
   - {fileID: 2976820873955258118}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1425759289757014570
-MonoBehaviour:
+--- !u!54 &8214846034429719640
+Rigidbody:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8144995045508354985}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 900ae5eb8b8bc484eb6c5475b1e09511, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SharkController
-  enemyData: {fileID: 11400000, guid: 619bb3a7a9cc80e458b1a78eb38f50f0, type: 2}
-  targetLayer:
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
     serializedVersion: 2
-    m_Bits: 8
-  obstacleLayer:
+    m_Bits: 0
+  m_ExcludeLayers:
     serializedVersion: 2
-    m_Bits: 64
-  attackHitbox: {fileID: 4390411224323036156}
---- !u!114 &2890068025720059935
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8144995045508354985}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 028ccbe486ab7f54d9363e4511be20b6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Health
-  maxHealth: 100
-  OnHealthChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  OnDeath:
-    m_PersistentCalls:
-      m_Calls: []
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0

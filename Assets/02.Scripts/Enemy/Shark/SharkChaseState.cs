@@ -20,17 +20,17 @@ public class SharkChaseState : ISharkState
 
     public void Update()
     {
-        if (!shark.TryFindTarget())
+        if (!shark.Targeting.TryUpdateChaseTarget())
         {
             shark.ChangeState(SharkStateType.Patrol);
             return;
         }
 
-        Vector3 direction = shark.Target.position - shark.transform.position;
+        Vector3 direction = shark.Targeting.Target.position - shark.transform.position;
         
         float attackDistance = Vector3.Distance(
             shark.AttackHitbox.transform.position,
-            shark.Target.position
+            shark.Targeting.Target.position
         );
 
         // 공격 사거리 안에 들어오면 공격 상태로 전환
@@ -41,8 +41,8 @@ public class SharkChaseState : ISharkState
         }
 
         // 사거리 밖이면 기본 속도 + 추격 보너스로 접근
-        shark.RotateToDirection(direction);
-        shark.MoveToDirection(direction, shark.MoveSpeed + ChaseSpeedBonus);
+        shark.Navigator.RotateToDirection(direction);
+        shark.Navigator.MoveToDirection(direction, shark.MoveSpeed + ChaseSpeedBonus);
     }
 
     public void Exit()

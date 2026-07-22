@@ -16,6 +16,11 @@ public class SharkDeadState : ISharkState
     {
         shark.PlayDieAnimation();
 
+        SharkDetectionIndicator detectionIndicator = shark.GetComponent<SharkDetectionIndicator>();
+
+        if (detectionIndicator != null)
+            detectionIndicator.HideImmediately();
+
         // 공격 판정이 켜진 채로 죽지 않도록 정리
         if (shark.AttackHitbox != null)
             shark.AttackHitbox.EndBite();
