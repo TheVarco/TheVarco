@@ -50,8 +50,7 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
         }
     }
 
-    // 아래는 INetworkRunnerCallbacks 인터페이스가 요구하는 나머지 함수들.
-    // 지금 테스트에서는 안 쓰지만, 인터페이스를 구현하려면 전부 있어야 함 (내용은 비워둠)
+    
     public void OnPlayerLeft(NetworkRunner runner, PlayerRef player) { }
     public void OnInput(NetworkRunner runner, NetworkInput input) { }
     public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input) { }
