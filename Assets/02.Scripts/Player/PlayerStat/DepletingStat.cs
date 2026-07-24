@@ -14,6 +14,10 @@ public class DepletingStat : MonoBehaviour
     public float CurrentValue { get; private set; }
     public bool IsDepleted => CurrentValue <= 0f;
 
+    // 배고픔 등으로 maxValue 자체가 줄어들어도, "원래 최대치가 뭐였는지"는 따로 기억해둠
+    // (UI에서 "전체 대비 얼마나 잠겼는지"를 그리려면 이 원래값이 필요함)
+    public float BaseMaxValue { get; private set; }
+
     [Header("이벤트 (UI, 사망 연동 등에서 구독)")]
     public UnityEvent<float, float> OnValueChanged; // (현재값, 최대값)
     public UnityEvent OnDepleted;      // 0에 막 도달한 "그 순간" 한 번만
@@ -21,12 +25,23 @@ public class DepletingStat : MonoBehaviour
 
     void Awake()
     {
+        BaseMaxValue = maxValue; // 시작할 때 값을 "원래 최대치"로 고정 기억
         CurrentValue = maxValue;
     }
 
-    void Update()
+    protected float logTimer = 0f;
+
+    protected virtual void Update()
     {
         Deplete(depletionRatePerSecond * Time.deltaTime);
+
+        // 테스트용: 1초에 한 번씩만 현재 값을 로그로 확인 (매 프레임 찍으면 콘솔이 도배되니까)
+        logTimer += Time.deltaTime;
+        if (logTimer >= 1f)
+        {
+            logTimer = 0f;
+            Debug.Log($"[{GetType().Name}] {gameObject.name}: {CurrentValue:F1} / {maxValue}");
+        }
     }
 
     public void Deplete(float amount)
@@ -58,5 +73,20 @@ public class DepletingStat : MonoBehaviour
 
         if (wasDepleted && !IsDepleted)
             OnReplenished?.Invoke();
+    }
+
+    // 배고픔 등 다른 스탯이 "이 수치의 최대치 자체"를 줄이거나 늘릴 때 쓰는 함수.
+    // BaseMaxValue(원래 최대치)를 넘거나 0 밑으로는 못 내려가게 막고,
+    // 줄어든 최대치보다 지금 값이 더 크면(그릇보다 물이 많으면) 같이 깎아줌
+    public void SetMaxValue(float newMax)
+    {
+        maxValue = Mathf.Clamp(newMax, 0f, BaseMaxValue);
+
+        if (CurrentValue > maxValue)
+        {
+            CurrentValue = maxValue;
+        }
+
+        OnValueChanged?.Invoke(CurrentValue, maxValue);
     }
 }
