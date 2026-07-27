@@ -50,10 +50,31 @@ public class PlayerCameraRig : MonoBehaviour
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
+        if (target == null)
+        {
+            FindPlayerTarget();
+        }
+    }
+
+    private void FindPlayerTarget()
+    {
+        GameObject player = GameObject.FindWithTag("Player");
+        if (player == null) player = GameObject.Find("OtterPlayer");
+        if (player == null)
+        {
+            PlayerController controller = FindFirstObjectByType<PlayerController>();
+            if (controller != null) player = controller.gameObject;
+        }
+        if (player != null) target = player.transform;
     }
 
     void Update()
     {
+        if (target == null)
+        {
+            FindPlayerTarget();
+        }
+
         yaw += Input.GetAxis("Mouse X") * mouseSensitivity;
         pitch -= Input.GetAxis("Mouse Y") * mouseSensitivity;
         if (clampPitch)

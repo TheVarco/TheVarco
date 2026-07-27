@@ -9,6 +9,10 @@ public class Health : MonoBehaviour, Damageable
     [Tooltip("최대 체력")]
     public float maxHealth = 100f;
 
+    [Header("피격 애니메이션 설정")]
+    [Tooltip("피격 애니메이션 최소 발동 간격(초). 이 시간 동안은 애니메이션이 연속으로 리셋되지 않음")]
+    public float hitAnimationCooldown = 0.5f;
+
     [Header("이벤트 (UI 체력바, 사망 연출 등에서 구독해서 사용)")]
     public UnityEvent<float, float> OnHealthChanged; // (현재 체력, 최대 체력)
     public UnityEvent OnDeath;
@@ -23,6 +27,7 @@ public class Health : MonoBehaviour, Damageable
     public bool IsDead { get; private set; }
 
     private static readonly int HitHash = Animator.StringToHash("Hit");
+    private float lastHitAnimationTime = -999f;
 
     void Awake()
     {
@@ -39,11 +44,20 @@ public class Health : MonoBehaviour, Damageable
 
     public void TakeDamage(float amount, GameObject source)
     {
+        TakeDamage(amount, source, true);
+    }
+
+    public void TakeDamage(float amount, GameObject source, bool playHitAnimation)
+    {
         if (IsDead) return; // 이미 죽었으면 추가 데미지 무시
 
-        if (animator != null)
+        if (playHitAnimation && animator != null)
         {
-            animator.SetTrigger(HitHash);
+            if (Time.time - lastHitAnimationTime >= hitAnimationCooldown)
+            {
+                animator.SetTrigger(HitHash);
+                lastHitAnimationTime = Time.time;
+            }
         }
 
         CurrentHealth = Mathf.Max(0f, CurrentHealth - amount);

@@ -10,6 +10,7 @@ namespace CaveBlockout
         public float acceleration = 12f;
         public float braking = 4f;
         public float rotationSpeed = 5f;
+        public bool snapToLookDirection = true;
 
         public Transform visualTransform;
         public KeyCode quickRotateKey = KeyCode.Q;
@@ -85,6 +86,11 @@ namespace CaveBlockout
                     spinCoroutine = StartCoroutine(AnimateVisualSpin(spinAxis));
                 }
             }
+            if (snapToLookDirection && lookReference != null)
+            {
+                Vector3 euler = lookReference.rotation.eulerAngles;
+                transform.rotation = Quaternion.Euler(euler.x, euler.y, 0f);
+            }
         }
 
         private void LateUpdate()
@@ -124,7 +130,7 @@ namespace CaveBlockout
             if (inputDirection.sqrMagnitude < 0.01f)
                 body.linearVelocity = Vector3.Lerp(body.linearVelocity, Vector3.zero, braking * Time.fixedDeltaTime);
 
-            if (inputDirection.sqrMagnitude > 0.01f)
+            if (!snapToLookDirection && inputDirection.sqrMagnitude > 0.01f)
             {
                 Quaternion target = Quaternion.LookRotation(inputDirection, Vector3.up);
                 Vector3 euler = target.eulerAngles;

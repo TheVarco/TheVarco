@@ -40,7 +40,11 @@ namespace CaveBlockout
         private void LateUpdate()
         {
             if (target == null)
-                return;
+            {
+                var player = GameObject.Find("OtterPlayer") ?? GameObject.FindWithTag("Player");
+                if (player != null) target = player.transform;
+                if (target == null) return;
+            }
 
             Vector3 desiredPosition = target.position + orbitRotation * offset;
             transform.position = Vector3.Lerp(transform.position, desiredPosition, Mathf.Clamp01(followSmoothing * Time.deltaTime));
