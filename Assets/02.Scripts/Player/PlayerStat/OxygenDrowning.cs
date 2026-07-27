@@ -21,7 +21,7 @@ public class OxygenDrowning : MonoBehaviour
     {
         if (oxygen.IsDepleted && health != null && !health.IsDead)
         {
-            health.TakeDamage(damagePerSecond * Time.deltaTime, gameObject);
+            health.TakeDamage(damagePerSecond * Time.deltaTime, gameObject, false);
         }
     }
 }

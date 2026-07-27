@@ -11,7 +11,7 @@ public class PlayerController : MonoBehaviour
     public float moveSpeed = 4f;
 
     [Tooltip("쉬프트 키 대시 이동 속도")]
-    public float dashSpeed = 6f;
+    public float dashSpeed = 8f;
 
     [Tooltip("목표 속도까지 도달하는 가속도. 클수록 반응이 즉각적")]
     public float acceleration = 8f;
@@ -26,8 +26,8 @@ public class PlayerController : MonoBehaviour
     public float rotationSpeed = 8f;
     [Tooltip("카메라를 연결하면 View Mode를 자동으로 읽어와서 1인칭/3인칭 전환 시 이 값을 직접 안 건드려도 됨")]
     public PlayerCameraRig cameraRig;
-    [Tooltip("cameraRig를 연결 안 했을 때만 사용되는 수동 설정값")]
-    public bool snapToLookDirection = false;
+    [Tooltip("카메라 회전(마우스 이동)에 따라 플레이어 몸통도 회전할지 여부")]
+    public bool snapToLookDirection = true;
 
     [Header("참조")]
     [Tooltip("이동 기준이 되는 카메라(또는 카메라 리그) Transform")]
@@ -107,6 +107,7 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         ReadInput();
+        ApplyRotation();
         UpdateAnimator();
         HandleQuickRotate();
         HandleClickMotions();
@@ -238,7 +239,6 @@ public class PlayerController : MonoBehaviour
     void FixedUpdate()
     {
         ApplyMovement();
-        ApplyRotation();
     }
 
     private void ReadInput()
@@ -284,29 +284,29 @@ public class PlayerController : MonoBehaviour
 
     private void ApplyRotation()
     {
-        // cameraRig가 연결되어 있으면 "1인칭이거나 조준 중"일 때 몸을 카메라 방향으로 정렬
-        // 연결 안 했으면 기존처럼 수동 체크박스(snapToLookDirection)를 따름
+        // snapToLookDirection이 true이거나 1인칭 또는 조준 중일 때 몸을 카메라 방향으로 정렬
         bool shouldFaceCamera = snapToLookDirection;
         if (cameraRig != null)
         {
-            shouldFaceCamera = cameraRig.viewMode == PlayerCameraRig.ViewMode.FirstPerson || cameraRig.IsAiming;
+            shouldFaceCamera = shouldFaceCamera || cameraRig.viewMode == PlayerCameraRig.ViewMode.FirstPerson || cameraRig.IsAiming;
         }
 
         if (shouldFaceCamera && lookReference != null)
         {
-            // 카메라가 보는 방향으로 몸도 정렬하되, Z축 회전은 0으로 고정
+            // 마우스 이동으로 카메라가 보는 방향으로 플레이어 몸통도 정렬 (Z축 회전은 0으로 고정)
             Vector3 euler = lookReference.rotation.eulerAngles;
             transform.rotation = Quaternion.Euler(euler.x, euler.y, 0f);
             return;
         }
 
-        // 평소(비조준, 3인칭)에는 실제로 이동하는 방향으로 서서히 회전 (Z축 회전 0으로 고정)
+        // snapToLookDirection이 false인 경우: 실제로 이동하는 방향으로 서서히 회전 (Z축 회전 0으로 고정)
         if (inputDirection.sqrMagnitude > 0.01f)
         {
             Quaternion targetRotation = Quaternion.LookRotation(inputDirection, Vector3.up);
             Vector3 euler = targetRotation.eulerAngles;
             Quaternion fixedTarget = Quaternion.Euler(euler.x, euler.y, 0f);
-            transform.rotation = Quaternion.Slerp(transform.rotation, fixedTarget, rotationSpeed * Time.fixedDeltaTime);
+            float dt = Time.deltaTime > 0f ? Time.deltaTime : Time.fixedDeltaTime;
+            transform.rotation = Quaternion.Slerp(transform.rotation, fixedTarget, rotationSpeed * dt);
         }
     }
 }
