@@ -60,7 +60,7 @@ public class SubmarineJoystickVisuals : MonoBehaviour
         }
     }
 
-    // 조이스틱 자식의 Root Transform을 찾는다.
+    // 조이스틱 자식의 회전시킬 Transform을 찾는다.
     private Transform FindRigPivot(string rigName)
     {
         Transform[] children = GetComponentsInChildren<Transform>(true);
@@ -71,7 +71,7 @@ public class SubmarineJoystickVisuals : MonoBehaviour
 
             foreach (Transform descendant in child.GetComponentsInChildren<Transform>(true))
             {
-                if (descendant.name == "Root")
+                if (descendant.name == "Boot_High")
                     return descendant;
             }
         }

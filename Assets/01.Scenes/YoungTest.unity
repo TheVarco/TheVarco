@@ -547,11 +547,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!4 &102347599 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 3614021918560871384, guid: dd76d2ff723b99b45ad2da4da4c9abf6, type: 3}
-  m_PrefabInstance: {fileID: 5573860385751682813}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &128617758
 GameObject:
   m_ObjectHideFlags: 0
@@ -1114,11 +1109,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 655372937}
   m_CullTransparentMesh: 1
---- !u!4 &666792323 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 7281824600189726214, guid: dd76d2ff723b99b45ad2da4da4c9abf6, type: 3}
-  m_PrefabInstance: {fileID: 5573860385751682813}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &866613126
 GameObject:
   m_ObjectHideFlags: 0
@@ -4826,6 +4816,16 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!4 &2032665127 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4177349639387410273, guid: dd76d2ff723b99b45ad2da4da4c9abf6, type: 3}
+  m_PrefabInstance: {fileID: 5573860385751682813}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &2068407399 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1062776393326110695, guid: dd76d2ff723b99b45ad2da4da4c9abf6, type: 3}
+  m_PrefabInstance: {fileID: 5573860385751682813}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &2123627017
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5201,11 +5201,11 @@ PrefabInstance:
     - target: {fileID: 777710000000000003, guid: dd76d2ff723b99b45ad2da4da4c9abf6, type: 3}
       propertyPath: leftPivot
       value: 
-      objectReference: {fileID: 666792323}
+      objectReference: {fileID: 2032665127}
     - target: {fileID: 777710000000000003, guid: dd76d2ff723b99b45ad2da4da4c9abf6, type: 3}
       propertyPath: rightPivot
       value: 
-      objectReference: {fileID: 102347599}
+      objectReference: {fileID: 2068407399}
     - target: {fileID: 2224871986562456818, guid: dd76d2ff723b99b45ad2da4da4c9abf6, type: 3}
       propertyPath: m_Name
       value: Joystick_Left
