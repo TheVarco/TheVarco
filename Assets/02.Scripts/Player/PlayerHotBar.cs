@@ -58,6 +58,14 @@ public class PlayerHotbar : MonoBehaviour
         }
     }
 
+    // 서영 추가 (잠수함 조종)
+    private void OnDisable()
+    {
+        CarryableItem active = GetActiveItem();
+        if (active != null)
+            active.OnSecondaryHeld(gameObject, aimReference, false);
+    }
+
     private void SwitchTo(int slot)
     {
         if (slot == ActiveSlot) return;

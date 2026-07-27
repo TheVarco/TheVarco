@@ -22,15 +22,29 @@ public class PlayerInteractor : MonoBehaviour
     public System.Action<string> OnPromptChanged;
 
     private Interactable currentTarget;
+    private bool interactionLocked; // 서영 추가
+    private string lockedPrompt; // 서영 추가
 
     void Update()
     {
+        if (interactionLocked) // 서영 추가
+            return;
+
         DetectInteractable();
 
         if (currentTarget != null && Input.GetKeyDown(interactKey))
         {
             currentTarget.Interact(gameObject);
         }
+    }
+
+    // 서영 추가 (잠수함 조종)
+    public void SetInteractionLock(bool locked, string prompt = null)
+    {
+        interactionLocked = locked;
+        lockedPrompt = locked ? prompt : null;
+        currentTarget = null;
+        OnPromptChanged?.Invoke(lockedPrompt);
     }
 
     private void DetectInteractable()

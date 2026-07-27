@@ -86,6 +86,7 @@ GameObject:
   - component: {fileID: 5446217415662487701}
   - component: {fileID: 4491122506771316274}
   - component: {fileID: 662419443945599226}
+  - component: {fileID: 777700000000000001}
   m_Layer: 3
   m_Name: Player
   m_TagString: Player
@@ -331,7 +332,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0bdf62ed61463244899d484eb914849f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerDownedState
-  disableWhileDowned: []
+  disableWhileDowned:
+  - {fileID: 709331647815549706}
+  - {fileID: 3732126355975195756}
+  - {fileID: 7042758014388821367}
+  - {fileID: 9000136554262916702}
+  - {fileID: 6979411412585706810}
+  - {fileID: 5961030891790580359}
+  - {fileID: 662419443945599226}
   floatUpForce: 2
   reviveHealthRatio: 0.3
   reviveOxygenRatio: 0.5
@@ -461,6 +469,24 @@ MonoBehaviour:
   spinDuration: 0.4
   animator: {fileID: 0}
   dashSpeed: 16
+--- !u!114 &777700000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2602492756997362024}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a901c5ea7f2b4a12b77f31f647426104, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerSeatController
+  exitKey: 101
+  statusMessageDuration: 1.5
+  interactor: {fileID: 3732126355975195756}
+  animator: {fileID: 0}
+  playerCollider: {fileID: 4491122506771316274}
+  disableWhileSeated: []
 --- !u!1 &5726362792154023546
 GameObject:
   m_ObjectHideFlags: 0

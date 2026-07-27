@@ -138,6 +138,12 @@ public class PlayerGrabber : MonoBehaviour
         }
     }
 
+    // 서영 추가 (잠수함 조종)
+    private void OnDisable()
+    {
+        Release();
+    }
+
     // 디버그용: 씬 뷰에서 감지 범위(부채꼴)를 눈으로 확인하기 위함
     void OnDrawGizmosSelected()
     {
