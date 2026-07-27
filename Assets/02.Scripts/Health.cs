@@ -15,17 +15,36 @@ public class Health : MonoBehaviour, Damageable
     public UnityEvent OnRevived;
     public event System.Action<float, GameObject> OnDamaged; // 서영 추가
 
+    [Header("참조")]
+    [Tooltip("피격 애니메이션용 애니메이터 (미설정 시 자동 감지)")]
+    public Animator animator;
+
     public float CurrentHealth { get; private set; }
     public bool IsDead { get; private set; }
+
+    private static readonly int HitHash = Animator.StringToHash("Hit");
 
     void Awake()
     {
         CurrentHealth = maxHealth;
+        if (animator == null)
+        {
+            animator = GetComponent<Animator>();
+            if (animator == null)
+            {
+                animator = GetComponentInChildren<Animator>();
+            }
+        }
     }
 
     public void TakeDamage(float amount, GameObject source)
     {
         if (IsDead) return; // 이미 죽었으면 추가 데미지 무시
+
+        if (animator != null)
+        {
+            animator.SetTrigger(HitHash);
+        }
 
         CurrentHealth = Mathf.Max(0f, CurrentHealth - amount);
         Debug.Log($"[Health] {gameObject.name}이(가) {source.name}에게 {amount} 데미지를 받음. 남은 체력: {CurrentHealth}/{maxHealth}");

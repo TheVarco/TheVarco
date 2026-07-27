@@ -23,8 +23,23 @@ public class MeleeAttack : MonoBehaviour
 
     [Tooltip("맨손(슬롯 1)일 때만 근접 공격 가능하게 하려면 연결. 안 하면 항상 가능")]
     public PlayerHotbar hotbar;
+    [Tooltip("플레이어 애니메이터 (미설정 시 자동 감지)")]
+    public Animator animator;
 
     private float cooldownTimer = 0f;
+    private static readonly int AttackHash = Animator.StringToHash("Attack");
+
+    void Awake()
+    {
+        if (animator == null)
+        {
+            animator = GetComponent<Animator>();
+            if (animator == null)
+            {
+                animator = GetComponentInChildren<Animator>();
+            }
+        }
+    }
 
     void Update()
     {
@@ -44,6 +59,11 @@ public class MeleeAttack : MonoBehaviour
 
     private void PerformAttack()
     {
+        if (animator != null)
+        {
+            animator.SetTrigger(AttackHash);
+        }
+
         if (attackPoint == null)
         {
             Debug.LogWarning("MeleeAttack: attackPoint가 연결되어 있지 않음");

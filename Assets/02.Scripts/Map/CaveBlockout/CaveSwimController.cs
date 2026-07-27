@@ -11,8 +11,13 @@ namespace CaveBlockout
         public float braking = 4f;
         public float rotationSpeed = 5f;
 
+        public Transform visualTransform;
+        public KeyCode quickRotateKey = KeyCode.Q;
+        public float spinDuration = 0.4f;
+
         private Rigidbody body;
         private Vector3 inputDirection;
+        private Coroutine spinCoroutine;
 
         private void Awake()
         {
@@ -23,7 +28,25 @@ namespace CaveBlockout
             body.interpolation = RigidbodyInterpolation.Interpolate;
             body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
             body.constraints = RigidbodyConstraints.FreezeRotation;
+
+            if (visualTransform == null)
+            {
+                visualTransform = transform.Find("OtterVisual");
+                if (visualTransform == null && transform.childCount > 0)
+                {
+                    visualTransform = transform.GetChild(0);
+                }
+            }
         }
+
+        public Animator animator;
+
+        private static readonly int DefaultStateHash = Animator.StringToHash("Default");
+        private static readonly int Swim1StateHash = Animator.StringToHash("Swim1");
+        private static readonly int Swim2StateHash = Animator.StringToHash("Swim2");
+
+        public float dashSpeed = 16f;
+        public bool IsDashing { get; private set; }
 
         private void Update()
         {
@@ -37,11 +60,65 @@ namespace CaveBlockout
             inputDirection = reference.forward * forward + reference.right * horizontal + Vector3.up * vertical;
             if (inputDirection.sqrMagnitude > 1f)
                 inputDirection.Normalize();
+
+            bool shiftHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+            IsDashing = shiftHeld && inputDirection.sqrMagnitude > 0.01f;
+
+            if (Input.GetKeyDown(quickRotateKey))
+            {
+                if (visualTransform != null)
+                {
+                    if (animator == null) animator = GetComponent<Animator>();
+                    if (animator != null)
+                    {
+                        AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+                        bool isDefaultOrSwim = stateInfo.shortNameHash == DefaultStateHash ||
+                                               stateInfo.shortNameHash == Swim1StateHash ||
+                                               stateInfo.shortNameHash == Swim2StateHash;
+                        if (!isDefaultOrSwim) return;
+                    }
+
+                    bool isSwimming = inputDirection.sqrMagnitude > 0.01f || (body != null && body.linearVelocity.magnitude > 0.1f);
+                    Vector3 spinAxis = isSwimming ? new Vector3(0f, 0f, 360f) : new Vector3(0f, 360f, 0f);
+
+                    if (spinCoroutine != null) StopCoroutine(spinCoroutine);
+                    spinCoroutine = StartCoroutine(AnimateVisualSpin(spinAxis));
+                }
+            }
+        }
+
+        private void LateUpdate()
+        {
+            if (visualTransform == null) return;
+
+            // 어떠한 애니메이션/동작 상태라도 OtterVisual의 좌표 및 로테이션은 0으로 고정
+            visualTransform.localPosition = Vector3.zero;
+            if (spinCoroutine == null)
+            {
+                visualTransform.localRotation = Quaternion.identity;
+            }
+        }
+
+        private System.Collections.IEnumerator AnimateVisualSpin(Vector3 spinAxis)
+        {
+            float elapsed = 0f;
+            while (elapsed < spinDuration)
+            {
+                elapsed += Time.deltaTime;
+                float progress = Mathf.Clamp01(elapsed / spinDuration);
+                visualTransform.localPosition = Vector3.zero;
+                visualTransform.localRotation = Quaternion.Euler(spinAxis * progress);
+                yield return null;
+            }
+            visualTransform.localPosition = Vector3.zero;
+            visualTransform.localRotation = Quaternion.identity;
+            spinCoroutine = null;
         }
 
         private void FixedUpdate()
         {
-            Vector3 targetVelocity = inputDirection * moveSpeed;
+            float activeSpeed = IsDashing ? dashSpeed : moveSpeed;
+            Vector3 targetVelocity = inputDirection * activeSpeed;
             body.AddForce((targetVelocity - body.linearVelocity) * acceleration, ForceMode.Acceleration);
 
             if (inputDirection.sqrMagnitude < 0.01f)
@@ -50,7 +127,9 @@ namespace CaveBlockout
             if (inputDirection.sqrMagnitude > 0.01f)
             {
                 Quaternion target = Quaternion.LookRotation(inputDirection, Vector3.up);
-                transform.rotation = Quaternion.Slerp(transform.rotation, target, rotationSpeed * Time.fixedDeltaTime);
+                Vector3 euler = target.eulerAngles;
+                Quaternion fixedTarget = Quaternion.Euler(euler.x, euler.y, 0f);
+                transform.rotation = Quaternion.Slerp(transform.rotation, fixedTarget, rotationSpeed * Time.fixedDeltaTime);
             }
         }
     }

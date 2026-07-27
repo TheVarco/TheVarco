@@ -24,9 +24,24 @@ public class PlayerGrabber : MonoBehaviour
     [Tooltip("맨손(슬롯 1)일 때만 잡기 가능하게 하려면 연결. 안 하면 항상 가능")]
     public PlayerHotbar hotbar;
     public KeyCode grabKey = KeyCode.Mouse0;
+    [Tooltip("플레이어 애니메이터 (미설정 시 자동 감지)")]
+    public Animator animator;
 
     private Rigidbody grabbedBody;
     private GrabbableItem grabbedItem;
+    private static readonly int IsPushPullHash = Animator.StringToHash("IsPushPull");
+
+    void Awake()
+    {
+        if (animator == null)
+        {
+            animator = GetComponent<Animator>();
+            if (animator == null)
+            {
+                animator = GetComponentInChildren<Animator>();
+            }
+        }
+    }
 
     void Update()
     {
@@ -35,7 +50,15 @@ public class PlayerGrabber : MonoBehaviour
         if (!bareHanded)
         {
             if (grabbedBody != null) Release();
+            if (animator != null) animator.SetBool(IsPushPullHash, false);
             return;
+        }
+
+        // 맨손 상태에서 좌클릭(Mouse0)을 누르고 있으면 PushPull 모션 실행
+        bool isHoldingGrab = Input.GetKey(grabKey);
+        if (animator != null)
+        {
+            animator.SetBool(IsPushPullHash, isHoldingGrab || grabbedBody != null);
         }
 
         if (Input.GetKeyDown(grabKey))
@@ -97,12 +120,22 @@ public class PlayerGrabber : MonoBehaviour
 
         grabbedBody = bestBody;
         grabbedItem = bestTarget;
+
+        if (animator != null)
+        {
+            animator.SetBool(IsPushPullHash, true);
+        }
     }
 
     private void Release()
     {
         grabbedBody = null;
         grabbedItem = null;
+
+        if (animator != null)
+        {
+            animator.SetBool(IsPushPullHash, false);
+        }
     }
 
     // 디버그용: 씬 뷰에서 감지 범위(부채꼴)를 눈으로 확인하기 위함

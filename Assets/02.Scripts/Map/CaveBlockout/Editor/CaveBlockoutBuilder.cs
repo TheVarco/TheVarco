@@ -112,7 +112,10 @@ namespace CaveBlockout.Editor
 
             EditorSceneManager.MarkSceneDirty(scene);
             if (saveScene)
+            {
                 EditorSceneManager.SaveScene(scene, MainMapPath);
+                EditorSceneManager.SaveOpenScenes();
+            }
             AssetDatabase.SaveAssets();
             return validation;
         }
@@ -294,7 +297,7 @@ namespace CaveBlockout.Editor
 
         private static void CreateOtterVisual(Transform parent)
         {
-            const string modelPath = "Assets/99.Resources/3D Otter.fbx";
+            const string modelPath = "Assets/99.Resources/Modeling/rawOtter/3D Otter.fbx";
             GameObject modelAsset = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
             if (modelAsset == null)
             {

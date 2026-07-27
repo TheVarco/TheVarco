@@ -7,14 +7,19 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour
 {
     [Header("이동 감각")]
-    [Tooltip("최대 이동 속도")]
+    [Tooltip("최대 일반 이동 속도")]
     public float moveSpeed = 4f;
+
+    [Tooltip("쉬프트 키 대시 이동 속도")]
+    public float dashSpeed = 6f;
 
     [Tooltip("목표 속도까지 도달하는 가속도. 클수록 반응이 즉각적")]
     public float acceleration = 8f;
 
     [Tooltip("입력이 없을 때 감속되는 정도 (물의 저항감)")]
     public float drag = 3f;
+
+    public bool IsDashing { get; private set; }
 
     [Header("회전 감각")]
     [Tooltip("이동 방향으로 몸통이 얼마나 빨리 따라 도는지")]
@@ -27,9 +32,35 @@ public class PlayerController : MonoBehaviour
     [Header("참조")]
     [Tooltip("이동 기준이 되는 카메라(또는 카메라 리그) Transform")]
     public Transform lookReference;
+    [Tooltip("플레이어 애니메이터 (미설정 시 자동 감지)")]
+    public Animator animator;
+    [Tooltip("플레이어 핫바 (무기 소지 상태 업데이트용, 미설정 시 자동 감지)")]
+    public PlayerHotbar hotbar;
+    [Tooltip("OtterVisual 트랜스폼 (미지정 시 'OtterVisual' 또는 첫 번째 자식 자동 감지)")]
+    public Transform visualTransform;
+
+    [Header("Q버튼 회전 효과")]
+    public KeyCode quickRotateKey = KeyCode.Q;
+    [Tooltip("OtterVisual 360도 스핀 애니메이션 지속 시간(초)")]
+    public float spinDuration = 0.4f;
 
     private Rigidbody rb;
     private Vector3 inputDirection;
+    private Coroutine spinCoroutine;
+
+    private static readonly int IsMovingHash = Animator.StringToHash("IsMoving");
+    private static readonly int SpeedHash = Animator.StringToHash("Speed");
+    private static readonly int IsSwimmingHash = Animator.StringToHash("IsSwimming");
+    private static readonly int HasWeaponHash = Animator.StringToHash("HasWeapon");
+    private static readonly int NoWeaponStateHash = Animator.StringToHash("NoWeapon");
+    private static readonly int PushPullStateHash = Animator.StringToHash("PushPull");
+    private static readonly int AttackHash = Animator.StringToHash("Attack");
+    private static readonly int IsPushPullHash = Animator.StringToHash("IsPushPull");
+    private static readonly int GetHash = Animator.StringToHash("Get");
+    private static readonly int GettingStateHash = Animator.StringToHash("Getting");
+    private static readonly int DefaultStateHash = Animator.StringToHash("Default");
+    private static readonly int Swim1StateHash = Animator.StringToHash("Swim1");
+    private static readonly int Swim2StateHash = Animator.StringToHash("Swim2");
 
     void Awake()
     {
@@ -39,11 +70,169 @@ public class PlayerController : MonoBehaviour
         rb.constraints = RigidbodyConstraints.FreezeRotation; // 회전은 물리 대신 스크립트가 담당
         rb.interpolation = RigidbodyInterpolation.Interpolate; // 움직임을 부드럽게
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic; // 동굴 벽 얇은 지오메트리 통과 방지
+
+        if (animator == null)
+        {
+            animator = GetComponent<Animator>();
+            if (animator == null)
+            {
+                animator = GetComponentInChildren<Animator>();
+            }
+        }
+
+        if (animator != null)
+        {
+            animator.applyRootMotion = false;
+        }
+
+        if (hotbar == null)
+        {
+            hotbar = GetComponent<PlayerHotbar>();
+            if (hotbar == null)
+            {
+                hotbar = GetComponentInChildren<PlayerHotbar>();
+            }
+        }
+
+        if (visualTransform == null)
+        {
+            visualTransform = transform.Find("OtterVisual");
+            if (visualTransform == null && transform.childCount > 0)
+            {
+                visualTransform = transform.GetChild(0);
+            }
+        }
     }
 
     void Update()
     {
         ReadInput();
+        UpdateAnimator();
+        HandleQuickRotate();
+        HandleClickMotions();
+    }
+
+    void LateUpdate()
+    {
+        if (visualTransform == null) return;
+
+        // 어떠한 애니메이션/동작 상태라도 OtterVisual의 좌표 및 로테이션은 0으로 고정
+        visualTransform.localPosition = Vector3.zero;
+        if (spinCoroutine == null)
+        {
+            visualTransform.localRotation = Quaternion.identity;
+        }
+    }
+
+    private void HandleClickMotions()
+    {
+        if (animator == null) return;
+
+        // E키: Getting 모션 실행
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            animator.SetTrigger(GetHash);
+            if (animator.HasState(0, GettingStateHash))
+            {
+                animator.Play(GettingStateHash, 0, 0f);
+            }
+        }
+
+        // 맨손 상태 판별 (핫바가 없거나 슬롯 1인 경우)
+        bool bareHanded = hotbar == null || hotbar.ActiveSlot == 1;
+        if (!bareHanded) return;
+
+        // 좌클릭: PushPull 모션 실행
+        if (Input.GetMouseButtonDown(0))
+        {
+            animator.SetBool(IsPushPullHash, true);
+            if (animator.HasState(0, PushPullStateHash))
+            {
+                animator.Play(PushPullStateHash, 0, 0f);
+            }
+        }
+        else if (Input.GetMouseButtonUp(0))
+        {
+            animator.SetBool(IsPushPullHash, false);
+        }
+
+        // 우클릭: NoWeapon 모션 실행
+        if (Input.GetMouseButtonDown(1))
+        {
+            animator.SetTrigger(AttackHash);
+            if (animator.HasState(0, NoWeaponStateHash))
+            {
+                animator.Play(NoWeaponStateHash, 0, 0f);
+            }
+        }
+    }
+
+    private void HandleQuickRotate()
+    {
+        if (Input.GetKeyDown(quickRotateKey))
+        {
+            if (visualTransform != null)
+            {
+                // Default 또는 Swim(Swim1, Swim2) 모션 외에 다른 모션(Getting, PushPull, NoWeapon 등)이 실행 중이면 Q키 제한
+                if (animator != null)
+                {
+                    AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+                    bool isDefaultOrSwim = stateInfo.shortNameHash == DefaultStateHash ||
+                                           stateInfo.shortNameHash == Swim1StateHash ||
+                                           stateInfo.shortNameHash == Swim2StateHash;
+                    if (!isDefaultOrSwim)
+                    {
+                        return;
+                    }
+                }
+
+                float currentSpeed = rb != null ? rb.linearVelocity.magnitude : inputDirection.magnitude * moveSpeed;
+                bool isSwimming = inputDirection.sqrMagnitude > 0.01f || currentSpeed > 0.1f;
+
+                // 수영 중이면 Z축 360도 회전(배럴 롤), 멈춰있으면(Default) Y축 360도 회전
+                Vector3 spinAxis = isSwimming ? new Vector3(0f, 0f, 360f) : new Vector3(0f, 360f, 0f);
+
+                if (spinCoroutine != null)
+                {
+                    StopCoroutine(spinCoroutine);
+                }
+                spinCoroutine = StartCoroutine(AnimateVisualSpin(spinAxis));
+            }
+        }
+    }
+
+    private System.Collections.IEnumerator AnimateVisualSpin(Vector3 spinAxis)
+    {
+        float elapsed = 0f;
+        while (elapsed < spinDuration)
+        {
+            elapsed += Time.deltaTime;
+            float progress = Mathf.Clamp01(elapsed / spinDuration);
+            visualTransform.localPosition = Vector3.zero;
+            visualTransform.localRotation = Quaternion.Euler(spinAxis * progress);
+            yield return null;
+        }
+        visualTransform.localPosition = Vector3.zero;
+        visualTransform.localRotation = Quaternion.identity;
+        spinCoroutine = null;
+    }
+
+    private void UpdateAnimator()
+    {
+        if (animator == null) return;
+
+        float activeTargetSpeed = IsDashing ? dashSpeed : moveSpeed;
+        float currentSpeed = rb != null ? rb.linearVelocity.magnitude : inputDirection.magnitude * activeTargetSpeed;
+        bool isMoving = inputDirection.sqrMagnitude > 0.01f || currentSpeed > 0.1f;
+
+        animator.SetBool(IsMovingHash, isMoving);
+        animator.SetFloat(SpeedHash, currentSpeed);
+        animator.SetBool(IsSwimmingHash, true);
+
+        if (hotbar != null)
+        {
+            animator.SetBool(HasWeaponHash, hotbar.GetActiveItem() != null);
+        }
     }
 
     void FixedUpdate()
@@ -74,11 +263,15 @@ public class PlayerController : MonoBehaviour
 
         if (inputDirection.sqrMagnitude > 1f)
             inputDirection.Normalize();
+
+        bool shiftHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+        IsDashing = shiftHeld && inputDirection.sqrMagnitude > 0.01f;
     }
 
     private void ApplyMovement()
     {
-        Vector3 targetVelocity = inputDirection * moveSpeed;
+        float activeSpeed = IsDashing ? dashSpeed : moveSpeed;
+        Vector3 targetVelocity = inputDirection * activeSpeed;
         Vector3 velocityError = targetVelocity - rb.linearVelocity;
         rb.AddForce(velocityError * acceleration, ForceMode.Acceleration);
 
@@ -101,16 +294,19 @@ public class PlayerController : MonoBehaviour
 
         if (shouldFaceCamera && lookReference != null)
         {
-            // 카메라가 보는 방향으로 몸도 즉시 정렬
-            transform.rotation = lookReference.rotation;
+            // 카메라가 보는 방향으로 몸도 정렬하되, Z축 회전은 0으로 고정
+            Vector3 euler = lookReference.rotation.eulerAngles;
+            transform.rotation = Quaternion.Euler(euler.x, euler.y, 0f);
             return;
         }
 
-        // 평소(비조준, 3인칭)에는 실제로 이동하는 방향으로 서서히 회전
+        // 평소(비조준, 3인칭)에는 실제로 이동하는 방향으로 서서히 회전 (Z축 회전 0으로 고정)
         if (inputDirection.sqrMagnitude > 0.01f)
         {
             Quaternion targetRotation = Quaternion.LookRotation(inputDirection, Vector3.up);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
+            Vector3 euler = targetRotation.eulerAngles;
+            Quaternion fixedTarget = Quaternion.Euler(euler.x, euler.y, 0f);
+            transform.rotation = Quaternion.Slerp(transform.rotation, fixedTarget, rotationSpeed * Time.fixedDeltaTime);
         }
     }
 }
