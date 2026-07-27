@@ -29,19 +29,9 @@ public class DepletingStat : MonoBehaviour
         CurrentValue = maxValue;
     }
 
-    protected float logTimer = 0f;
-
     protected virtual void Update()
     {
         Deplete(depletionRatePerSecond * Time.deltaTime);
-
-        // 테스트용: 1초에 한 번씩만 현재 값을 로그로 확인 (매 프레임 찍으면 콘솔이 도배되니까)
-        logTimer += Time.deltaTime;
-        if (logTimer >= 1f)
-        {
-            logTimer = 0f;
-            Debug.Log($"[{GetType().Name}] {gameObject.name}: {CurrentValue:F1} / {maxValue}");
-        }
     }
 
     public void Deplete(float amount)

@@ -20,8 +20,6 @@ public class HungerStat : DepletingStat
         {
             stepTimer = 0f;
             Deplete(stepAmount); // 한 번에 stepAmount만큼 뚝 떨어뜨림
-
-            Debug.Log($"[{GetType().Name}] {gameObject.name}: {CurrentValue:F1} / {maxValue} (한 단계 감소)");
         }
     }
 }
