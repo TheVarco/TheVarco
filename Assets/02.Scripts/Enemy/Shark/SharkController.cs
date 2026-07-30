@@ -75,6 +75,7 @@ public class SharkController : MonoBehaviour
     {
         health.OnDamaged -= HandleDamaged;
         health.OnDeath.RemoveListener(HandleDeath);
+        Navigator?.StopMovement();
     }
 
     private void Start()
@@ -82,7 +83,7 @@ public class SharkController : MonoBehaviour
         ChangeState(SharkStateType.Idle);
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
         currentState?.Update();
     }
@@ -105,6 +106,9 @@ public class SharkController : MonoBehaviour
         if (currentState != null && currentStateType == newStateType)
             return;
 
+        // 이동 상태에서 설정한 linearVelocity가 다음 상태까지 남지 않도록
+        // 상태가 바뀌는 순간 Rigidbody 속도를 먼저 초기화한다.
+        Navigator.StopMovement();
         currentState?.Exit();
 
         currentStateType = newStateType;

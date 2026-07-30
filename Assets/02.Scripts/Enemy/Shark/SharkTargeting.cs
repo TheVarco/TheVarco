@@ -16,6 +16,27 @@ public class SharkTargeting : MonoBehaviour
     public Transform Target => target;
     public event System.Action<Transform> OnTargetDetected;
 
+    /// <summary>
+    /// 잠수함처럼 큰 대상의 중심점 대신 관찰자와 가장 가까운 Collider 표면점을 반환한다.
+    /// 추격 및 공격 상태가 이 좌표를 사용하면 상어가 선체 중심으로 파고들지 않고 외벽을 기준으로 움직인다.
+    /// </summary>
+    /// <param name="observerPosition">대상 표면점을 계산할 상어 또는 공격 히트박스의 위치.</param>
+    public Vector3 GetTargetPoint(Vector3 observerPosition)
+    {
+        if (target == null)
+            return observerPosition;
+
+        // 탐지용 자식 Collider를 우선 사용하고, 없을 때만 자식 계층에서 대체 Collider를 찾는다.
+        Collider targetCollider = target.GetComponent<Collider>();
+        if (targetCollider == null)
+            targetCollider = target.GetComponentInChildren<Collider>();
+
+        // Collider를 사용할 수 없다면 일반 캐릭터도 계속 추적할 수 있도록 Transform 위치로 대체한다.
+        return targetCollider != null && targetCollider.enabled
+            ? targetCollider.ClosestPoint(observerPosition)
+            : target.position;
+    }
+
     private float ProximityDetectRadius => enemyData.ProximityDetectRadius;
     private float ForwardDetectRadius => enemyData.ForwardDetectRadius;
     private float LoseTargetRadius => enemyData.loseTargetRadius;
@@ -82,7 +103,10 @@ public class SharkTargeting : MonoBehaviour
             if (candidateDamageable != null && candidateDamageable.IsDead)
                 continue;
 
-            Vector3 offsetToTarget = candidate.position - transform.position;
+            // 대상 중심이 아니라 실제 Collider 표면까지의 거리로 탐지 범위와 시야각을 계산한다.
+            // 큰 잠수함은 중심이 멀어도 외벽이 탐지 범위 안에 들어올 수 있기 때문이다.
+            Vector3 targetPoint = targetCollider.ClosestPoint(transform.position);
+            Vector3 offsetToTarget = targetPoint - transform.position;
             float distanceToTarget = offsetToTarget.magnitude;
 
             if (distanceToTarget <= Mathf.Epsilon)
@@ -147,7 +171,10 @@ public class SharkTargeting : MonoBehaviour
 
         if (currentTargetIsValid && nearestTarget != target)
         {
-            float currentDistance = Vector3.Distance(transform.position, target.position);
+            // 현재 대상도 동일하게 표면 거리로 비교해야 새 후보와의 거리 기준이 일관된다.
+            float currentDistance = Vector3.Distance(
+                transform.position,
+                GetTargetPoint(transform.position));
 
             if (nearestDistance + TargetSwitchDistanceMargin >= currentDistance)
                 return true;
@@ -196,15 +223,17 @@ public class SharkTargeting : MonoBehaviour
 
         foreach (Collider candidateCollider in candidates)
         {
-            Transform candidate = candidateCollider.attachedRigidbody != null
-                ? candidateCollider.attachedRigidbody.transform
-                : candidateCollider.transform;
+            // attachedRigidbody의 루트 Transform을 사용하면 잠수함 중심을 타깃으로 저장하게 된다.
+            // 탐지된 자식 Collider 자체를 보존해야 이후 ClosestPoint로 외벽 좌표를 계속 구할 수 있다.
+            Transform candidate = candidateCollider.transform;
 
             Damageable candidateDamageable = candidate.GetComponentInParent<Damageable>();
             if (candidateDamageable != null && candidateDamageable.IsDead)
                 continue;
 
-            Vector3 offsetToCandidate = candidate.position - transform.position;
+            // 재타깃 후보 역시 중심점이 아닌 Collider 표면까지의 실제 거리를 사용한다.
+            Vector3 targetPoint = candidateCollider.ClosestPoint(transform.position);
+            Vector3 offsetToCandidate = targetPoint - transform.position;
             float distanceToCandidate = offsetToCandidate.magnitude;
 
             if (distanceToCandidate <= Mathf.Epsilon)
@@ -234,7 +263,9 @@ public class SharkTargeting : MonoBehaviour
         if (trackedDamageable != null && trackedDamageable.IsDead)
             return false;
 
-        Vector3 offsetToTarget = trackedTarget.position - transform.position;
+        // 추격 유지 여부도 잠수함 중심이 아닌 가장 가까운 선체 표면을 기준으로 판단한다.
+        Vector3 targetPoint = GetTargetPoint(transform.position);
+        Vector3 offsetToTarget = targetPoint - transform.position;
         float distanceToTarget = offsetToTarget.magnitude;
 
         if (distanceToTarget > LoseTargetRadius)

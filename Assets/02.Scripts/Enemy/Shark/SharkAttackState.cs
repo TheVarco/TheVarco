@@ -27,11 +27,12 @@ public class SharkAttackState : ISharkState
             return;
         }
 
-        Vector3 direction = shark.Targeting.Target.position - shark.transform.position;
+        Vector3 targetPoint = shark.Targeting.GetTargetPoint(shark.AttackHitbox.transform.position);
+        Vector3 direction = targetPoint - shark.transform.position;
         
         float attackDistance = Vector3.Distance(
             shark.AttackHitbox.transform.position,
-            shark.Targeting.Target.position
+            targetPoint
         );
 
         // 사거리를 벗어나면 다시 추격

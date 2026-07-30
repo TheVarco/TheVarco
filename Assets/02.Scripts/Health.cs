@@ -18,6 +18,7 @@ public class Health : MonoBehaviour, Damageable
     public UnityEvent OnDeath;
     public UnityEvent OnRevived;
     public event System.Action<float, GameObject> OnDamaged; // 서영 추가
+    public event System.Action<DamageAppliedInfo> OnDamageApplied; // 서영 추가
 
     [Header("참조")]
     [Tooltip("피격 애니메이션용 애니메이터 (미설정 시 자동 감지)")]
@@ -44,14 +45,27 @@ public class Health : MonoBehaviour, Damageable
 
     public void TakeDamage(float amount, GameObject source)
     {
-        TakeDamage(amount, source, true);
+        // TakeDamage(amount, source, true);
+        ApplyDamage(DamageInfo.WithoutImpact(amount, source)); // 서영 변경
     }
 
     public void TakeDamage(float amount, GameObject source, bool playHitAnimation)
     {
-        if (IsDead) return; // 이미 죽었으면 추가 데미지 무시
+        // if (IsDead) return; // 이미 죽었으면 추가 데미지 무시
+        ApplyDamage(DamageInfo.WithoutImpact(amount, source, DamageType.Unspecified, playHitAnimation)); // 서영 변경
+    }
 
-        if (playHitAnimation && animator != null)
+    public float ApplyDamage(DamageInfo damageInfo)
+    {
+        if (IsDead || damageInfo.RequestedAmount <= 0f)
+            return 0f;
+
+        float appliedAmount = Mathf.Min(damageInfo.RequestedAmount, CurrentHealth); // 실제 남은 체력보다 더 많은 데미지가 들어가는 거 방지용
+        if (appliedAmount <= 0f)
+            return 0f;
+
+        // if (playHitAnimation && animator != null)
+        if (damageInfo.PlayHitAnimation && animator != null) // 서영 변경
         {
             if (Time.time - lastHitAnimationTime >= hitAnimationCooldown)
             {
@@ -60,25 +74,45 @@ public class Health : MonoBehaviour, Damageable
             }
         }
 
-        CurrentHealth = Mathf.Max(0f, CurrentHealth - amount);
-        Debug.Log($"[Health] {gameObject.name}이(가) {source.name}에게 {amount} 데미지를 받음. 남은 체력: {CurrentHealth}/{maxHealth}");
+        // CurrentHealth = Mathf.Max(0f, CurrentHealth - amount);
+        // Debug.Log($"[Health] {gameObject.name}이(가) {source.name}에게 {amount} 데미지를 받음. 남은 체력: {CurrentHealth}/{maxHealth}");
+
+        // 서영 추가
+        CurrentHealth -= appliedAmount;
+
+        string sourceName = damageInfo.Source != null
+            ? damageInfo.Source.name
+            : "알 수 없는 대상";
+        Debug.Log($"[Health] {gameObject.name}이(가) {sourceName}에게 {appliedAmount} 데미지를 받음. 남은 체력: {CurrentHealth}/{maxHealth}");
+
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
-        OnDamaged?.Invoke(amount, source); // 서영 추가
+        OnDamaged?.Invoke(appliedAmount, damageInfo.Source); // 서영 추가
+        OnDamageApplied?.Invoke(new DamageAppliedInfo(damageInfo, appliedAmount)); // 서영 추가, 어느 위치에 데미지가 들어갔는지 전달용
 
         if (CurrentHealth <= 0f)
         {
             IsDead = true;
             OnDeath?.Invoke();
         }
+
+        return appliedAmount;
     }
 
     // 회복 아이템, 산소 보급 등에서 재사용할 수 있게 미리 만들어둠
-    public void Heal(float amount)
+    public float Heal(float amount)
     {
-        if (IsDead) return;
+        // if (IsDead) return;
+        if (IsDead || amount <= 0f)
+            return 0f;
 
-        CurrentHealth = Mathf.Min(maxHealth, CurrentHealth + amount);
+        float appliedAmount = Mathf.Min(amount, maxHealth - CurrentHealth);
+        if (appliedAmount <= 0f)
+            return 0f;
+
+        // CurrentHealth = Mathf.Min(maxHealth, CurrentHealth + amount);
+        CurrentHealth += appliedAmount;
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
+        return appliedAmount;
     }
 
     // 기절(사망) 상태에서 동료가 부활시켰을 때 호출. 최대 체력의 특정 비율로 되살아남.
