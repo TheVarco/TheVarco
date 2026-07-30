@@ -14,7 +14,7 @@ namespace CaveBlockout.Editor
     {
         public const string MainMapPath = "Assets/01.Scenes/MainMap.unity";
         public const string RootName = "CaveBlockout";
-        private const string CaveMaterialPath = "Assets/Generated/CaveBlockout/CaveBlockout.mat";
+        private const string CaveMaterialPath = "Assets/04.Materials/MapMaterial/dark_rock_02_8k/DarkRock_Cave_Triplanar.mat";
         private const string ProxyMaterialPath = "Assets/Generated/CaveBlockout/SubmarineProxy.mat";
 
         [MenuItem("Tools/Underwater Cave/Create or Reset MainMap Blockout")]
@@ -104,7 +104,9 @@ namespace CaveBlockout.Editor
             Transform playtestRoot = CreateGroup(root.transform, "Playtest");
 
             CaveBlockoutPreset.CreateRoutes(routesRoot, out CaveRoute mainRoute, out CaveRoute branches);
-            Material caveMaterial = EnsureMaterial(CaveMaterialPath, new Color(0.16f, 0.27f, 0.34f, 1f), true);
+            Material caveMaterial = AssetDatabase.LoadAssetAtPath<Material>(CaveMaterialPath);
+            if (caveMaterial == null)
+                throw new InvalidOperationException($"Cave triplanar material was not found at {CaveMaterialPath}.");
             CaveMeshGenerationResult meshResult = CaveMeshGenerator.GenerateAll(mainRoute, branches, generatedRoot, caveMaterial);
             CreateZoneMarkers(mainRoute, markersRoot);
             CaveValidationResult validation = CreateValidation(mainRoute, branches, validationRoot, meshResult);
@@ -138,7 +140,9 @@ namespace CaveBlockout.Editor
             ClearChildren(markersRoot);
             ClearChildren(validationRoot);
 
-            Material caveMaterial = EnsureMaterial(CaveMaterialPath, new Color(0.16f, 0.27f, 0.34f, 1f), true);
+            Material caveMaterial = AssetDatabase.LoadAssetAtPath<Material>(CaveMaterialPath);
+            if (caveMaterial == null)
+                throw new InvalidOperationException($"Cave triplanar material was not found at {CaveMaterialPath}.");
             CaveMeshGenerationResult meshResult = CaveMeshGenerator.GenerateAll(mainRoute, branches, generatedRoot, caveMaterial);
             CreateZoneMarkers(mainRoute, markersRoot);
             CaveValidationResult validation = CreateValidation(mainRoute, branches, validationRoot, meshResult);
