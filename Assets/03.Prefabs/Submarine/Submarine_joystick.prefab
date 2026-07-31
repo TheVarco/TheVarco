@@ -150,8 +150,11 @@ GameObject:
   m_Component:
   - component: {fileID: 288114367779659920}
   - component: {fileID: 1967039849341590086}
+  - component: {fileID: 888810000000000005}
+  - component: {fileID: 888810000000000006}
+  - component: {fileID: 888810000000000002}
   m_Layer: 0
-  m_Name: Projector
+  m_Name: Glass Damage Overlay
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -182,7 +185,7 @@ MonoBehaviour:
   m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0777d029ed3dffa4692f417d4aba19ca, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.DecalProjector
   m_Material: {fileID: 2100000, guid: 44cefda0ae530084ba773a2c8eac057d, type: 2}
   m_DrawDistance: 30
@@ -200,6 +203,78 @@ MonoBehaviour:
   m_FadeFactor: 1
   version: 1
   m_DecalLayerMask: 1
+--- !u!114 &888810000000000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1362170055933689435}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5bf7152004f401e9b1f71a649299413, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::GlassDamageOverlay
+  overlayShader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
+  size: {x: 2.483649, y: 2.6778533}
+  surfaceOffset: -0.01
+  sortingOrder: 10
+--- !u!33 &888810000000000005
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1362170055933689435}
+  m_Mesh: {fileID: 0}
+--- !u!23 &888810000000000006
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1362170055933689435}
+  m_Enabled: 0
+  m_CastShadows: 0
+  m_ReceiveShadows: 0
+  m_DynamicOccludee: 0
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 0
+  m_LightProbeUsage: 0
+  m_ReflectionProbeUsage: 0
+  m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials: []
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 10
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &1820365415934523683
 GameObject:
   m_ObjectHideFlags: 0
@@ -306,8 +381,11 @@ GameObject:
   m_Component:
   - component: {fileID: 5587873299794781808}
   - component: {fileID: 4437819482701618595}
+  - component: {fileID: 888810000000000003}
+  - component: {fileID: 888810000000000004}
+  - component: {fileID: 888810000000000001}
   m_Layer: 0
-  m_Name: Projector
+  m_Name: Glass Damage Overlay
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -356,6 +434,78 @@ MonoBehaviour:
   m_FadeFactor: 1
   version: 1
   m_DecalLayerMask: 1
+--- !u!114 &888810000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3432822219814364124}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5bf7152004f401e9b1f71a649299413, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::GlassDamageOverlay
+  overlayShader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
+  size: {x: 2.483649, y: 2.1001947}
+  surfaceOffset: -0.01
+  sortingOrder: 10
+--- !u!33 &888810000000000003
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3432822219814364124}
+  m_Mesh: {fileID: 0}
+--- !u!23 &888810000000000004
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3432822219814364124}
+  m_Enabled: 0
+  m_CastShadows: 0
+  m_ReceiveShadows: 0
+  m_DynamicOccludee: 0
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 0
+  m_LightProbeUsage: 0
+  m_ReflectionProbeUsage: 0
+  m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials: []
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 10
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &4084702842201083065
 GameObject:
   m_ObjectHideFlags: 0
@@ -1645,13 +1795,27 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 5f9f3298c9ca9be4ab8450a1025c8fe7, type: 2}
   - {fileID: 2100000, guid: 2ba6eb6b6c61b2c4b9c1a4cbdd55ff1c, type: 2}
   - {fileID: 2100000, guid: af73ea9dcb1277143814086f555fd18e, type: 2}
+  glassDamageStageAlbedos:
+  - {fileID: 2800000, guid: aa1739a5c99d43a58629e6f584331b01, type: 3}
+  - {fileID: 2800000, guid: 0b288c2336ef49099f148c411d4403f6, type: 3}
+  - {fileID: 2800000, guid: d1b181e2b89949de98fbcf71d97f4e02, type: 3}
+  - {fileID: 2800000, guid: bf02e1a2edce4dc28d141fae1e3dae49, type: 3}
+  - {fileID: 2800000, guid: 6c241b3ceec84127a8848206324fe656, type: 3}
+  glassDamageStageNormals:
+  - {fileID: 2800000, guid: e334545f22854a8fbac1dcdf23eb3913, type: 3}
+  - {fileID: 2800000, guid: 6b8283b3ba0f4a62acb5a115dcd46d7f, type: 3}
+  - {fileID: 2800000, guid: a3971928adce4705a3d68efd4cf40d5c, type: 3}
+  - {fileID: 2800000, guid: 71d36a465fd5467f98dfc6d59a4b9a57, type: 3}
+  - {fileID: 2800000, guid: 49f31729d7504c3693dd5336c98a1734, type: 3}
   damageSlots:
   - slotName: "\uC804\uBA74"
     anchor: {fileID: 7123093245140828143}
-    projector: {fileID: 4437819482701618595}
+    projector: {fileID: 0}
+    glassOverlay: {fileID: 888810000000000001}
   - slotName: "\uD6C4\uBA74"
     anchor: {fileID: 9138870887673975067}
-    projector: {fileID: 1967039849341590086}
+    projector: {fileID: 0}
+    glassOverlay: {fileID: 888810000000000002}
   - slotName: "\uC88C\uCE21 \uC804\uBC29"
     anchor: {fileID: 586548101063717899}
     projector: {fileID: 122388364068893097}

@@ -1,9 +1,4 @@
-"""Validate progressive damage albedos and rebuild their normal maps.
-
-Stage 01 is the immutable art-direction anchor. Stages 02-05 are authored
-albedos of the same tear growing into a larger breach; this script deliberately
-does not assemble unrelated motif images anymore.
-"""
+"""Validate progressive glass-damage albedos and build their normal maps."""
 
 from pathlib import Path
 
@@ -15,20 +10,16 @@ ROOT = Path(__file__).resolve().parent
 STAGE_DIR = ROOT / "Stages"
 CANVAS_SIZE = 1024
 STAGE_COUNT = 5
-MIN_EDGE_MARGIN = 32
+MIN_EDGE_MARGIN = 48
 VISIBLE_ALPHA_THRESHOLD = 16
 
 
-def albedo_path(stage: int) -> Path:
-    return STAGE_DIR / f"SubmarineDamage_Stage{stage:02d}_Albedo.png"
-
-
-def normal_path(stage: int) -> Path:
-    return STAGE_DIR / f"SubmarineDamage_Stage{stage:02d}_Normal.png"
+def stage_path(stage: int, texture_type: str) -> Path:
+    return STAGE_DIR / f"SubmarineGlassDamage_Stage{stage:02d}_{texture_type}.png"
 
 
 def load_albedo(stage: int) -> Image.Image:
-    path = albedo_path(stage)
+    path = stage_path(stage, "Albedo")
     image = Image.open(path)
 
     if image.mode != "RGBA":
@@ -43,7 +34,6 @@ def load_albedo(stage: int) -> Image.Image:
 
 def validate_progression(albedos: list[Image.Image]) -> None:
     previous_visible_pixels = 0
-    previous_dark_pixels = 0
 
     for stage, albedo in enumerate(albedos, start=1):
         rgba = np.asarray(albedo, dtype=np.uint8)
@@ -53,24 +43,15 @@ def validate_progression(albedos: list[Image.Image]) -> None:
 
         alpha_box = albedo.getchannel("A").getbbox()
         if alpha_box is None:
-            raise RuntimeError(f"Stage {stage:02d} contains no visible damage")
+            raise RuntimeError(f"Stage {stage:02d} contains no visible fracture")
 
         left, top, right, bottom = alpha_box
         margins = (left, top, CANVAS_SIZE - right, CANVAS_SIZE - bottom)
         if min(margins) < MIN_EDGE_MARGIN:
             raise RuntimeError(
-                f"Stage {stage:02d} damage is too close to an edge: margins={margins}"
+                f"Stage {stage:02d} fracture is too close to an edge: margins={margins}"
             )
 
-        luminance = (
-            rgba[:, :, 0].astype(np.float32) * 0.2126
-            + rgba[:, :, 1].astype(np.float32) * 0.7152
-            + rgba[:, :, 2].astype(np.float32) * 0.0722
-        )
-        dark_pixels = int(np.count_nonzero(visible & (luminance < 48.0)))
-
-        # Detect obvious chroma-key remnants without rejecting normal edge
-        # antialiasing or tiny colored compression specks.
         strong_green = (
             visible
             & (rgba[:, :, 1] > 160)
@@ -78,26 +59,22 @@ def validate_progression(albedos: list[Image.Image]) -> None:
             & (rgba[:, :, 1] > rgba[:, :, 2].astype(np.uint16) * 2)
         )
         green_pixels = int(np.count_nonzero(strong_green))
-        if green_pixels > 128:
+        if green_pixels > 32:
             raise RuntimeError(
                 f"Stage {stage:02d} contains {green_pixels} likely chroma-key pixels"
             )
 
         if stage > 1 and visible_pixels <= previous_visible_pixels:
             raise RuntimeError(
-                f"Stage {stage:02d} must have more visible damage than Stage {stage - 1:02d}"
-            )
-        if stage > 1 and dark_pixels <= previous_dark_pixels:
-            raise RuntimeError(
-                f"Stage {stage:02d} central breach must grow beyond Stage {stage - 1:02d}"
+                f"Stage {stage:02d} must contain more fracture pixels than "
+                f"Stage {stage - 1:02d}"
             )
 
         print(
             f"Validated Stage {stage:02d}: visible={visible_pixels}, "
-            f"dark={dark_pixels}, margins={margins}, green={green_pixels}"
+            f"margins={margins}, green={green_pixels}"
         )
         previous_visible_pixels = visible_pixels
-        previous_dark_pixels = dark_pixels
 
 
 def build_normal_map(albedo: Image.Image) -> Image.Image:
@@ -109,18 +86,18 @@ def build_normal_map(albedo: Image.Image) -> Image.Image:
         + rgba[:, :, 2] * 0.0722
     )
 
-    # Dark crack interiors become recesses. Bright exposed-metal rims sit a
-    # little higher, which gives the decal readable surface relief in URP.
-    height = alpha * (luminance * 0.35 - (1.0 - luminance) * 0.65)
+    # Bright fracture lines and shard edges catch light above the pane while
+    # dark center chips and openings recess slightly into it.
+    height = alpha * (luminance * 0.7 - (1.0 - luminance) * 0.45)
     height_image = Image.fromarray(
         np.uint8(np.clip(height * 0.5 + 0.5, 0, 1) * 255)
     )
     height = np.asarray(
-        height_image.filter(ImageFilter.GaussianBlur(1.2)), dtype=np.float32
+        height_image.filter(ImageFilter.GaussianBlur(0.9)), dtype=np.float32
     ) / 255.0
 
     gradient_y, gradient_x = np.gradient(height)
-    strength = 7.0
+    strength = 5.0
     normal_x = -gradient_x * strength
     normal_y = -gradient_y * strength
     normal_z = np.ones_like(normal_x)
@@ -143,10 +120,9 @@ def main() -> None:
     albedos = [load_albedo(stage) for stage in range(1, STAGE_COUNT + 1)]
     validate_progression(albedos)
 
-    # Stage 01 albedo and normal are intentionally immutable.
-    for stage in range(2, STAGE_COUNT + 1):
-        output = normal_path(stage)
-        build_normal_map(albedos[stage - 1]).save(output, optimize=True)
+    for stage, albedo in enumerate(albedos, start=1):
+        output = stage_path(stage, "Normal")
+        build_normal_map(albedo).save(output, optimize=True)
         print(f"Wrote {output.name}")
 
 

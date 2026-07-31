@@ -1,6 +1,7 @@
 using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class SubmarineDamageTests
 {
@@ -39,6 +40,66 @@ public class SubmarineDamageTests
             RepairableStructure.CalculateDamageStage(accumulatedDamage, 10f, 5),
             Is.EqualTo(4),
             "Only after repairing a total of 20 should 60 damage fall to stage 4.");
+    }
+
+    [Test]
+    public void GlassDamageOverlay_CreatesRuntimeQuadAndTogglesVisibility()
+    {
+        GameObject target = new GameObject("Glass Damage Overlay Test");
+        Texture2D albedo = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+
+        try
+        {
+            GlassDamageOverlay overlay = target.AddComponent<GlassDamageOverlay>();
+
+            overlay.Show(albedo, null);
+
+            MeshFilter filter = target.GetComponent<MeshFilter>();
+            MeshRenderer renderer = target.GetComponent<MeshRenderer>();
+            Assert.That(filter, Is.Not.Null);
+            Assert.That(filter.sharedMesh, Is.Not.Null);
+            Assert.That(filter.sharedMesh.vertexCount, Is.EqualTo(4));
+            Assert.That(filter.sharedMesh.tangents, Has.Length.EqualTo(4));
+            Assert.That(renderer, Is.Not.Null);
+            Assert.That(renderer.sharedMaterial, Is.Not.Null);
+            Assert.That(renderer.sharedMaterial.GetTexture("_BaseMap"), Is.SameAs(albedo));
+            Assert.That(overlay.IsVisible, Is.True);
+
+            overlay.Hide();
+            Assert.That(overlay.IsVisible, Is.False);
+        }
+        finally
+        {
+            Object.DestroyImmediate(target);
+            Object.DestroyImmediate(albedo);
+        }
+    }
+
+    [Test]
+    public void RepairProgressWorldUI_UsesLeftToRightImageFillWithoutPercentageText()
+    {
+        RepairProgressWorldUI progressUI = RepairProgressWorldUI.CreateRuntime();
+        GameObject viewer = new GameObject("Repair UI Viewer");
+
+        try
+        {
+            viewer.transform.position = new Vector3(0f, 0f, -2f);
+            progressUI.Show(Vector3.zero, Vector3.forward, 0.4f, viewer.transform);
+
+            Image fill = progressUI.transform.Find("Gauge Fill").GetComponent<Image>();
+            Text prompt = progressUI.transform.Find("Repair Prompt").GetComponent<Text>();
+
+            Assert.That(fill.type, Is.EqualTo(Image.Type.Filled));
+            Assert.That(fill.fillMethod, Is.EqualTo(Image.FillMethod.Horizontal));
+            Assert.That(fill.fillOrigin, Is.EqualTo((int)Image.OriginHorizontal.Left));
+            Assert.That(fill.fillAmount, Is.EqualTo(0.4f).Within(0.001f));
+            Assert.That(prompt.text, Does.Not.Contain("%"));
+        }
+        finally
+        {
+            Object.DestroyImmediate(progressUI.gameObject);
+            Object.DestroyImmediate(viewer);
+        }
     }
 
     [Test]

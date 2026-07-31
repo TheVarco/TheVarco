@@ -16,8 +16,12 @@ public class RepairableStructure : MonoBehaviour
         [Tooltip("피격점/수리점과 거리를 비교할 선체 표면 기준점. forward는 선체 바깥쪽을 향하게 배치")]
         public Transform anchor;
 
-        [Tooltip("이 슬롯의 손상 단계를 표시할 URP Decal Projector")]
+        [Tooltip("불투명 선체 슬롯의 손상 단계를 표시할 URP Decal Projector")]
         public DecalProjector projector;
+
+        // 전/후면 유리는 데칼이 안 먹어서 따로 처리
+        [Tooltip("투명 유리처럼 Decal Projector를 받을 수 없는 표면에 표시할 메시 오버레이")]
+        public GlassDamageOverlay glassOverlay;
 
         [NonSerialized] public float accumulatedDamage;
         [NonSerialized] public float repairProgressSeconds;
@@ -25,9 +29,18 @@ public class RepairableStructure : MonoBehaviour
 
     [Header("손상 단계")]
     [SerializeField, Min(0.01f)] private float damagePerStage = 10f;
+
+    [Tooltip("불투명 선체 Decal Projector에 단계별로 적용할 머티리얼")]
     [SerializeField] private Material[] damageStageMaterials = new Material[5];
 
-    [Header("부위별 고정 데칼 슬롯 (전1/후1/좌2/우2/상2/하2)")]
+    // 유리는 머티리얼 대신 이미지랑 노멀맵을 직접 넣어줌
+    [Tooltip("투명 유리에 표시할 1~5단계 균열 알베도 텍스처")]
+    [SerializeField] private Texture2D[] glassDamageStageAlbedos = new Texture2D[5];
+
+    [Tooltip("투명 유리에 표시할 1~5단계 균열 노멀 텍스처")]
+    [SerializeField] private Texture2D[] glassDamageStageNormals = new Texture2D[5];
+
+    [Header("부위별 고정 손상 표시 슬롯 (전1/후1/좌2/우2/상2/하2)")]
     [SerializeField] private DamageDecalSlot[] damageSlots = new DamageDecalSlot[10];
 
     [Header("수리 진행")]
@@ -57,7 +70,7 @@ public class RepairableStructure : MonoBehaviour
             // TODO : 세이브포인트 넣으면 별도 저장 필요
             slot.accumulatedDamage = 0f;
             slot.repairProgressSeconds = 0f;
-            UpdateSlotDecal(slot);
+            UpdateSlotDamageVisual(slot);
         }
     }
 
@@ -141,19 +154,25 @@ public class RepairableStructure : MonoBehaviour
         int damageStage = CalculateDamageStage(
             slot.accumulatedDamage,
             damagePerStage,
-            damageStageMaterials?.Length ?? 0);
+            GetStageCount(slot));
 
         // 부위 이름 결정
         string resolvedSlotName = string.IsNullOrWhiteSpace(slot.slotName)
             ? $"Slot {slotIndex + 1}"
             : slot.slotName;
 
-        // 데칼 갱신
-        UpdateSlotDecal(slot);
-        string projectorMaterialName = slot.projector != null && slot.projector.material != null
-            ? slot.projector.material.name
-            : "없음";
-        bool isProjectorEnabled = slot.projector != null && slot.projector.enabled;
+        // 손상 표시 갱신
+        UpdateSlotDamageVisual(slot);
+
+        // 유리랑 선체가 사용하는 Renderer가 달라서 나눠서 확인
+        string visualMaterialName = slot.glassOverlay != null
+            ? slot.glassOverlay.CurrentMaterialName
+            : slot.projector != null && slot.projector.material != null
+                ? slot.projector.material.name
+                : "없음";
+        bool isVisualEnabled = slot.glassOverlay != null
+            ? slot.glassOverlay.IsVisible
+            : slot.projector != null && slot.projector.enabled;
 
         // TODO : 디버그 확인용으로 주석처리할것
         Debug.Log(
@@ -162,8 +181,8 @@ public class RepairableStructure : MonoBehaviour
             $"받은 데미지={appliedInfo.AppliedAmount:F1}, " +
             $"부위 누적 데미지={slot.accumulatedDamage:F1}, " +
             $"데칼 단계={damageStage}, " +
-            $"Projector 활성={isProjectorEnabled}, " +
-            $"머티리얼={projectorMaterialName}",
+            $"손상 표시 활성={isVisualEnabled}, " +
+            $"머티리얼={visualMaterialName}",
             this);
     }
 
@@ -256,7 +275,7 @@ public class RepairableStructure : MonoBehaviour
                 slot.repairProgressSeconds = 0f;
             }
 
-            UpdateSlotDecal(slot);
+            UpdateSlotDamageVisual(slot);
         }
 
         // 완전 수리 처리
@@ -319,23 +338,63 @@ public class RepairableStructure : MonoBehaviour
         return Mathf.Clamp(stage, 1, stageCount);
     }
 
-    // 누적 손상으로 단계를 계산하고 같은 메서드 안에서 Projector까지 갱신
-    private void UpdateSlotDecal(DamageDecalSlot slot)
+    // 유리는 이미지 개수, 선체는 머티리얼 개수로 단계 계산
+    private int GetStageCount(DamageDecalSlot slot)
     {
-        if (slot?.projector == null)
+        if (slot?.glassOverlay != null)
+            return glassDamageStageAlbedos?.Length ?? 0;
+
+        return damageStageMaterials?.Length ?? 0;
+    }
+
+    // 누적 손상으로 단계를 계산하고 Projector 또는 유리 메시 오버레이를 갱신
+    private void UpdateSlotDamageVisual(DamageDecalSlot slot)
+    {
+        if (slot == null)
             return;
 
         int stage = CalculateDamageStage(
             slot.accumulatedDamage,
             damagePerStage,
-            damageStageMaterials?.Length ?? 0);
+            GetStageCount(slot));
 
-        if (stage <= 0 || damageStageMaterials == null || stage > damageStageMaterials.Length)
+        // 0단계면 이전 이미지가 남지 않게 둘 다 끄기
+        if (stage <= 0)
         {
-            slot.projector.enabled = false;
+            if (slot.projector != null)
+                slot.projector.enabled = false;
+            slot.glassOverlay?.Hide();
             return;
         }
 
+        // 유리면 현재 단계 이미지랑 노멀맵 적용
+        if (slot.glassOverlay != null)
+        {
+            Texture2D albedo = glassDamageStageAlbedos != null
+                && stage <= glassDamageStageAlbedos.Length
+                ? glassDamageStageAlbedos[stage - 1]
+                : null;
+            Texture2D normal = glassDamageStageNormals != null
+                && stage <= glassDamageStageNormals.Length
+                ? glassDamageStageNormals[stage - 1]
+                : null;
+
+            // 유리 슬롯에 기존 Projector가 남아있어도 사용 안 함
+            if (slot.projector != null)
+                slot.projector.enabled = false;
+            slot.glassOverlay.Show(albedo, normal);
+            return;
+        }
+
+        // 나머지 선체는 기존 Decal Projector 사용
+        if (slot.projector == null
+            || damageStageMaterials == null
+            || stage > damageStageMaterials.Length)
+        {
+            return;
+        }
+
+        // 머티리얼 비어있으면 데칼 끄기
         Material stageMaterial = damageStageMaterials[stage - 1];
         slot.projector.material = stageMaterial;
         slot.projector.enabled = stageMaterial != null;
