@@ -170,6 +170,12 @@ namespace Varco.Underwater.EditorTools
         /// Two safety properties worth re-checking after any change: the screen pass is project-wide,
         /// so it must stay inert in scenes with no director; and the underwater root must survive a
         /// cave blockout regeneration, which is why it lives as a sibling of CaveBlockout.
+        ///
+        /// SIDE EFFECT: the blockout check calls CaveBlockoutBuilder.RegenerateCurrentScene, which runs
+        /// AssetDatabase.SaveAssets internally and therefore rewrites Assets/Generated/CaveBlockout/
+        /// (CaveShell.asset and friends). The regenerated mesh is not bit-identical to the committed
+        /// one, so revert that folder afterwards unless a blockout rebuild was actually wanted:
+        ///     git checkout -- Assets/Generated/CaveBlockout/
         /// </summary>
         public static void RegressionBatch()
         {
@@ -182,6 +188,8 @@ namespace Varco.Underwater.EditorTools
             int after = CountUnderwaterObjects();
             text.AppendLine($"blockoutRegenerate underwaterObjectsBefore={before} after={after} " +
                             $"{(after == before && before > 0 ? "PASS" : "FAIL")}");
+            text.AppendLine("  NOTE: this rewrote Assets/Generated/CaveBlockout/. " +
+                            "Run 'git checkout -- Assets/Generated/CaveBlockout/' unless a rebuild was intended.");
 
             foreach (string scenePath in new[] { "Assets/01.Scenes/SampleScene.unity", "Assets/01.Scenes/Min_Test.unity" })
             {

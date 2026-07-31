@@ -102,6 +102,12 @@ public class CarryableItem : MonoBehaviour, Interactable
         return isConsumable;
     }
 
+    // 좌클릭을 누르고 있는 동안 매 프레임 호출
+    // 망치처럼 충전 시간이 필요한 아이템만 적용
+    public virtual void OnPrimaryHeld(GameObject user, Transform aimReference, bool isHeld)
+    {
+    }
+
     // 우클릭을 누르고 있는 동안 매 프레임 호출됨 (조준처럼 "누르고 있는 동안 지속되는" 동작용).
     // 기본 아이템은 우클릭에 반응 안 함. 무기류가 재정의해서 조준 등을 구현.
     public virtual void OnSecondaryHeld(GameObject user, Transform aimReference, bool isHeld)

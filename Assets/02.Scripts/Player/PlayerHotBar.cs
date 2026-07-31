@@ -43,6 +43,9 @@ public class PlayerHotbar : MonoBehaviour
             if (shouldRemove) RemoveActiveItem();
         }
 
+        // 서영 추가 : 아이템이 좌클릭 유지와 해제 상태를 매 프레임 받을 수 있게 전달
+        active.OnPrimaryHeld(gameObject, aimReference, Input.GetKey(primaryActionKey));
+
         // 우클릭: "지금 눌려있는 상태"를 매 프레임 그대로 전달 (조준처럼 지속되는 동작용)
         active.OnSecondaryHeld(gameObject, aimReference, Input.GetKey(secondaryActionKey));
 
@@ -63,14 +66,24 @@ public class PlayerHotbar : MonoBehaviour
     {
         CarryableItem active = GetActiveItem();
         if (active != null)
+        {
+            active.OnPrimaryHeld(gameObject, aimReference, false); // 서영 추가
             active.OnSecondaryHeld(gameObject, aimReference, false);
+        }
     }
 
     private void SwitchTo(int slot)
     {
         if (slot == ActiveSlot) return;
 
-        GetActiveItem()?.SetVisible(false); // 지금 보고 있던 아이템 숨김
+        CarryableItem previous = GetActiveItem(); // 서영 추가 : 기존 아이템 사용 중에 전환 시 종료처리
+        if (previous != null)
+        {
+            previous.OnPrimaryHeld(gameObject, aimReference, false); // 서영 추가
+            previous.OnSecondaryHeld(gameObject, aimReference, false);
+            previous.SetVisible(false); // 지금 보고 있던 아이템 숨김
+        }
+
         ActiveSlot = slot;
         GetActiveItem()?.SetVisible(true);  // 새로 활성화된 슬롯의 아이템 표시
     }
@@ -129,13 +142,20 @@ public class PlayerHotbar : MonoBehaviour
         ClearActiveSlot();
 
         if (item != null)
+        {
+            item.OnPrimaryHeld(gameObject, aimReference, false); // 서영 추가
+            item.OnSecondaryHeld(gameObject, aimReference, false);
             Destroy(item.gameObject); // 소모품은 실제로 파괴해야 손에 남아있지 않음
+        }
     }
 
     public void DropActiveItem()
     {
         CarryableItem item = GetActiveItem();
         if (item == null) return;
+
+        item.OnPrimaryHeld(gameObject, aimReference, false); // 서영 추가
+        item.OnSecondaryHeld(gameObject, aimReference, false);
 
         // Player 정면 기준으로 몸에서 떨어진 위치를 계산해서, 물리가 켜지자마자 겹쳐서 튕기는 것 방지
         Vector3 dropPosition = transform.position

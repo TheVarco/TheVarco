@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
@@ -24,6 +25,23 @@ public class SubmarineController : MonoBehaviour
     [SerializeField] private float yawAcceleration = 18f;
     [SerializeField] private float yawCoastDeceleration = 7f;
 
+    [Header("Hull Collision Probe")]
+    [Tooltip("잠수함 이동을 막고 충돌 피해를 줄 환경 레이어")]
+    [SerializeField] private LayerMask collisionMask = 65; // Default + Obstacle
+    [Tooltip("잠수함 로컬 좌표 기준 캡슐 중심")]
+    [SerializeField] private Vector3 collisionProbeCenter = Vector3.zero;
+    [Tooltip("선체를 감싸는 캡슐 반지름")]
+    [SerializeField, Min(0.01f)] private float collisionProbeRadius = 1.25f;
+    [Tooltip("로컬 Z축 방향 캡슐 전체 길이")]
+    [SerializeField, Min(0.02f)] private float collisionProbeHeight = 5.5f;
+    [SerializeField, Min(0f)] private float collisionSkinWidth = 0.05f;
+
+    [Header("Collision Damage")]
+    [SerializeField, Min(0f)] private float minimumDamageSpeed = 3f;
+    [SerializeField, Min(0f)] private float damagePerExcessSpeed = 5f;
+    [SerializeField, Min(0f)] private float maximumCollisionDamage = 30f;
+    [SerializeField, Min(0f)] private float collisionDamageCooldown = 0.5f;
+
     // 외부 스크립트가 현재 조종 상태와 이동 상태를 읽을 때 사용하는 값들
     public bool HasDriver => currentDriver != null;
     public float CurrentSpeed => new Vector2(forwardVelocity, verticalVelocity).magnitude;
@@ -38,7 +56,12 @@ public class SubmarineController : MonoBehaviour
     public float VerticalInput { get; private set; }
 
     private Rigidbody body;
+    private Health health;
     private PlayerSeatController currentDriver;
+
+    private readonly RaycastHit[] castHits = new RaycastHit[32];
+    private readonly Collider[] overlapHits = new Collider[32];
+    private readonly Dictionary<int, float> lastDamageTimeByCollider = new Dictionary<int, float>();
     
     // 매 FixedUpdate마다 가속/감속되는 실제 내부 속도값들
     private float forwardVelocity;
@@ -48,6 +71,7 @@ public class SubmarineController : MonoBehaviour
     private void Awake()
     {
         body = GetComponent<Rigidbody>();
+        health = GetComponent<Health>();
         body.useGravity = false;
         body.isKinematic = true; // Rigidbody 키네마틱 사용
         body.interpolation = RigidbodyInterpolation.Interpolate;
@@ -114,12 +138,244 @@ public class SubmarineController : MonoBehaviour
             dt);
 
         // 누적된 속도를 물리 프레임의 위치/회전 변화량으로 변환
-        Vector3 displacement = CurrentWorldVelocity * dt;
+        Vector3 worldVelocityBeforeCollision = CurrentWorldVelocity;
+        Vector3 displacement = worldVelocityBeforeCollision * dt;
         Quaternion yawDelta = Quaternion.AngleAxis(yawVelocity * dt, Vector3.up);
 
+        Vector3 resolvedDisplacement = ResolveDisplacement(
+            body.position,
+            body.rotation,
+            displacement,
+            out bool hitWall,
+            out RaycastHit wallHit);
+
+        if (hitWall)
+        {
+            Vector3 slidingVelocity = Vector3.ProjectOnPlane(worldVelocityBeforeCollision, wallHit.normal);
+            forwardVelocity = Vector3.Dot(slidingVelocity, transform.forward);
+            verticalVelocity = Vector3.Dot(slidingVelocity, Vector3.up);
+
+            float normalSpeed = Mathf.Abs(Vector3.Dot(worldVelocityBeforeCollision, wallHit.normal));
+            ApplyCollisionDamage(
+                wallHit.collider,
+                wallHit.point,
+                wallHit.normal,
+                normalSpeed);
+        }
+
+        Vector3 nextPosition = body.position + resolvedDisplacement;
+        Quaternion nextRotation = yawDelta * body.rotation;
+
+        if (WouldIntroduceRotationOverlap(nextPosition, body.rotation, nextRotation, out Collider rotationBlocker))
+        {
+            ApplyRotationCollisionDamage(rotationBlocker, nextPosition);
+            nextRotation = body.rotation;
+            yawVelocity = 0f;
+        }
+
         // 키네마틱 Rigidbody는 Transform을 직접 변경하지 않고 Move 계열 API로 이동
-        body.MovePosition(body.position + displacement);
-        body.MoveRotation(yawDelta * body.rotation);
+        body.MovePosition(nextPosition);
+        body.MoveRotation(nextRotation);
+    }
+
+    private Vector3 ResolveDisplacement(
+        Vector3 startPosition,
+        Quaternion rotation,
+        Vector3 displacement,
+        out bool hitWall,
+        out RaycastHit firstHit)
+    {
+        hitWall = false;
+        firstHit = default;
+
+        Vector3 resolved = Vector3.zero;
+        Vector3 remaining = displacement;
+        Vector3 castPosition = startPosition;
+
+        // 첫 충돌에서 벽 법선 성분을 제거하고, 모서리에서 한 번 더 검사한다.
+        for (int iteration = 0; iteration < 2; iteration++)
+        {
+            float distance = remaining.magnitude;
+            if (distance <= 0.0001f)
+                break;
+
+            Vector3 direction = remaining / distance;
+            if (!TryCapsuleCast(castPosition, rotation, direction, distance + collisionSkinWidth, out RaycastHit hit))
+            {
+                resolved += remaining;
+                break;
+            }
+
+            if (!hitWall)
+            {
+                hitWall = true;
+                firstHit = hit;
+            }
+
+            float travelDistance = Mathf.Max(0f, hit.distance - collisionSkinWidth);
+            Vector3 travel = direction * Mathf.Min(travelDistance, distance);
+            resolved += travel;
+            castPosition += travel;
+
+            Vector3 unconsumed = remaining - travel;
+            remaining = Vector3.ProjectOnPlane(unconsumed, hit.normal);
+        }
+
+        return resolved;
+    }
+
+    private bool TryCapsuleCast(
+        Vector3 position,
+        Quaternion rotation,
+        Vector3 direction,
+        float distance,
+        out RaycastHit closestHit)
+    {
+        GetWorldCapsule(position, rotation, out Vector3 pointA, out Vector3 pointB, out float radius);
+
+        int hitCount = Physics.CapsuleCastNonAlloc(
+            pointA,
+            pointB,
+            radius,
+            direction,
+            castHits,
+            distance,
+            collisionMask,
+            QueryTriggerInteraction.Ignore);
+
+        closestHit = default;
+        float closestDistance = float.PositiveInfinity;
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            RaycastHit candidate = castHits[i];
+            if (IsOwnCollider(candidate.collider) || candidate.distance >= closestDistance)
+                continue;
+
+            closestDistance = candidate.distance;
+            closestHit = candidate;
+        }
+
+        return closestHit.collider != null;
+    }
+
+    private bool WouldIntroduceRotationOverlap(
+        Vector3 position,
+        Quaternion currentRotation,
+        Quaternion proposedRotation,
+        out Collider blocker)
+    {
+        blocker = null;
+
+        if (Quaternion.Angle(currentRotation, proposedRotation) <= 0.001f)
+            return false;
+
+        // 이미 겹친 상태에서 회전을 모두 잠그지 않도록 새 회전에서 처음 생긴 겹침만 막는다.
+        bool currentlyOverlapping = TryFindExternalOverlap(position, currentRotation, out _);
+        bool proposedOverlapping = TryFindExternalOverlap(position, proposedRotation, out blocker);
+        return !currentlyOverlapping && proposedOverlapping;
+    }
+
+    private bool TryFindExternalOverlap(Vector3 position, Quaternion rotation, out Collider blocker)
+    {
+        GetWorldCapsule(position, rotation, out Vector3 pointA, out Vector3 pointB, out float radius);
+
+        int overlapCount = Physics.OverlapCapsuleNonAlloc(
+            pointA,
+            pointB,
+            radius,
+            overlapHits,
+            collisionMask,
+            QueryTriggerInteraction.Ignore);
+
+        for (int i = 0; i < overlapCount; i++)
+        {
+            Collider candidate = overlapHits[i];
+            if (IsOwnCollider(candidate))
+                continue;
+
+            blocker = candidate;
+            return true;
+        }
+
+        blocker = null;
+        return false;
+    }
+
+    private void GetWorldCapsule(
+        Vector3 position,
+        Quaternion rotation,
+        out Vector3 pointA,
+        out Vector3 pointB,
+        out float radius)
+    {
+        Vector3 scale = transform.lossyScale;
+        float radialScale = Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y));
+        float lengthScale = Mathf.Abs(scale.z);
+
+        radius = collisionProbeRadius * radialScale;
+        float halfLineLength = Mathf.Max(0f, collisionProbeHeight * lengthScale * 0.5f - radius);
+        Vector3 center = position + rotation * Vector3.Scale(collisionProbeCenter, scale);
+        Vector3 axisOffset = rotation * Vector3.forward * halfLineLength;
+
+        pointA = center + axisOffset;
+        pointB = center - axisOffset;
+    }
+
+    private bool IsOwnCollider(Collider candidate)
+    {
+        return candidate == null
+            || candidate.attachedRigidbody == body
+            || candidate.transform.IsChildOf(transform);
+    }
+
+    private void ApplyRotationCollisionDamage(Collider blocker, Vector3 nextPosition)
+    {
+        if (blocker == null)
+            return;
+
+        Vector3 hitPoint = blocker.ClosestPoint(nextPosition);
+        Vector3 normal = nextPosition - hitPoint;
+        if (normal.sqrMagnitude <= 0.0001f)
+            normal = nextPosition - blocker.bounds.center;
+
+        Vector3 angularVelocity = Vector3.up * (yawVelocity * Mathf.Deg2Rad);
+        Vector3 pointVelocity = Vector3.Cross(angularVelocity, hitPoint - body.worldCenterOfMass);
+        float normalSpeed = Mathf.Abs(Vector3.Dot(pointVelocity, normal.normalized));
+
+        ApplyCollisionDamage(blocker, hitPoint, normal, normalSpeed);
+    }
+
+    private void ApplyCollisionDamage(
+        Collider sourceCollider,
+        Vector3 hitPoint,
+        Vector3 hitNormal,
+        float normalSpeed)
+    {
+        if (health == null || health.IsDead || sourceCollider == null || normalSpeed <= minimumDamageSpeed)
+            return;
+
+        int colliderId = sourceCollider.GetInstanceID();
+        if (lastDamageTimeByCollider.TryGetValue(colliderId, out float lastDamageTime)
+            && Time.time - lastDamageTime < collisionDamageCooldown)
+        {
+            return;
+        }
+
+        float damage = Mathf.Min(
+            maximumCollisionDamage,
+            (normalSpeed - minimumDamageSpeed) * damagePerExcessSpeed);
+        if (damage <= 0f)
+            return;
+
+        lastDamageTimeByCollider[colliderId] = Time.time;
+        health.ApplyDamage(new DamageInfo(
+            damage,
+            sourceCollider.gameObject,
+            hitPoint,
+            hitNormal,
+            DamageType.Collision,
+            false));
     }
 
     // 빈 잠수함에 플레이어를 운전자로 등록한다.
@@ -170,5 +426,21 @@ public class SubmarineController : MonoBehaviour
     {
         currentDriver = null;
         ClearInput();
+        lastDamageTimeByCollider.Clear();
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Vector3 position = Application.isPlaying && body != null ? body.position : transform.position;
+        Quaternion rotation = Application.isPlaying && body != null ? body.rotation : transform.rotation;
+        GetWorldCapsule(position, rotation, out Vector3 pointA, out Vector3 pointB, out float radius);
+
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(pointA, radius);
+        Gizmos.DrawWireSphere(pointB, radius);
+        Gizmos.DrawLine(pointA + transform.up * radius, pointB + transform.up * radius);
+        Gizmos.DrawLine(pointA - transform.up * radius, pointB - transform.up * radius);
+        Gizmos.DrawLine(pointA + transform.right * radius, pointB + transform.right * radius);
+        Gizmos.DrawLine(pointA - transform.right * radius, pointB - transform.right * radius);
     }
 }

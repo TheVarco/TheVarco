@@ -1,73 +1,201 @@
 using UnityEngine;
 
-// 좌클릭으로 정면 부채꼴 범위 안의 RepairableStructure를 때려서 수리하는 망치.
-// MeleeAttack이랑 판정 방식(범위+각도)은 같고, 데미지 대신 회복을 준다는 점만 다름.
+// 조준한 손상 부위를 일정 시간 동안 수리하는 망치.
+// 실제 HP 회복과 부위 손상 감소는 RepairableStructure가 책임진다.
 public class HammerItem : CarryableItem
 {
-    [Header("수리 설정 (밸런싱용)")]
-    public float repairAmount = 10f;
-    public float repairRange = 1.5f;
-    [Tooltip("정면 기준 이 각도 안에 있는 대상만 수리 (예: 90이면 좌우 45도씩)")]
-    public float repairAngle = 90f;
-    public float repairCooldown = 0.5f;
+    [Header("수리 설정")]
+    [SerializeField, Min(0.01f)] private float repairAmount = 10f;
+    [SerializeField, Min(0.01f)] private float repairRange = 1.5f;
+    [SerializeField] private LayerMask repairLayerMask = ~0;
 
-    private float cooldownTimer = 0f;
+    [Header("수리 진행 UI")]
+    [SerializeField] private RepairProgressWorldUI progressUI;
 
-    void Update()
-    {
-        if (cooldownTimer > 0f)
-            cooldownTimer -= Time.deltaTime;
-    }
+    private static readonly int IsFixingHash = Animator.StringToHash("IsFixing");
 
-    // 좌클릭 = 타격. 쿨타임 중이면 아무 일도 안 하고, 망치는 소모품이 아니라 사라지지도 않음
+    private RepairableStructure currentStructure;
+    private int currentSlotIndex = -1;
+    private Animator userAnimator;
+    private GameObject currentUser;
+    private bool ownsRuntimeProgressUI;
+
+    // 수리는 클릭 순간이 아니라 OnPrimaryHeld에서 진행한다.
     public override bool OnPrimaryAction(GameObject user, Transform aimReference)
     {
-        if (cooldownTimer > 0f) return false;
-
-        PerformRepair();
-        cooldownTimer = repairCooldown;
         return false;
     }
 
-    // 카메라(aimReference)가 아니라 망치 자신의 위치/방향을 기준으로 판정함.
-    // 망치는 들고 있는 동안 handSocket(Player 자식)에 붙어서 몸 방향을 그대로 따라가니까,
-    // 자기 transform을 쓰는 게 오히려 더 정확하고, Gizmo도 이 자리에서 그대로 그릴 수 있음
-    private void PerformRepair()
+    public override void OnPrimaryHeld(GameObject user, Transform aimReference, bool isHeld)
     {
-        Collider[] candidates = Physics.OverlapSphere(transform.position, repairRange);
-        Debug.Log($"[HammerItem] 범위 안 오브젝트 {candidates.Length}개 발견");
+        CacheUserAnimator(user);
 
-        bool repairedAny = false;
-
-        foreach (Collider col in candidates)
+        if (!TryFindRepairTarget(aimReference, out RepairableStructure structure, out int slotIndex))
         {
-            Vector3 toTarget = col.transform.position - transform.position;
-            float angle = Vector3.Angle(transform.forward, toTarget);
-            if (angle > repairAngle * 0.5f) continue;
-
-            RepairableStructure structure = col.GetComponentInParent<RepairableStructure>();
-            if (structure != null)
-            {
-                structure.Repair(repairAmount);
-                repairedAny = true;
-                Debug.Log($"[HammerItem] {col.gameObject.name} 수리함 (+{repairAmount})");
-            }
+            ClearCurrentTarget();
+            return;
         }
 
-        if (!repairedAny)
-            Debug.Log("[HammerItem] 각도/범위 안에 RepairableStructure가 없음");
+        SwitchTargetIfNeeded(structure, slotIndex);
+
+        if (!isHeld)
+        {
+            currentStructure.StopRepair(currentSlotIndex);
+            SetFixingAnimation(false);
+            ShowProgress(aimReference);
+            return;
+        }
+
+        SetFixingAnimation(true);
+        float repairedAmount = currentStructure.AdvanceRepair(
+            currentSlotIndex,
+            Time.deltaTime,
+            repairAmount,
+            out bool completedCycle);
+
+        if (completedCycle && repairedAmount <= 0f)
+        {
+            ClearCurrentTarget();
+            return;
+        }
+
+        if (!currentStructure.CanRepairSlot(currentSlotIndex))
+        {
+            ClearCurrentTarget();
+            return;
+        }
+
+        ShowProgress(aimReference);
     }
 
-    // 디버그용: 씬 뷰에서 수리 범위(부채꼴)를 눈으로 확인하기 위함.
-    // 손에 들려있는 동안(Play 모드에서 이 오브젝트를 선택하면) 실제 판정 위치에 그대로 그려짐
-    void OnDrawGizmosSelected()
+    private bool TryFindRepairTarget(
+        Transform aimReference,
+        out RepairableStructure structure,
+        out int slotIndex)
+    {
+        structure = null;
+        slotIndex = -1;
+
+        if (aimReference == null)
+            return false;
+
+        if (!Physics.Raycast(
+                aimReference.position,
+                aimReference.forward,
+                out RaycastHit hit,
+                repairRange,
+                repairLayerMask,
+                QueryTriggerInteraction.Ignore))
+        {
+            return false;
+        }
+
+        structure = hit.collider.GetComponentInParent<RepairableStructure>();
+        if (structure == null)
+            return false;
+
+        // 손상 슬롯을 먼저 거르지 않는다. 바라본 위치의 가장 가까운 슬롯이 정상이라면 수리 불가다.
+        if (!structure.TryFindClosestSlot(hit.point, false, out slotIndex))
+            return false;
+
+        return structure.CanRepairSlot(slotIndex);
+    }
+
+    private void SwitchTargetIfNeeded(RepairableStructure structure, int slotIndex)
+    {
+        if (currentStructure == structure && currentSlotIndex == slotIndex)
+            return;
+
+        if (currentStructure != null && currentSlotIndex >= 0)
+            currentStructure.StopRepair(currentSlotIndex);
+
+        SetFixingAnimation(false);
+        currentStructure = structure;
+        currentSlotIndex = slotIndex;
+    }
+
+    private void ShowProgress(Transform viewer)
+    {
+        if (currentStructure == null || currentSlotIndex < 0)
+            return;
+
+        if (!currentStructure.TryGetRepairUIData(
+                currentSlotIndex,
+                out Vector3 worldPosition,
+                out Vector3 worldNormal,
+                out float progress01))
+        {
+            return;
+        }
+
+        // 씬/프리팹에서 UI가 연결되지 않은 경우에만 런타임 UI를 늦게 생성한다.
+        // 망치를 장착했다는 이유만으로 만들지 않고, 실제 수리 가능한 부위를 찾았을 때 생성한다.
+        if (progressUI == null)
+        {
+            progressUI = RepairProgressWorldUI.CreateRuntime();
+            ownsRuntimeProgressUI = progressUI != null;
+        }
+
+        if (progressUI == null)
+            return;
+
+        progressUI.Show(
+            worldPosition,
+            worldNormal,
+            progress01,
+            viewer);
+    }
+
+    private void CacheUserAnimator(GameObject user)
+    {
+        if (user == currentUser)
+            return;
+
+        SetFixingAnimation(false);
+        currentUser = user;
+        userAnimator = null;
+
+        if (currentUser == null)
+            return;
+
+        userAnimator = currentUser.GetComponent<Animator>();
+        if (userAnimator == null)
+            userAnimator = currentUser.GetComponentInChildren<Animator>();
+    }
+
+    private void SetFixingAnimation(bool isFixing)
+    {
+        if (userAnimator != null)
+            userAnimator.SetBool(IsFixingHash, isFixing);
+    }
+
+    private void ClearCurrentTarget()
+    {
+        if (currentStructure != null && currentSlotIndex >= 0)
+            currentStructure.StopRepair(currentSlotIndex);
+
+        currentStructure = null;
+        currentSlotIndex = -1;
+        SetFixingAnimation(false);
+
+        if (progressUI != null)
+            progressUI.Hide();
+    }
+
+    private void OnDisable()
+    {
+        ClearCurrentTarget();
+    }
+
+    private void OnDestroy()
+    {
+        if (ownsRuntimeProgressUI && progressUI != null)
+            Destroy(progressUI.gameObject);
+    }
+
+    private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(transform.position, repairRange);
-
-        Quaternion leftEdge = Quaternion.AngleAxis(-repairAngle * 0.5f, Vector3.up);
-        Quaternion rightEdge = Quaternion.AngleAxis(repairAngle * 0.5f, Vector3.up);
-        Gizmos.DrawLine(transform.position, transform.position + leftEdge * transform.forward * repairRange);
-        Gizmos.DrawLine(transform.position, transform.position + rightEdge * transform.forward * repairRange);
+        Gizmos.DrawLine(transform.position, transform.position + transform.forward * repairRange);
     }
 }

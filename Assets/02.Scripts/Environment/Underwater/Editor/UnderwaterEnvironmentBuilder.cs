@@ -290,6 +290,7 @@ namespace Varco.Underwater.EditorTools
                     continue;
 
                 ConfigureFullScreenFeature(fullScreenExisting, passMaterial);
+                SyncFeatureMap(rendererData);
                 EditorUtility.SetDirty(rendererData);
                 rendererData.SetDirty();
                 return;
@@ -299,21 +300,47 @@ namespace Varco.Underwater.EditorTools
             feature.name = nameof(FullScreenPassRendererFeature) + "_Underwater";
             ConfigureFullScreenFeature(feature, passMaterial);
             AssetDatabase.AddObjectToAsset(feature, rendererData);
-            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(feature, out string _, out long localId);
 
             var serialized = new SerializedObject(rendererData);
             SerializedProperty features = serialized.FindProperty("m_RendererFeatures");
-            SerializedProperty featureMap = serialized.FindProperty("m_RendererFeatureMap");
-
             features.arraySize++;
             features.GetArrayElementAtIndex(features.arraySize - 1).objectReferenceValue = feature;
-            featureMap.arraySize++;
-            featureMap.GetArrayElementAtIndex(featureMap.arraySize - 1).longValue = localId;
             serialized.ApplyModifiedProperties();
+
+            SyncFeatureMap(rendererData);
 
             EditorUtility.SetDirty(rendererData);
             rendererData.SetDirty();
             AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>
+        /// Rebuilds m_RendererFeatureMap from scratch so it always has exactly one local file id per
+        /// entry in m_RendererFeatures.
+        ///
+        /// Appending a single entry to each list is not safe: the incoming asset may already be out of
+        /// sync - PC_Renderer arrived from main with two features but a one-entry map - and appending
+        /// carries that mismatch forward. URP treats a count mismatch as an invalid map and falls back
+        /// to re-linking features by scanning sub-assets, which can silently drop a feature reference on
+        /// reimport.
+        /// </summary>
+        private static void SyncFeatureMap(UniversalRendererData rendererData)
+        {
+            var serialized = new SerializedObject(rendererData);
+            SerializedProperty features = serialized.FindProperty("m_RendererFeatures");
+            SerializedProperty featureMap = serialized.FindProperty("m_RendererFeatureMap");
+
+            featureMap.arraySize = features.arraySize;
+            for (int i = 0; i < features.arraySize; i++)
+            {
+                Object candidate = features.GetArrayElementAtIndex(i).objectReferenceValue;
+                long localId = 0L;
+                if (candidate != null)
+                    AssetDatabase.TryGetGUIDAndLocalFileIdentifier(candidate, out string _, out localId);
+                featureMap.GetArrayElementAtIndex(i).longValue = localId;
+            }
+
+            serialized.ApplyModifiedProperties();
         }
 
         private static void ConfigureFullScreenFeature(FullScreenPassRendererFeature feature, Material passMaterial)
