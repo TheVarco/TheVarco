@@ -64,7 +64,7 @@ public class PlayerSeatController : MonoBehaviour
         if (health != null)
         {
             // 착석 중 사망하면 조종석에 남지 않도록 강제로 하차시킨다.
-            // health.OnDeath.AddListener(HandleDeath);
+            health.OnDeath.AddListener(ForceExitFromSeat);
             health.OnRevived.AddListener(HandleRevived);
         }
     }
@@ -75,14 +75,39 @@ public class PlayerSeatController : MonoBehaviour
         if (!IsSeated || Time.frameCount <= enteredFrame)
             return;
 
-        if (Input.GetKeyDown(exitKey))
-            currentSeat.TryExit(this);
+        if (Input.GetKeyDown(exitKey) && currentSeat.TryExit(this))
+            return;
+
+        float throttle = 0f;
+        float steering = 0f;
+        bool ascend = false;
+        bool descend = false;
+
+        switch (currentSeat.SeatType)
+        {
+            case SubmarineSeatType.Solo:
+                throttle = (Input.GetKey(KeyCode.W) ? 1f : 0f) - (Input.GetKey(KeyCode.S) ? 1f : 0f);
+                steering = (Input.GetKey(KeyCode.D) ? 1f : 0f) - (Input.GetKey(KeyCode.A) ? 1f : 0f);
+                ascend = Input.GetKey(KeyCode.Space);
+                descend = Input.GetKey(KeyCode.LeftControl);
+                break;
+            case SubmarineSeatType.WSS:
+                throttle = (Input.GetKey(KeyCode.W) ? 1f : 0f) - (Input.GetKey(KeyCode.S) ? 1f : 0f);
+                ascend = Input.GetKey(KeyCode.Space);
+                break;
+            case SubmarineSeatType.ADC:
+                steering = (Input.GetKey(KeyCode.D) ? 1f : 0f) - (Input.GetKey(KeyCode.A) ? 1f : 0f);
+                descend = Input.GetKey(KeyCode.LeftControl);
+                break;
+        }
+
+        currentSeat.SubmitInput(this, throttle, steering, ascend, descend);
     }
 
     // 지정된 조종석에 플레이어를 착석.
     public bool EnterSeat(CockpitSeat seat, Transform seatAnchor)
     {
-        if (seat == null || seatAnchor == null || IsSeated)
+        if (seat == null || seatAnchor == null || IsSeated || seat.Controller == null)
             return false;
 
         // 하차할 때 원래 계층과 크기로 돌아가기 위한 값을 저장
@@ -106,7 +131,7 @@ public class PlayerSeatController : MonoBehaviour
         body.useGravity = false;
 
         // 조종석의 자식으로 만들어 잠수함이 이동할 때 플레이어도 함께 이동되도록 처리
-        transform.SetParent(seatAnchor, true);
+        transform.SetParent(seat.Controller.transform, true);
         transform.SetPositionAndRotation(seatAnchor.position, seatAnchor.rotation);
 
         // 앉기 애니메이션을 켜고 일반 하차 문구 고정 표시
@@ -153,10 +178,10 @@ public class PlayerSeatController : MonoBehaviour
     }
 
     // 정상 하차 조건을 검사하지 않고 현재 조종석에 강제 하차를 요청한다.
-    // public void ForceExitFromSeat()
-    // {
-    //     currentSeat?.ForceExit(this);
-    // }
+    private void ForceExitFromSeat()
+    {
+        currentSeat?.ForceExit(this);
+    }
 
     // 하차가 거부된 이유 등을 잠시 상호작용 UI에 표시
     public void ShowSeatMessage(string message)
@@ -331,12 +356,6 @@ public class PlayerSeatController : MonoBehaviour
         promptRoutine = null;
     }
 
-    // 사망하면 속도 및 공간 제한과 무관하게 강제 하차한다.
-    // private void HandleDeath()
-    // {
-    //     ForceExitFromSeat();
-    // }
-
     // 부활했고 조종석에 앉아 있지 않다면 저장해 둔 행동 상태를 복원
     private void HandleRevived()
     {
@@ -344,12 +363,18 @@ public class PlayerSeatController : MonoBehaviour
             RestoreInputBehaviours();
     }
 
+    private void OnDisable()
+    {
+        if (Application.isPlaying)
+            ForceExitFromSeat();
+    }
+
     private void OnDestroy()
     {
         // 플레이어가 파괴될 때 Health 이벤트 구독 해제
         if (health != null)
         {
-            // health.OnDeath.RemoveListener(HandleDeath);
+            health.OnDeath.RemoveListener(ForceExitFromSeat);
             health.OnRevived.RemoveListener(HandleRevived);
         }
     }

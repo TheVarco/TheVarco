@@ -42,22 +42,27 @@ public class SubmarineController : MonoBehaviour
     [SerializeField, Min(0f)] private float maximumCollisionDamage = 30f;
     [SerializeField, Min(0f)] private float collisionDamageCooldown = 0.5f;
 
-    // 외부 스크립트가 현재 조종 상태와 이동 상태를 읽을 때 사용하는 값들
-    public bool HasDriver => currentDriver != null;
+    [Header("Seat Manager")]
+    [SerializeField] private SubmarineSeatManager seatManager;
+
+    // 현재 조종 상태와 이동 상태를 읽을 때 사용하는 값들
+    public bool HasDriver => seatManager != null && seatManager.HasDriver;
+    public SubmarinePlayMode CurrentPlayMode => seatManager != null
+        ? seatManager.CurrentPlayMode
+        : SubmarinePlayMode.Solo;
     public float CurrentSpeed => new Vector2(forwardVelocity, verticalVelocity).magnitude;
     public float CurrentYawSpeed => Mathf.Abs(yawVelocity);
     
     // 하차하는 플레이어에게 전달할 수 있도록 현재 이동 속도를 월드 벡터로 변환
     public Vector3 CurrentWorldVelocity => transform.forward * forwardVelocity + Vector3.up * verticalVelocity;
 
-    // 조이스틱 시각화 스크립트에서 읽을 수 있는 현재 입력값
-    public float ThrottleInput { get; private set; }
-    public float SteeringInput { get; private set; }
-    public float VerticalInput { get; private set; }
+    // 조이스틱 스크립트에서 읽을 수 있는 현재 입력값
+    public float ThrottleInput => seatManager != null ? seatManager.ThrottleInput : 0f;
+    public float SteeringInput => seatManager != null ? seatManager.SteeringInput : 0f;
+    public float VerticalInput => seatManager != null ? seatManager.VerticalInput : 0f;
 
     private Rigidbody body;
     private Health health;
-    private PlayerSeatController currentDriver;
 
     private readonly RaycastHit[] castHits = new RaycastHit[32];
     private readonly Collider[] overlapHits = new Collider[32];
@@ -72,32 +77,15 @@ public class SubmarineController : MonoBehaviour
     {
         body = GetComponent<Rigidbody>();
         health = GetComponent<Health>();
+        if (seatManager == null)
+            seatManager = GetComponent<SubmarineSeatManager>();
+
+        if (seatManager == null)
+            Debug.LogError("SubmarineController: SubmarineSeatManager를 찾지 못했습니다.", this);
+
         body.useGravity = false;
         body.isKinematic = true; // Rigidbody 키네마틱 사용
         body.interpolation = RigidbodyInterpolation.Interpolate;
-    }
-
-    private void Update()
-    {
-        // 운전자가 없으면 입력만 즉시 0으로
-        // 이미 쌓인 속도는 FixedUpdate에서 자연 감속하므로 바로 멈추지 않음
-        if (!HasDriver)
-        {
-            ClearInput();
-            return;
-        }
-
-        // W/S는 전후진
-        // A/D는 좌우 회전을 담당
-        ThrottleInput = Input.GetAxisRaw("Vertical");
-        SteeringInput = Input.GetAxisRaw("Horizontal");
-
-        // Space는 상승
-        // Ctrl은 하강을 담당
-        float vertical = 0f;
-        if (Input.GetKey(KeyCode.Space)) vertical += 1f;
-        if (Input.GetKey(KeyCode.LeftControl)) vertical -= 1f;
-        VerticalInput = vertical;
     }
 
     private void FixedUpdate()
@@ -178,6 +166,9 @@ public class SubmarineController : MonoBehaviour
         body.MoveRotation(nextRotation);
     }
 
+    /// <summary>
+    /// 이동 경로의 충돌을 검사하고 벽면을 따라 미끄러질 수 있는 실제 이동량 계산
+    /// </summary>
     private Vector3 ResolveDisplacement(
         Vector3 startPosition,
         Quaternion rotation,
@@ -192,7 +183,7 @@ public class SubmarineController : MonoBehaviour
         Vector3 remaining = displacement;
         Vector3 castPosition = startPosition;
 
-        // 첫 충돌에서 벽 법선 성분을 제거하고, 모서리에서 한 번 더 검사한다.
+        // 첫 충돌에서 벽 법선 성분을 제거하고 모서리에서 한 번 더 검사
         for (int iteration = 0; iteration < 2; iteration++)
         {
             float distance = remaining.magnitude;
@@ -224,6 +215,9 @@ public class SubmarineController : MonoBehaviour
         return resolved;
     }
 
+    /// <summary>
+    /// 잠수함의 캡슐 형태로 이동 방향을 검사하고 자체 Collider를 제외한 가장 가까운 충돌 반환
+    /// </summary>
     private bool TryCapsuleCast(
         Vector3 position,
         Quaternion rotation,
@@ -259,6 +253,9 @@ public class SubmarineController : MonoBehaviour
         return closestHit.collider != null;
     }
 
+    /// <summary>
+    /// 제안된 회전이 현재는 없던 외부 Collider 겹침을 새로 만드는지 확인
+    /// </summary>
     private bool WouldIntroduceRotationOverlap(
         Vector3 position,
         Quaternion currentRotation,
@@ -276,6 +273,9 @@ public class SubmarineController : MonoBehaviour
         return !currentlyOverlapping && proposedOverlapping;
     }
 
+    /// <summary>
+    /// 지정한 위치와 회전에서 잠수함 캡슐과 겹치는 외부 Collider를 찾는다.
+    /// </summary>
     private bool TryFindExternalOverlap(Vector3 position, Quaternion rotation, out Collider blocker)
     {
         GetWorldCapsule(position, rotation, out Vector3 pointA, out Vector3 pointB, out float radius);
@@ -302,6 +302,9 @@ public class SubmarineController : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    /// 잠수함의 위치, 회전, 스케일을 반영한 월드 공간 캡슐의 양 끝점과 반지름 계산
+    /// </summary>
     private void GetWorldCapsule(
         Vector3 position,
         Quaternion rotation,
@@ -322,6 +325,9 @@ public class SubmarineController : MonoBehaviour
         pointB = center - axisOffset;
     }
 
+    /// <summary>
+    /// 검사 대상이 없거나 잠수함 자신 또는 자식 오브젝트의 Collider인지 확인
+    /// </summary>
     private bool IsOwnCollider(Collider candidate)
     {
         return candidate == null
@@ -329,6 +335,9 @@ public class SubmarineController : MonoBehaviour
             || candidate.transform.IsChildOf(transform);
     }
 
+    /// <summary>
+    /// 회전을 막은 Collider와 접촉 지점의 회전 속도를 계산해 충돌 피해 처리
+    /// </summary>
     private void ApplyRotationCollisionDamage(Collider blocker, Vector3 nextPosition)
     {
         if (blocker == null)
@@ -346,6 +355,9 @@ public class SubmarineController : MonoBehaviour
         ApplyCollisionDamage(blocker, hitPoint, normal, normalSpeed);
     }
 
+    /// <summary>
+    /// 충돌 속도, 피해 한도, Collider별 재사용 대기시간을 적용해 잠수함에 충돌 피해를 준다.
+    /// </summary>
     private void ApplyCollisionDamage(
         Collider sourceCollider,
         Vector3 hitPoint,
@@ -378,27 +390,6 @@ public class SubmarineController : MonoBehaviour
             false));
     }
 
-    // 빈 잠수함에 플레이어를 운전자로 등록한다.
-    // 같은 플레이어의 중복 요청은 허용하지만 다른 운전자가 있으면 거부
-    public bool TryAssignDriver(PlayerSeatController driver)
-    {
-        if (driver == null || (currentDriver != null && currentDriver != driver))
-            return false;
-
-        currentDriver = driver;
-        return true;
-    }
-
-    // 요청한 플레이어가 현재 운전자일 때만 조종권을 해제
-    public void ReleaseDriver(PlayerSeatController driver)
-    {
-        if (currentDriver != driver)
-            return;
-
-        currentDriver = null;
-        ClearInput();
-    }
-
     // 현재 속도를 목표 속도 쪽으로 일정한 비율로 이동
     // 입력 여부에 따라 가속도 또는 자연 감속도 선택
     private static float MoveVelocity(
@@ -413,19 +404,9 @@ public class SubmarineController : MonoBehaviour
         return Mathf.MoveTowards(current, target, rate * deltaTime);
     }
 
-    // 운전자 입력을 모두 중립 상태로 초기화
-    private void ClearInput()
-    {
-        ThrottleInput = 0f;
-        SteeringInput = 0f;
-        VerticalInput = 0f;
-    }
-
-    // 잠수함이 비활성화될 때 운전자 참조와 잔여 입력을 제거
+    // 잠수함이 비활성화될 때 충돌 피해 재사용 대기 기록 제거
     private void OnDisable()
     {
-        currentDriver = null;
-        ClearInput();
         lastDamageTimeByCollider.Clear();
     }
 

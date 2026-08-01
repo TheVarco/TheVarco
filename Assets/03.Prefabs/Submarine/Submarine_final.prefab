@@ -313,7 +313,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &7688529066289748750
 Transform:
   m_ObjectHideFlags: 0
@@ -915,6 +915,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6070584349290085504}
   - component: {fileID: 4483445811719931090}
+  - component: {fileID: 9010000000000000001}
   m_Layer: 7
   m_Name: SeatPoint_AD&Ctrl
   m_TagString: Untagged
@@ -958,6 +959,25 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.1, y: 0.1, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &9010000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5724898885861488038}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a901c5ea7f2b4a12b77f31f647426101, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CockpitSeat
+  seatType: 2
+  seatPoint: {fileID: 6070584349290085504}
+  maxExitSpeed: 0.5
+  maxExitYawSpeed: 5
+  exitBlockerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1 &6942824699256895666
 GameObject:
   m_ObjectHideFlags: 0
@@ -1000,13 +1020,14 @@ GameObject:
   m_Component:
   - component: {fileID: 5702414927832358333}
   - component: {fileID: 7168627980962957027}
+  - component: {fileID: 9010000000000000002}
   m_Layer: 7
   m_Name: SeatPoint_Solo
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &5702414927832358333
 Transform:
   m_ObjectHideFlags: 0
@@ -1043,6 +1064,25 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.1, y: 0.1, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &9010000000000000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7268816087039696355}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a901c5ea7f2b4a12b77f31f647426101, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CockpitSeat
+  seatType: 0
+  seatPoint: {fileID: 5702414927832358333}
+  maxExitSpeed: 0.5
+  maxExitYawSpeed: 5
+  exitBlockerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1 &7700629317164110353
 GameObject:
   m_ObjectHideFlags: 0
@@ -1220,6 +1260,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1440327883404694278}
   - component: {fileID: 6512760363806604677}
+  - component: {fileID: 9010000000000000003}
   m_Layer: 7
   m_Name: SeatPoint_WS&SpaceBar
   m_TagString: Untagged
@@ -1263,6 +1304,25 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.1, y: 0.1, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &9010000000000000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8223656015271468078}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a901c5ea7f2b4a12b77f31f647426101, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CockpitSeat
+  seatType: 1
+  seatPoint: {fileID: 1440327883404694278}
+  maxExitSpeed: 0.5
+  maxExitYawSpeed: 5
+  exitBlockerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1 &8764015223031656867
 GameObject:
   m_ObjectHideFlags: 0
@@ -1692,6 +1752,11 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -3832179527341852573, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
+--- !u!1 &1515822724861293664 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8553507332886288786, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
+  m_PrefabInstance: {fileID: 7187007393533832690}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1874707628903329205 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8771091787928289351, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
@@ -1757,6 +1822,7 @@ MonoBehaviour:
   damagePerExcessSpeed: 5
   maximumCollisionDamage: 30
   collisionDamageCooldown: 0.5
+  seatManager: {fileID: 7459410224522069435}
 --- !u!114 &3811138247181463916
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1786,15 +1852,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 1874707628903329205}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a901c5ea7f2b4a12b77f31f647426101, type: 3}
+  m_Script: {fileID: 11500000, guid: 1e8b8eb5402f0f84b901ccc02ade9ab8, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CockpitSeat
-  seatPoint: {fileID: 6070584349290085504}
-  maxExitSpeed: 0.5
-  maxExitYawSpeed: 5
-  exitBlockerMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
+  m_EditorClassIdentifier: Assembly-CSharp::SubmarineSeatManager
+  chairSolo: {fileID: 1217015961248212505}
+  chairLeft: {fileID: 2396046688747812925}
+  chairRight: {fileID: 1515822724861293664}
+  seatPointSolo: {fileID: 7268816087039696355}
+  seatPointWSS: {fileID: 8223656015271468078}
+  seatPointADC: {fileID: 5724898885861488038}
 --- !u!114 &8166811026593969292
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1956,6 +2022,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SubmarineDoor
   doorOpen: IsOpen
   autoCloseDelay: 5
+--- !u!1 &2396046688747812925 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4827039534013273551, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
+  m_PrefabInstance: {fileID: 7187007393533832690}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &3027614687741519286 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -3910990755373119420, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}

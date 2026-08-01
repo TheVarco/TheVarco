@@ -3095,10 +3095,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 1217015961248212505, guid: 62d0b2e05224eea428645afdd507a470, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 1874707628903329205, guid: 62d0b2e05224eea428645afdd507a470, type: 3}
       propertyPath: m_Name
       value: Submarine_final
@@ -3141,10 +3137,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3027614687741519286, guid: 62d0b2e05224eea428645afdd507a470, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7268816087039696355, guid: 62d0b2e05224eea428645afdd507a470, type: 3}
-      propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []

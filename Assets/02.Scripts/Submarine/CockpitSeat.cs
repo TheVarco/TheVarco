@@ -4,6 +4,8 @@ public class CockpitSeat : MonoBehaviour, Interactable
 {
     [Header("착석/하차 위치")]
     private SubmarineController submarineController;
+    private SubmarineSeatManager seatManager;
+    [SerializeField] private SubmarineSeatType seatType;
     [SerializeField] private Transform seatPoint;
 
     [Header("하차 세이프가드")]
@@ -14,14 +16,23 @@ public class CockpitSeat : MonoBehaviour, Interactable
     [SerializeField] private LayerMask exitBlockerMask = ~0;
     
     public PlayerSeatController Occupant { get; private set; } // 좌석을 사용 중인 플레이어
+    public SubmarineSeatType SeatType => seatType;
+    public SubmarineController Controller => submarineController;
 
     private void Awake()
     {
         if (submarineController == null)
-            submarineController = GetComponent<SubmarineController>();
+            submarineController = GetComponentInParent<SubmarineController>();
+        if (seatManager == null)
+            seatManager = GetComponentInParent<SubmarineSeatManager>();
 
         if (seatPoint == null)
-            Debug.LogError("CockpitSeat: SeatPoint가 연결되지 않았습니다.", this);
+            seatPoint = transform;
+
+        if (submarineController == null)
+            Debug.LogError("CockpitSeat: 부모에서 SubmarineController를 찾지 못했습니다.", this);
+        if (seatManager == null)
+            Debug.LogError("CockpitSeat: 부모에서 SubmarineSeatManager를 찾지 못했습니다.", this);
     }
 
     public void Interact(GameObject interactor)
@@ -47,7 +58,8 @@ public class CockpitSeat : MonoBehaviour, Interactable
     // 좌석과 잠수함 상태를 확인해 현재 플레이어가 착석 가능한지 반환
     public bool CanInteract(GameObject interactor)
     {
-        if (Occupant != null || submarineController == null || seatPoint == null || interactor == null)
+        if (Occupant != null || seatManager == null || seatPoint == null
+                             || interactor == null || !seatManager.IsSeatTypeAvailable(seatType))
             return false;
 
         PlayerSeatController player = interactor.GetComponent<PlayerSeatController>();
@@ -57,11 +69,11 @@ public class CockpitSeat : MonoBehaviour, Interactable
     // 잠수함에 운전자를 먼저 등록한 뒤 실제 플레이어 착석을 수행
     public bool TryEnter(PlayerSeatController player)
     {
-        if (player == null || Occupant != null || player.IsSeated || submarineController == null)
+        if (player == null || Occupant != null || player.IsSeated || seatManager == null)
             return false;
 
         // 이미 다른 운전자가 있다면 조종권을 받을 수 없음
-        if (!submarineController.TryAssignDriver(player))
+        if (!seatManager.TryAssignDriver(seatType, player))
             return false;
 
         Occupant = player;
@@ -70,7 +82,7 @@ public class CockpitSeat : MonoBehaviour, Interactable
 
         // 플레이어 착석이 실패하면 좌석 점유와 조종권을 모두 되돌림
         Occupant = null;
-        submarineController.ReleaseDriver(player);
+        seatManager.ReleaseDriver(seatType, player);
         return false;
     }
 
@@ -102,16 +114,24 @@ public class CockpitSeat : MonoBehaviour, Interactable
     }
 
     // 사망이나 기절 상황에서는 검사 없이 하차
-    // public void ForceExit(PlayerSeatController player)
-    // {
-    //     if (player == null || Occupant != player)
-    //         return;
-    //
-    //     CompleteExit(player);
-    // }
-
     // 잠수함 조종권과 좌석 점유를 해제
     // 플레이어의 실제 하차 처리 호출
+    public void ForceExit(PlayerSeatController player)
+    {
+        if (player == null || Occupant != player)
+            return;
+
+        CompleteExit(player);
+    }
+
+    public void SubmitInput(PlayerSeatController player, float throttle, float steering, bool ascend, bool descend)
+    {
+        if (player == null || Occupant != player || seatManager == null)
+            return;
+
+        seatManager.SubmitDriverInput(seatType, player, throttle, steering, ascend, descend);
+    }
+
     private void CompleteExit(PlayerSeatController player)
     {
         // 플레이어가 하차할 때 사용할 잠수함의 현재 월드 속도
@@ -119,7 +139,7 @@ public class CockpitSeat : MonoBehaviour, Interactable
             ? submarineController.CurrentWorldVelocity
             : Vector3.zero;
 
-        submarineController?.ReleaseDriver(player);
+        seatManager?.ReleaseDriver(seatType, player);
         Occupant = null;
         player.ExitSeat(seatPoint, inheritedVelocity);
     }
@@ -152,10 +172,9 @@ public class CockpitSeat : MonoBehaviour, Interactable
         return true;
     }
 
-    // private void OnDisable()
-    // {
-    //     // 좌석이나 잠수함이 비활성화될 때 플레이어가 조종 상태로 남지 않게 한다.
-    //     if (Application.isPlaying && Occupant != null)
-    //         ForceExit(Occupant);
-    // }
+    private void OnDisable()
+    {
+        if (Application.isPlaying && Occupant != null)
+            ForceExit(Occupant);
+    }
 }
