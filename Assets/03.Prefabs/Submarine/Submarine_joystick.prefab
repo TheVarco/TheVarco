@@ -185,7 +185,7 @@ MonoBehaviour:
   m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0777d029ed3dffa4692f417d4aba19ca, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.DecalProjector
   m_Material: {fileID: 2100000, guid: 44cefda0ae530084ba773a2c8eac057d, type: 2}
   m_DrawDistance: 30
@@ -203,22 +203,6 @@ MonoBehaviour:
   m_FadeFactor: 1
   version: 1
   m_DecalLayerMask: 1
---- !u!114 &888810000000000002
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1362170055933689435}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c5bf7152004f401e9b1f71a649299413, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::GlassDamageOverlay
-  overlayShader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
-  size: {x: 2.483649, y: 2.6778533}
-  surfaceOffset: -0.01
-  sortingOrder: 10
 --- !u!33 &888810000000000005
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -275,6 +259,22 @@ MeshRenderer:
   m_SortingOrder: 10
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &888810000000000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1362170055933689435}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5bf7152004f401e9b1f71a649299413, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GlassDamageOverlay
+  overlayShader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
+  size: {x: 2.483649, y: 2.6778533}
+  surfaceOffset: -0.01
+  sortingOrder: 10
 --- !u!1 &1820365415934523683
 GameObject:
   m_ObjectHideFlags: 0
@@ -434,22 +434,6 @@ MonoBehaviour:
   m_FadeFactor: 1
   version: 1
   m_DecalLayerMask: 1
---- !u!114 &888810000000000001
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3432822219814364124}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c5bf7152004f401e9b1f71a649299413, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::GlassDamageOverlay
-  overlayShader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
-  size: {x: 2.483649, y: 2.1001947}
-  surfaceOffset: -0.01
-  sortingOrder: 10
 --- !u!33 &888810000000000003
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -506,6 +490,22 @@ MeshRenderer:
   m_SortingOrder: 10
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &888810000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3432822219814364124}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5bf7152004f401e9b1f71a649299413, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GlassDamageOverlay
+  overlayShader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
+  size: {x: 2.483649, y: 2.1001947}
+  surfaceOffset: -0.01
+  sortingOrder: 10
 --- !u!1 &4084702842201083065
 GameObject:
   m_ObjectHideFlags: 0
@@ -1819,27 +1819,35 @@ MonoBehaviour:
   - slotName: "\uC88C\uCE21 \uC804\uBC29"
     anchor: {fileID: 586548101063717899}
     projector: {fileID: 122388364068893097}
+    glassOverlay: {fileID: 0}
   - slotName: "\uC88C\uCE21 \uD6C4\uBC29"
     anchor: {fileID: 1703596659448477062}
     projector: {fileID: 2513000516191747126}
+    glassOverlay: {fileID: 0}
   - slotName: "\uC6B0\uCE21 \uC804\uBC29"
     anchor: {fileID: 2839849424233430550}
     projector: {fileID: 34063349140769653}
+    glassOverlay: {fileID: 0}
   - slotName: "\uC6B0\uCE21 \uD6C4\uBC29"
     anchor: {fileID: 8694013509382608315}
     projector: {fileID: 6351614766401095550}
+    glassOverlay: {fileID: 0}
   - slotName: "\uC0C1\uB2E8 \uC804\uBC29"
     anchor: {fileID: 4610719340579827001}
     projector: {fileID: 6179423387287453429}
+    glassOverlay: {fileID: 0}
   - slotName: "\uC0C1\uB2E8 \uD6C4\uBC29"
     anchor: {fileID: 7287612018010940163}
     projector: {fileID: 2325950939626203670}
+    glassOverlay: {fileID: 0}
   - slotName: "\uD558\uB2E8 \uC804\uBC29"
     anchor: {fileID: 801297666003151828}
     projector: {fileID: 8558880383991476636}
+    glassOverlay: {fileID: 0}
   - slotName: "\uD558\uB2E8 \uD6C4\uBC29"
     anchor: {fileID: 8062282324160914815}
     projector: {fileID: 7173683803255928312}
+    glassOverlay: {fileID: 0}
   repairCycleDuration: 5
   repairDecaySecondsPerSecond: 1
 --- !u!1 &6708989821841736913 stripped
