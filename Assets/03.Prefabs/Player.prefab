@@ -85,7 +85,6 @@ GameObject:
   - component: {fileID: 5635001006535283935}
   - component: {fileID: 5446217415662487701}
   - component: {fileID: 4491122506771316274}
-  - component: {fileID: 662419443945599226}
   - component: {fileID: 777700000000000001}
   m_Layer: 3
   m_Name: Player
@@ -199,7 +198,7 @@ MonoBehaviour:
   interactAngle: 90
   interactableLayer:
     serializedVersion: 2
-    m_Bits: 119
+    m_Bits: 128
   obstructionMask:
     serializedVersion: 2
     m_Bits: 1
@@ -249,10 +248,11 @@ MonoBehaviour:
   snapToLookDirection: 0
   lookReference: {fileID: 0}
   animator: {fileID: 0}
-  hotbar: {fileID: 0}
+  hotbar: {fileID: 709331647815549706}
   visualTransform: {fileID: 0}
   quickRotateKey: 113
   spinDuration: 0.4
+  isSwimMode: 1
 --- !u!114 &6979411412585706810
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -301,6 +301,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Health
   maxHealth: 100
+  hitAnimationCooldown: 0.5
   OnHealthChanged:
     m_PersistentCalls:
       m_Calls:
@@ -342,7 +343,7 @@ MonoBehaviour:
   - {fileID: 9000136554262916702}
   - {fileID: 6979411412585706810}
   - {fileID: 5961030891790580359}
-  - {fileID: 662419443945599226}
+  - {fileID: 0}
   floatUpForce: 2
   reviveHealthRatio: 0.3
   reviveOxygenRatio: 0.5
@@ -450,28 +451,6 @@ CapsuleCollider:
   m_Height: 1.2
   m_Direction: 1
   m_Center: {x: 0, y: 0.5, z: 0}
---- !u!114 &662419443945599226
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2602492756997362024}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 92c8a1f2f76848f469ec7e2da5630326, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveSwimController
-  lookReference: {fileID: 0}
-  moveSpeed: 12
-  acceleration: 12
-  braking: 4
-  rotationSpeed: 5
-  visualTransform: {fileID: 0}
-  quickRotateKey: 113
-  spinDuration: 0.4
-  animator: {fileID: 0}
-  dashSpeed: 16
 --- !u!114 &777700000000000001
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -482,14 +461,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a901c5ea7f2b4a12b77f31f647426104, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSeatController
-  exitKey: 101
-  statusMessageDuration: 1.5
   interactor: {fileID: 3732126355975195756}
   animator: {fileID: 0}
   playerCollider: {fileID: 4491122506771316274}
-  disableWhileSeated: []
 --- !u!1 &5726362792154023546
 GameObject:
   m_ObjectHideFlags: 0
@@ -538,7 +514,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OxygenStat
   maxValue: 100
-  depletionRatePerSecond: 5
+  depletionRatePerSecond: 1
   OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -573,7 +549,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HungerStat
   maxValue: 100
-  depletionRatePerSecond: 1
+  depletionRatePerSecond: 0.1
   OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -708,45 +684,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 5e6a47c888dc6b34892cd57d51222645, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 3275761437437997300}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 5e6a47c888dc6b34892cd57d51222645, type: 3}
 --- !u!4 &2452622678138413484 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 5e6a47c888dc6b34892cd57d51222645, type: 3}
   m_PrefabInstance: {fileID: 2703230879865275975}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &2973123388957113110 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 5e6a47c888dc6b34892cd57d51222645, type: 3}
-  m_PrefabInstance: {fileID: 2703230879865275975}
-  m_PrefabAsset: {fileID: 0}
---- !u!54 &3275761437437997300
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2973123388957113110}
-  serializedVersion: 5
-  m_Mass: 1
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 126
-  m_CollisionDetection: 0
