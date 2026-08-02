@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &3442563439716620189
+--- !u!1 &3834630700010999236
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,48 +8,48 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 6800865464644984752}
-  - component: {fileID: 1527098989307774964}
-  - component: {fileID: 5226237020376369950}
-  - component: {fileID: 5218171438353217112}
-  - component: {fileID: 4810876736771655386}
+  - component: {fileID: 901805411465125966}
+  - component: {fileID: 7574405813381335486}
+  - component: {fileID: 4717488503125905340}
+  - component: {fileID: 1790637974770456348}
+  - component: {fileID: 5303959029185062594}
   m_Layer: 7
-  m_Name: NomalItem
+  m_Name: RopeItem
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &6800865464644984752
+--- !u!4 &901805411465125966
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3442563439716620189}
+  m_GameObject: {fileID: 3834630700010999236}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.93, y: -0.25, z: 0.74}
-  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
+  m_LocalPosition: {x: -3.64, y: 0.29, z: 1.70024}
+  m_LocalScale: {x: 0.64609003, y: 0.64609003, z: 0.64609003}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &1527098989307774964
+--- !u!33 &7574405813381335486
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3442563439716620189}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!23 &5226237020376369950
+  m_GameObject: {fileID: 3834630700010999236}
+  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!23 &4717488503125905340
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3442563439716620189}
+  m_GameObject: {fileID: 3834630700010999236}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -68,7 +68,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 8b18a42b30d9b1e4db3550fcb39dea69, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -92,13 +92,13 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &5218171438353217112
-BoxCollider:
+--- !u!136 &1790637974770456348
+CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3442563439716620189}
+  m_GameObject: {fileID: 3834630700010999236}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -110,22 +110,30 @@ BoxCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &4810876736771655386
+--- !u!114 &5303959029185062594
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3442563439716620189}
+  m_GameObject: {fileID: 3834630700010999236}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: de8fb6f142695f8439868bed00c2ecb8, type: 3}
+  m_Script: {fileID: 11500000, guid: ab682fc4554bfc64098a5d8597a363c8, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CarryableItem
-  itemName: "\uC0B0\uC18C\uD1B5"
+  m_EditorClassIdentifier: Assembly-CSharp::RopeItem
+  itemName: "\uBC27\uC904"
   isConsumable: 1
+  icon: {fileID: 0}
   holdPositionOffset: {x: 0, y: 0, z: 0}
   holdRotationOffset: {x: 0, y: 0, z: 0}
+  ropeProjectilePrefab: {fileID: 3498688313566668995, guid: 3d362de4b0fe3814ea68f3993b74549d, type: 3}
+  ropeVisualPrefab: {fileID: 5811950906510464521, guid: cb8acdc333f11fd4ea6500cf985f9dbd, type: 3}
+  throwCooldown: 1
+  muzzlePoint: {fileID: 0}
+  muzzleForwardOffset: 1

@@ -47,6 +47,14 @@ public class PlayerController : MonoBehaviour
     private Rigidbody rb;
     private Vector3 inputDirection;
     private Coroutine spinCoroutine;
+    [SerializeField] private bool isSwimMode = true;
+
+    // 잠수함 내부 등 "걸어야 하는 공간"에 들어오면 false로, 나가면 true로 호출됨 (PlayerWalkZone에서 호출)
+    public void SetSwimMode(bool swimming)
+    {
+        isSwimMode = swimming;
+        rb.useGravity = !swimming;
+    }
 
     private static readonly int IsMovingHash = Animator.StringToHash("IsMoving");
     private static readonly int SpeedHash = Animator.StringToHash("Speed");
@@ -245,21 +253,26 @@ public class PlayerController : MonoBehaviour
     {
         float h = Input.GetAxisRaw("Horizontal"); // A/D
         float v = Input.GetAxisRaw("Vertical");   // W/S
-        float up = 0f;
-        if (Input.GetKey(KeyCode.Space)) up += 1f;
-        if (Input.GetKey(KeyCode.LeftControl)) up -= 1f;
 
-        if (lookReference == null)
+        Vector3 forward = lookReference != null ? lookReference.forward : transform.forward;
+        Vector3 right = lookReference != null ? lookReference.right : transform.right;
+
+        float up = 0f;
+        if (isSwimMode)
         {
-            inputDirection = new Vector3(h, up, v);
+            if (Input.GetKey(KeyCode.Space)) up += 1f;
+            if (Input.GetKey(KeyCode.LeftControl)) up -= 1f;
         }
         else
         {
-            // 카메라가 보는 수평/수직 방향을 그대로 이동 방향으로 사용 (자유 유영)
-            Vector3 forward = lookReference.forward;
-            Vector3 right = lookReference.right;
-            inputDirection = forward * v + right * h + Vector3.up * up;
+            // 걷기 모드: 위아래를 봐도 바닥/천장으로 파고들지 않게 좌우 회전(요)만 사용
+            forward.y = 0f;
+            right.y = 0f;
+            forward.Normalize();
+            right.Normalize();
         }
+
+        inputDirection = forward * v + right * h + Vector3.up * up;
 
         if (inputDirection.sqrMagnitude > 1f)
             inputDirection.Normalize();
@@ -272,13 +285,30 @@ public class PlayerController : MonoBehaviour
     {
         float activeSpeed = IsDashing ? dashSpeed : moveSpeed;
         Vector3 targetVelocity = inputDirection * activeSpeed;
-        Vector3 velocityError = targetVelocity - rb.linearVelocity;
-        rb.AddForce(velocityError * acceleration, ForceMode.Acceleration);
 
-        // 입력이 거의 없을 때만 추가 감속 (물의 저항감을 살리는 부분)
-        if (inputDirection.sqrMagnitude < 0.01f)
+        if (isSwimMode)
         {
-            rb.linearVelocity = Vector3.Lerp(rb.linearVelocity, Vector3.zero, drag * Time.fixedDeltaTime);
+            Vector3 velocityError = targetVelocity - rb.linearVelocity;
+            rb.AddForce(velocityError * acceleration, ForceMode.Acceleration);
+
+            // 입력이 거의 없을 때만 추가 감속 (물의 저항감을 살리는 부분)
+            if (inputDirection.sqrMagnitude < 0.01f)
+            {
+                rb.linearVelocity = Vector3.Lerp(rb.linearVelocity, Vector3.zero, drag * Time.fixedDeltaTime);
+            }
+        }
+        else
+        {
+            // 걷기 모드: 수평(X/Z)만 제어하고 수직 속도는 중력에 맡김 (나중에 점프 추가하기 쉬움)
+            Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            Vector3 horizontalError = targetVelocity - horizontalVelocity;
+            rb.AddForce(new Vector3(horizontalError.x, 0f, horizontalError.z) * acceleration, ForceMode.Acceleration);
+
+            if (inputDirection.sqrMagnitude < 0.01f)
+            {
+                Vector3 damped = Vector3.Lerp(horizontalVelocity, Vector3.zero, drag * Time.fixedDeltaTime);
+                rb.linearVelocity = new Vector3(damped.x, rb.linearVelocity.y, damped.z);
+            }
         }
     }
 
@@ -295,7 +325,8 @@ public class PlayerController : MonoBehaviour
         {
             // 마우스 이동으로 카메라가 보는 방향으로 플레이어 몸통도 정렬 (Z축 회전은 0으로 고정)
             Vector3 euler = lookReference.rotation.eulerAngles;
-            transform.rotation = Quaternion.Euler(euler.x, euler.y, 0f);
+            float pitch = isSwimMode ? euler.x : 0f; // 걷기 모드에선 몸이 위아래로 안 기울어짐
+            transform.rotation = Quaternion.Euler(pitch, euler.y, 0f);
             return;
         }
 

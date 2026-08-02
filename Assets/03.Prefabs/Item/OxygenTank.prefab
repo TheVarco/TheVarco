@@ -102,7 +102,7 @@ GameObject:
   - component: {fileID: 423717199766829975}
   - component: {fileID: 2409642660373272941}
   - component: {fileID: 1731377030182209832}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: OxygenTank
   m_TagString: Untagged
   m_Icon: {fileID: 0}

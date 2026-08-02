@@ -200,6 +200,9 @@ MonoBehaviour:
   interactableLayer:
     serializedVersion: 2
     m_Bits: 119
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 1
   lookReference: {fileID: 6083920604062530668}
   interactKey: 101
 --- !u!114 &7042758014388821367
