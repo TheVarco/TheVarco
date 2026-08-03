@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4496379754624556189}
   - component: {fileID: 8048112011573018809}
   - component: {fileID: 6267648092387214733}
-  - component: {fileID: 7036529932696951476}
+  - component: {fileID: 6898703537421372119}
   - component: {fileID: 6809265370350088681}
   m_Layer: 7
   m_Name: Gun
@@ -30,8 +30,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 1.05, y: -0.25, z: 1.72}
-  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 0.4, y: 0.4, z: 0.4}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -42,7 +42,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7587697551435802306}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: -2432090755550338912, guid: bdbfc06b3bf4f5f4fa5df08623a66af9, type: 3}
 --- !u!23 &6267648092387214733
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -68,7 +68,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 43895ad9ff580064b9d90fc63a754925, type: 2}
+  - {fileID: -2840136634868304333, guid: bdbfc06b3bf4f5f4fa5df08623a66af9, type: 3}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -92,8 +92,8 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &7036529932696951476
-BoxCollider:
+--- !u!64 &6898703537421372119
+MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -110,9 +110,10 @@ BoxCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -2432090755550338912, guid: bdbfc06b3bf4f5f4fa5df08623a66af9, type: 3}
 --- !u!114 &6809265370350088681
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -127,5 +128,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RangedWeaponItem
   itemName: "\uCD1D"
   isConsumable: 1
-  holdPositionOffset: {x: 0, y: 0, z: 0}
-  holdRotationOffset: {x: 0, y: 0, z: 0}
+  icon: {fileID: 0}
+  holdPositionOffset: {x: 0.00193, y: 0.00108, z: 0.00026}
+  holdRotationOffset: {x: -27, y: 50, z: 111}
+  projectilePrefab: {fileID: 1204494174198073114, guid: e835af6273f2bbc43a3c25a782916ab6, type: 3}
+  fireCooldown: 0.3
+  muzzlePoint: {fileID: 0}
+  muzzleForwardOffset: 1

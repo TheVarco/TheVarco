@@ -79,18 +79,24 @@ public class PlayerController : MonoBehaviour
         rb.interpolation = RigidbodyInterpolation.Interpolate; // 움직임을 부드럽게
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic; // 동굴 벽 얇은 지오메트리 통과 방지
 
-        if (animator == null)
+        if (animator == null || animator.runtimeAnimatorController == null)
         {
-            animator = GetComponent<Animator>();
-            if (animator == null)
+            Animator[] anims = GetComponentsInChildren<Animator>(true);
+            foreach (var a in anims)
             {
-                animator = GetComponentInChildren<Animator>();
+                if (a.runtimeAnimatorController != null)
+                {
+                    animator = a;
+                    break;
+                }
             }
+            if (animator == null) animator = GetComponent<Animator>();
         }
 
         if (animator != null)
         {
             animator.applyRootMotion = false;
+            animator.SetFloat("HP", 100f); // 첫 프레임 HP=0 평가로 인한 Dead 모션 자동 발동 방지
         }
 
         if (hotbar == null)
@@ -109,6 +115,40 @@ public class PlayerController : MonoBehaviour
             {
                 visualTransform = transform.GetChild(0);
             }
+        }
+    }
+
+    private PlayerInteractor interactor;
+
+    void OnEnable()
+    {
+        if (interactor == null)
+            interactor = GetComponent<PlayerInteractor>();
+        if (interactor == null)
+            interactor = GetComponentInChildren<PlayerInteractor>();
+
+        if (interactor != null)
+        {
+            interactor.OnInteracted -= TriggerGetAnimation;
+            interactor.OnInteracted += TriggerGetAnimation;
+        }
+    }
+
+    void OnDisable()
+    {
+        if (interactor != null)
+        {
+            interactor.OnInteracted -= TriggerGetAnimation;
+        }
+    }
+
+    public void TriggerGetAnimation()
+    {
+        if (animator == null) return;
+        animator.SetTrigger(GetHash);
+        if (animator.HasState(0, GettingStateHash))
+        {
+            animator.Play(GettingStateHash, 0, 0f);
         }
     }
 
@@ -136,16 +176,6 @@ public class PlayerController : MonoBehaviour
     private void HandleClickMotions()
     {
         if (animator == null) return;
-
-        // E키: Getting 모션 실행
-        if (Input.GetKeyDown(KeyCode.E))
-        {
-            animator.SetTrigger(GetHash);
-            if (animator.HasState(0, GettingStateHash))
-            {
-                animator.Play(GettingStateHash, 0, 0f);
-            }
-        }
 
         // 맨손 상태 판별 (핫바가 없거나 슬롯 1인 경우)
         bool bareHanded = hotbar == null || hotbar.ActiveSlot == 1;
@@ -283,28 +313,44 @@ public class PlayerController : MonoBehaviour
 
     private void ApplyMovement()
     {
-        float activeSpeed = IsDashing ? dashSpeed : moveSpeed;
+        // 2개의 수영(Swim1, Swim2) 모션 재생 여부 판별
+        bool isSwimMotion = false;
+        if (animator != null)
+        {
+            AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+            isSwimMotion = stateInfo.shortNameHash == Swim1StateHash || stateInfo.shortNameHash == Swim2StateHash;
+        }
+
+        // 수영 모션이 아닌 다른 동작 모션(공격, 수리, 아이템 주움 등) 실행 중일 때는 속도 증가 및 가속도 제한
+        float activeSpeed = (IsDashing && isSwimMotion) ? dashSpeed : moveSpeed;
+        if (!isSwimMotion)
+        {
+            activeSpeed = Mathf.Min(activeSpeed, moveSpeed * 0.4f); // 수영 모션이 아닐 때 이동 속도 40%로 상한 제한
+        }
+
+        float activeAcceleration = isSwimMotion ? acceleration : acceleration * 0.3f; // 수영 외 모션 시 가속도 제한
+
         Vector3 targetVelocity = inputDirection * activeSpeed;
 
         if (isSwimMode)
         {
             Vector3 velocityError = targetVelocity - rb.linearVelocity;
-            rb.AddForce(velocityError * acceleration, ForceMode.Acceleration);
+            rb.AddForce(velocityError * activeAcceleration, ForceMode.Acceleration);
 
-            // 입력이 거의 없을 때만 추가 감속 (물의 저항감을 살리는 부분)
-            if (inputDirection.sqrMagnitude < 0.01f)
+            // 입력이 없거나 수영 외 다른 모션 실행 중일 경우 자연스러운 감속 처리
+            if (inputDirection.sqrMagnitude < 0.01f || !isSwimMotion)
             {
                 rb.linearVelocity = Vector3.Lerp(rb.linearVelocity, Vector3.zero, drag * Time.fixedDeltaTime);
             }
         }
         else
         {
-            // 걷기 모드: 수평(X/Z)만 제어하고 수직 속도는 중력에 맡김 (나중에 점프 추가하기 쉬움)
+            // 걷기 모드: 수평(X/Z)만 제어하고 수직 속도는 중력에 맡김
             Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
             Vector3 horizontalError = targetVelocity - horizontalVelocity;
-            rb.AddForce(new Vector3(horizontalError.x, 0f, horizontalError.z) * acceleration, ForceMode.Acceleration);
+            rb.AddForce(new Vector3(horizontalError.x, 0f, horizontalError.z) * activeAcceleration, ForceMode.Acceleration);
 
-            if (inputDirection.sqrMagnitude < 0.01f)
+            if (inputDirection.sqrMagnitude < 0.01f || !isSwimMotion)
             {
                 Vector3 damped = Vector3.Lerp(horizontalVelocity, Vector3.zero, drag * Time.fixedDeltaTime);
                 rb.linearVelocity = new Vector3(damped.x, rb.linearVelocity.y, damped.z);
