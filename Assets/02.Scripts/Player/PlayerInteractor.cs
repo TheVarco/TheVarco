@@ -22,6 +22,7 @@ public class PlayerInteractor : MonoBehaviour
 
     // UI가 구독해서 프롬프트를 띄우거나 지울 때 사용
     public System.Action<string> OnPromptChanged;
+    public System.Action OnInteracted;
 
     private Interactable currentTarget;
     private bool interactionLocked; // 서영 추가
@@ -43,6 +44,7 @@ public class PlayerInteractor : MonoBehaviour
         if (currentTarget != null && Input.GetKeyDown(interactKey))
         {
             currentTarget.Interact(gameObject);
+            OnInteracted?.Invoke();
         }
     }
 

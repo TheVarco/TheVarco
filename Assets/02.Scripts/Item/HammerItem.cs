@@ -20,33 +20,61 @@ public class HammerItem : CarryableItem
     private GameObject currentUser;
     private bool ownsRuntimeProgressUI;
 
-    // 수리는 클릭 순간이 아니라 OnPrimaryHeld에서 진행한다.
+    // 좌클릭 클릭 시 해머 근접 공격 모션 실행
     public override bool OnPrimaryAction(GameObject user, Transform aimReference)
     {
+        if (user != null)
+        {
+            Animator anim = user.GetComponentInChildren<Animator>();
+            if (anim == null) anim = user.GetComponentInParent<Animator>();
+            if (anim == null) anim = user.GetComponent<Animator>();
+
+            if (anim != null)
+            {
+                anim.SetTrigger("Melee");
+                Debug.Log($"[HammerItem] SetTrigger('Melee') 실행됨! (대상: {anim.gameObject.name})");
+            }
+            else
+            {
+                Debug.LogWarning("[HammerItem] user에서 Animator를 찾지 못함");
+            }
+        }
         return false;
     }
 
     public override void OnPrimaryHeld(GameObject user, Transform aimReference, bool isHeld)
     {
+    }
+
+    // 우클릭 홀드 시 수리 모션(IsFixing) 실행 및 구동
+    public override void OnSecondaryHeld(GameObject user, Transform aimReference, bool isHeld)
+    {
         CacheUserAnimator(user);
+
+        if (!isHeld)
+        {
+            if (currentStructure != null && currentSlotIndex >= 0)
+            {
+                currentStructure.StopRepair(currentSlotIndex);
+            }
+            SetFixingAnimation(false);
+            if (progressUI != null) progressUI.Hide();
+            return;
+        }
+
+        // 우클릭 유지 시 수리 모션(IsFixing = true) 발동
+        SetFixingAnimation(true);
 
         if (!TryFindRepairTarget(aimReference, out RepairableStructure structure, out int slotIndex))
         {
             ClearCurrentTarget();
+            // 수리 구조물이 근처에 없더라도 우클릭 동안 모션 유지
+            SetFixingAnimation(true);
             return;
         }
 
         SwitchTargetIfNeeded(structure, slotIndex);
 
-        if (!isHeld)
-        {
-            currentStructure.StopRepair(currentSlotIndex);
-            SetFixingAnimation(false);
-            ShowProgress(aimReference);
-            return;
-        }
-
-        SetFixingAnimation(true);
         float repairedAmount = currentStructure.AdvanceRepair(
             currentSlotIndex,
             Time.deltaTime,
@@ -56,12 +84,14 @@ public class HammerItem : CarryableItem
         if (completedCycle && repairedAmount <= 0f)
         {
             ClearCurrentTarget();
+            SetFixingAnimation(true);
             return;
         }
 
         if (!currentStructure.CanRepairSlot(currentSlotIndex))
         {
             ClearCurrentTarget();
+            SetFixingAnimation(true);
             return;
         }
 

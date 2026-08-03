@@ -28,18 +28,33 @@ public class Health : MonoBehaviour, Damageable
     public bool IsDead { get; private set; }
 
     private static readonly int HitHash = Animator.StringToHash("Hit");
+    private static readonly int HPHash = Animator.StringToHash("HP");
     private float lastHitAnimationTime = -999f;
 
     void Awake()
     {
         CurrentHealth = maxHealth;
-        if (animator == null)
+        if (animator == null || animator.runtimeAnimatorController == null)
         {
-            animator = GetComponent<Animator>();
-            if (animator == null)
+            Animator[] anims = GetComponentsInChildren<Animator>(true);
+            foreach (var a in anims)
             {
-                animator = GetComponentInChildren<Animator>();
+                if (a.runtimeAnimatorController != null)
+                {
+                    animator = a;
+                    break;
+                }
             }
+            if (animator == null) animator = GetComponent<Animator>();
+        }
+        UpdateAnimatorHP();
+    }
+
+    private void UpdateAnimatorHP()
+    {
+        if (animator != null)
+        {
+            animator.SetFloat(HPHash, CurrentHealth);
         }
     }
 
@@ -85,6 +100,8 @@ public class Health : MonoBehaviour, Damageable
             : "알 수 없는 대상";
         Debug.Log($"[Health] {gameObject.name}이(가) {sourceName}에게 {appliedAmount} 데미지를 받음. 남은 체력: {CurrentHealth}/{maxHealth}");
 
+        UpdateAnimatorHP();
+
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
         OnDamaged?.Invoke(appliedAmount, damageInfo.Source); // 서영 추가
         OnDamageApplied?.Invoke(new DamageAppliedInfo(damageInfo, appliedAmount)); // 서영 추가, 어느 위치에 데미지가 들어갔는지 전달용
@@ -111,6 +128,7 @@ public class Health : MonoBehaviour, Damageable
 
         // CurrentHealth = Mathf.Min(maxHealth, CurrentHealth + amount);
         CurrentHealth += appliedAmount;
+        UpdateAnimatorHP();
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
         return appliedAmount;
     }
@@ -122,6 +140,7 @@ public class Health : MonoBehaviour, Damageable
 
         IsDead = false;
         CurrentHealth = maxHealth * Mathf.Clamp01(ratio);
+        UpdateAnimatorHP();
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
         OnRevived?.Invoke();
     }

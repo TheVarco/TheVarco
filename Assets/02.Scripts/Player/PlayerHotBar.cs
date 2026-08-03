@@ -27,6 +27,50 @@ public class PlayerHotbar : MonoBehaviour
 
     public int ActiveSlot { get; private set; } = 1;
 
+    void Start()
+    {
+        AttachHandSocketToRightHand();
+    }
+
+    public void AttachHandSocketToRightHand()
+    {
+        if (handSocket == null) return;
+
+        Animator anim = GetComponentInChildren<Animator>();
+        if (anim == null) anim = GetComponentInParent<Animator>();
+
+        if (anim != null)
+        {
+            Transform rightHandBone = null;
+            if (anim.isHuman)
+            {
+                rightHandBone = anim.GetBoneTransform(HumanBodyBones.RightHand);
+            }
+
+            if (rightHandBone == null)
+            {
+                Transform[] allChildren = anim.GetComponentsInChildren<Transform>(true);
+                foreach (Transform t in allChildren)
+                {
+                    string n = t.name.ToLower();
+                    if (n.Contains("righthand") || n.Contains("hand_r") || n.Contains("hand.r") || n.Contains("hand_right") || n.Contains("right_hand"))
+                    {
+                        rightHandBone = t;
+                        break;
+                    }
+                }
+            }
+
+            if (rightHandBone != null)
+            {
+                handSocket.SetParent(rightHandBone, false);
+                handSocket.localPosition = Vector3.zero;
+                handSocket.localRotation = Quaternion.identity;
+                Debug.Log($"[PlayerHotbar] handSocket가 캐릭터 오른손 뼈({rightHandBone.name})에 자동으로 부착되었습니다.");
+            }
+        }
+    }
+
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.Alpha1)) SwitchTo(1);
@@ -97,7 +141,10 @@ public class PlayerHotbar : MonoBehaviour
             {
                 itemSlots[i] = item;
                 item.OnPickedUp(handSocket);
-                item.SetVisible(IndexToSlotNumber(i) == ActiveSlot); // 지금 보고 있는 슬롯이 아니면 바로 숨김
+                int slotNumber = IndexToSlotNumber(i);
+
+                // 아이템을 줍는 즉시 해당 아이템이 들어간 슬롯으로 자동 전환
+                SwitchTo(slotNumber);
                 return true;
             }
         }

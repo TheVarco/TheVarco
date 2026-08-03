@@ -266,7 +266,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerGrabber
   grabRange: 2
-  grabAngle: 90
+  grabAngle: 120
   grabbableLayer:
     serializedVersion: 2
     m_Bits: 4294967295
