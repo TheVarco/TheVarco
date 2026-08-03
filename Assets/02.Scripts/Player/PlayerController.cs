@@ -44,9 +44,17 @@ public class PlayerController : MonoBehaviour
     [Tooltip("OtterVisual 360도 스핀 애니메이션 지속 시간(초)")]
     public float spinDuration = 0.4f;
 
+    [Header("걷기 모드 - 점프")]
+    [Tooltip("점프 시 순간적으로 부여되는 위쪽 속도. 문턱 같은 낮은 턱을 넘는 용도라 약하게 잡음")]
+    public float jumpForce = 3f;
+    [Tooltip("발밑으로 이 거리 안에 바닥이 있어야 점프 가능")]
+    public float groundCheckDistance = 0.2f;
+    public LayerMask groundLayer = ~0;
+
     private Rigidbody rb;
     private Vector3 inputDirection;
     private Coroutine spinCoroutine;
+    private bool jumpRequested;
     [SerializeField] private bool isSwimMode = true;
 
     // 잠수함 내부 등 "걸어야 하는 공간"에 들어오면 false로, 나가면 true로 호출됨 (PlayerWalkZone에서 호출)
@@ -119,6 +127,19 @@ public class PlayerController : MonoBehaviour
         UpdateAnimator();
         HandleQuickRotate();
         HandleClickMotions();
+        HandleJumpInput();
+    }
+
+    // 걷기 모드에서 Space로 점프. 수영 모드에선 Space가 상하 이동으로 이미 쓰이고 있어서 여기서 관여 안 함
+    private void HandleJumpInput()
+    {
+        if (!isSwimMode && Input.GetKeyDown(KeyCode.Space) && IsGrounded())
+            jumpRequested = true;
+    }
+
+    private bool IsGrounded()
+    {
+        return Physics.Raycast(transform.position, Vector3.down, groundCheckDistance, groundLayer);
     }
 
     void LateUpdate()
@@ -247,6 +268,12 @@ public class PlayerController : MonoBehaviour
     void FixedUpdate()
     {
         ApplyMovement();
+
+        if (jumpRequested)
+        {
+            rb.linearVelocity = new Vector3(rb.linearVelocity.x, jumpForce, rb.linearVelocity.z);
+            jumpRequested = false;
+        }
     }
 
     private void ReadInput()

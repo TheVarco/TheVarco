@@ -100,7 +100,7 @@ public class PlayerCameraRig : MonoBehaviour
         Quaternion lookRotation = Quaternion.Euler(pitch, yaw, 0f);
         transform.rotation = lookRotation;
 
-        Vector3 eyePosition = target.position + eyeOffset;
+        Vector3 eyePosition = target.position + lookRotation * eyeOffset;
 
         if (viewMode == ViewMode.FirstPerson)
         {
