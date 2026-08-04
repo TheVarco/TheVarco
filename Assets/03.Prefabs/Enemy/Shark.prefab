@@ -691,6 +691,7 @@ GameObject:
   - component: {fileID: 8010080037413460847}
   - component: {fileID: 3206915547288056510}
   - component: {fileID: 6849271053184672901}
+  - component: {fileID: 911000000000000003}
   m_Layer: 0
   m_Name: Shark
   m_TagString: Untagged
@@ -698,6 +699,20 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &911000000000000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4880988355093290315}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f2e5c90963840a3a39a4b3264392991, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::SonarTarget
+  category: 0
+  detectionPoint: {fileID: 0}
 --- !u!4 &4286707753645374202
 Transform:
   m_ObjectHideFlags: 0

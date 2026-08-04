@@ -60,6 +60,122 @@ MonoBehaviour:
   m_FadeFactor: 1
   version: 1
   m_DecalLayerMask: 1
+--- !u!1 &691546430446915902
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1905841794518294302}
+  - component: {fileID: 8602477376687271915}
+  - component: {fileID: 3238281791285750094}
+  - component: {fileID: 5123622013479644344}
+  - component: {fileID: 5318374826476171914}
+  m_Layer: 0
+  m_Name: Sonar
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1905841794518294302
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 691546430446915902}
+  m_LocalRotation: {x: -0.06162845, y: -0.70441604, z: -0.06162845, w: 0.70441604}
+  m_LocalPosition: {x: 0, y: 0, z: -1.81101}
+  m_LocalScale: {x: 0.00054, y: 0.00054, z: 0.00054}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 9164777723997778063}
+  m_LocalEulerAnglesHint: {x: -10, y: -90, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0.70817, y: 0.11398}
+  m_SizeDelta: {x: 535.5167, y: 465.6969}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!223 &8602477376687271915
+Canvas:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 691546430446915902}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_RenderMode: 2
+  m_Camera: {fileID: 0}
+  m_PlaneDistance: 100
+  m_PixelPerfect: 0
+  m_ReceivesEvents: 1
+  m_OverrideSorting: 0
+  m_OverridePixelPerfect: 0
+  m_SortingBucketNormalizedSize: 0
+  m_VertexColorAlwaysGammaSpace: 1
+  m_AdditionalShaderChannelsFlag: 0
+  m_UpdateRectTransformForStandalone: 0
+  m_SortingLayerID: 0
+  m_SortingOrder: 50
+  m_TargetDisplay: 0
+--- !u!114 &3238281791285750094
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 691546430446915902}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.CanvasScaler
+  m_UiScaleMode: 0
+  m_ReferencePixelsPerUnit: 100
+  m_ScaleFactor: 1
+  m_ReferenceResolution: {x: 800, y: 600}
+  m_ScreenMatchMode: 0
+  m_MatchWidthOrHeight: 0
+  m_PhysicalUnit: 3
+  m_FallbackScreenDPI: 96
+  m_DefaultSpriteDPI: 96
+  m_DynamicPixelsPerUnit: 1
+  m_PresetInfoIsWorld: 1
+--- !u!222 &5123622013479644344
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 691546430446915902}
+  m_CullTransparentMesh: 1
+--- !u!114 &5318374826476171914
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 691546430446915902}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c58045009304fe19f8260092048de2e, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::SubmarineSonarGraphic
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  iconScale: 1.8
+  lineThicknessScale: 1.5
+  centerMarkerScale: 1.4
 --- !u!1 &952152690112469961
 GameObject:
   m_ObjectHideFlags: 0
@@ -1672,6 +1788,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -9167120058152895281, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
       insertIndex: 2
       addedObject: {fileID: 7688529066289748750}
+    - targetCorrespondingSourceObject: {fileID: -7164464027446518403, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1905841794518294302}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 8771091787928289351, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
       insertIndex: -1
@@ -1691,6 +1810,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 8771091787928289351, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2709867754773682312}
+    - targetCorrespondingSourceObject: {fileID: 8771091787928289351, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 903412007100000006}
     - targetCorrespondingSourceObject: {fileID: 2590690027949864799, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2892950543118468774}
@@ -1959,6 +2081,37 @@ MonoBehaviour:
     glassOverlay: {fileID: 0}
   repairCycleDuration: 5
   repairDecaySecondsPerSecond: 1
+--- !u!114 &903412007100000006
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1874707628903329205}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7533918945e4be19a33509fbca0216a, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::SubmarineSonarController
+  detectionRange: 30
+  pingInterval: 2.5
+  pulseDuration: 1.5
+  echoLingerDuration: 2
+  verticalThreshold: 2
+  sonarOrigin: {fileID: 0}
+  obstacleMask:
+    serializedVersion: 2
+    m_Bits: 64
+  display: {fileID: 5318374826476171914}
+  backgroundColor: {r: 0.004, g: 0.035, b: 0.025, a: 0.98}
+  gridColor: {r: 0.12, g: 0.55, b: 0.32, a: 0.45}
+  pulseColor: {r: 0.36, g: 1, b: 0.62, a: 0.95}
+  creatureColor: {r: 1, g: 0.28, b: 0.08, a: 1}
+  itemColor: {r: 0.35, g: 1, b: 0.32, a: 1}
+  pointOfInterestColor: {r: 0.12, g: 0.95, b: 0.9, a: 1}
+  onPing:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &2240314211601929266 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -240290832761325120, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
@@ -2234,5 +2387,10 @@ Transform:
 --- !u!4 &8931977304575754114 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1750109346238698096, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
+  m_PrefabInstance: {fileID: 7187007393533832690}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &9164777723997778063 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -7164464027446518403, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
   m_PrefabInstance: {fileID: 7187007393533832690}
   m_PrefabAsset: {fileID: 0}

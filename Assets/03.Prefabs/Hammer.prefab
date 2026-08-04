@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 6527264935282961383}
   - component: {fileID: 2124003965240336264}
   - component: {fileID: 4467250443656081559}
+  - component: {fileID: 903412007100000001}
   m_Layer: 7
   m_Name: Hammer
   m_TagString: Untagged
@@ -20,6 +21,20 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &903412007100000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8304581905840188584}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f2e5c90963840a3a39a4b3264392991, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::SonarTarget
+  category: 1
+  detectionPoint: {fileID: 0}
 --- !u!4 &3634779920455167651
 Transform:
   m_ObjectHideFlags: 0
