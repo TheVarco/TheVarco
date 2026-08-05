@@ -15,29 +15,29 @@ public class CarryableItem : MonoBehaviour, Interactable
     [Header("손에 들었을 때 위치 보정")]
     public Vector3 holdPositionOffset;
     public Vector3 holdRotationOffset;
+    
+    protected Rigidbody rb { get; private set; }
+    protected Collider col { get; private set; }
 
-    private Rigidbody rb;
-    private Collider col;
-
-    void Awake()
+    protected virtual void Awake()
     {
         rb = GetComponent<Rigidbody>();
         col = GetComponent<Collider>();
     }
 
-    public string GetInteractionPrompt()
+    public virtual string GetInteractionPrompt()
     {
         return $"E : {itemName} 들기";
     }
 
-    public bool CanInteract(GameObject interactor)
+    public virtual bool CanInteract(GameObject interactor)
     {
         // 핫바에 빈 슬롯(2 또는 3)이 있어야 주울 수 있음
         PlayerHotbar hotbar = interactor.GetComponent<PlayerHotbar>();
         return hotbar != null && hotbar.HasFreeSlot();
     }
 
-    public void Interact(GameObject interactor)
+    public virtual void Interact(GameObject interactor)
     {
         PlayerHotbar hotbar = interactor.GetComponent<PlayerHotbar>();
         if (hotbar == null)
@@ -49,7 +49,7 @@ public class CarryableItem : MonoBehaviour, Interactable
     }
 
     // 손에 붙을 때 PlayerCarrier가 호출
-    public void OnPickedUp(Transform handSocket)
+    public virtual void OnPickedUp(Transform handSocket)
     {
         if (rb != null) rb.isKinematic = true;   // 물리 영향 끄기 (손에 붙어서 따라다녀야 하므로)
         if (col != null) col.enabled = false;    // 들고 있는 동안은 다시 집히거나 부딪히지 않게
@@ -61,7 +61,7 @@ public class CarryableItem : MonoBehaviour, Interactable
 
     // 내려놓을 때 PlayerHotbar가 호출. dropPosition으로 몸에서 떨어진 안전한 위치로 옮긴 뒤 물리를 켬
     // (안 옮기면 손 위치 = 몸 Collider 근처라서, 물리가 켜지자마자 겹쳐서 튕겨나갈 수 있음)
-    public void OnDropped(Vector3 dropPosition)
+    public virtual void OnDropped(Vector3 dropPosition)
     {
         transform.SetParent(null);
         transform.position = dropPosition;
@@ -114,7 +114,7 @@ public class CarryableItem : MonoBehaviour, Interactable
         OnUse(user, user); // 기본은 자기 자신을 대상으로 사용
         return isConsumable;
     }
-
+    
     // 좌클릭을 누르고 있는 동안 매 프레임 호출
     // 망치처럼 충전 시간이 필요한 아이템만 적용
     public virtual void OnPrimaryHeld(GameObject user, Transform aimReference, bool isHeld)
