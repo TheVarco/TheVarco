@@ -1,34 +1,38 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// 상어의 상태 전환, 공격 판정, 애니메이션 관리.
+/// 공통 EnemyTargeting 및 EnemyNavigator 기준.
+/// </summary>
 [RequireComponent(typeof(Health))]
-[RequireComponent(typeof(SharkTargeting))]
-[RequireComponent(typeof(SharkNavigator))]
+[RequireComponent(typeof(EnemyTargeting))]
+[RequireComponent(typeof(EnemyNavigator))]
 public class SharkController : MonoBehaviour
 {
     [Header("Data")]
-    [SerializeField] private EnemyData enemyData;
+    [SerializeField] private EnemyData enemyData; // 상어 공통 설정값.
 
     [Header("Attack")]
-    [SerializeField] private EnemyAttackHitbox attackHitbox;
+    [SerializeField] private EnemyAttackHitbox attackHitbox; // 물기 공격 판정 영역.
 
     [Header("Animation")]
-    [SerializeField] private Animator animator;
-    private static readonly int AttackHash = Animator.StringToHash("Attack");
-    private static readonly int IdleStateHash = Animator.StringToHash("Idle");
-    private static readonly int DieHash = Animator.StringToHash("Die");
+    [SerializeField] private Animator animator; // 상어 Animator.
+    private static readonly int AttackHash = Animator.StringToHash("Attack"); // 공격 파라미터.
+    private static readonly int IdleStateHash = Animator.StringToHash("Idle"); // 대기 상태.
+    private static readonly int DieHash = Animator.StringToHash("Die"); // 사망 파라미터.
 
-    private Health health;
-    private Vector3 spawnPosition;
+    private Health health;            // 상어 체력.
+    private Vector3 spawnPosition;    // 최초 생성 위치.
 
-    private Dictionary<SharkStateType, ISharkState> states;
-    private ISharkState currentState;
-    private SharkStateType currentStateType;
+    private Dictionary<SharkStateType, ISharkState> states; // 상태별 실행 객체.
+    private ISharkState currentState;                        // 현재 실행 상태.
+    private SharkStateType currentStateType;                 // 현재 상태 종류.
 
     public EnemyData Data => enemyData;
     public EnemyAttackHitbox AttackHitbox => attackHitbox;
-    public SharkTargeting Targeting { get; private set; }
-    public SharkNavigator Navigator { get; private set; }
+    public EnemyTargeting Targeting { get; private set; }
+    public EnemyNavigator Navigator { get; private set; }
     public Vector3 SpawnPosition => spawnPosition;
 
     #region SO 데이터 가져오기
@@ -49,8 +53,8 @@ public class SharkController : MonoBehaviour
     private void Awake()
     {
         health = GetComponent<Health>();
-        Targeting = GetComponent<SharkTargeting>();
-        Navigator = GetComponent<SharkNavigator>();
+        Targeting = GetComponent<EnemyTargeting>();
+        Navigator = GetComponent<EnemyNavigator>();
 
         spawnPosition = transform.position;
 
@@ -101,13 +105,15 @@ public class SharkController : MonoBehaviour
         ChangeState(SharkStateType.Dead);
     }
 
+    /// <summary>
+    /// 현재 상태 종료 및 새 상태 전환.
+    /// </summary>
     public void ChangeState(SharkStateType newStateType)
     {
         if (currentState != null && currentStateType == newStateType)
             return;
 
-        // 이동 상태에서 설정한 linearVelocity가 다음 상태까지 남지 않도록
-        // 상태가 바뀌는 순간 Rigidbody 속도를 먼저 초기화한다.
+        // 상태 전환 시 잔여 속도 제거.
         Navigator.StopMovement();
         currentState?.Exit();
 
@@ -132,6 +138,9 @@ public class SharkController : MonoBehaviour
         animator.SetTrigger(DieHash);
     }
 
+    /// <summary>
+    /// 물기 공격 판정 시작.
+    /// </summary>
     public void BeginAttackHitbox()
     {
         if (IsDead || currentStateType != SharkStateType.Attack)
@@ -143,6 +152,9 @@ public class SharkController : MonoBehaviour
         attackHitbox.BeginBite(AttackDamage, gameObject);
     }
 
+    /// <summary>
+    /// 물기 공격 판정 종료.
+    /// </summary>
     public void EndAttackHitbox()
     {
         if (attackHitbox == null)
@@ -166,8 +178,7 @@ public class SharkController : MonoBehaviour
     }
 
     /// <summary>
-    /// 정찰 중일 때 현재 목적지와 SphereCast 프로브 반경(상어 몸통 굵기)을 그린다.
-    /// 목적지는 런타임에만 정해지므로 플레이 모드에서만 표시된다.
+    /// 순찰 목적지 및 장애물 탐색 반경 표시.
     /// </summary>
     private void DrawPatrolGizmos()
     {
@@ -184,14 +195,14 @@ public class SharkController : MonoBehaviour
         Vector3 point = patrol.PatrolPoint;
         float probeRadius = enemyData.patrolProbeRadius;
 
-        // 상어 → 목적지 경로
+        // 순찰 경로 표시.
         Gizmos.color = Color.green;
         Gizmos.DrawLine(transform.position, point);
 
-        // 목적지 지점 표시
+        // 순찰 목적지 표시.
         Gizmos.DrawWireSphere(point, 0.3f);
 
-        // SphereCast에 쓰인 프로브 반경(상어 몸통 굵기)을 출발/도착 양 끝에 표시
+        // 장애물 탐색 반경 표시.
         Gizmos.color = new Color(0f, 1f, 1f, 0.5f);
         Gizmos.DrawWireSphere(transform.position, probeRadius);
         Gizmos.DrawWireSphere(point, probeRadius);

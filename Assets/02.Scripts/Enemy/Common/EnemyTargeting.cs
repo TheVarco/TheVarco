@@ -1,37 +1,46 @@
 using UnityEngine;
 
-public class SharkTargeting : MonoBehaviour
+/// <summary>
+/// 움직이는 적 오브젝트의 탐지, 추적, 재타깃 선정.
+/// IEnemyTargetFilter 기준 적별 타깃 허용 조건 적용.
+/// </summary>
+public class EnemyTargeting : MonoBehaviour
 {
     [Header("Data")]
-    [SerializeField] private EnemyData enemyData;
+    [SerializeField] private EnemyData enemyData; // 공통 탐지 설정값.
 
     [Header("Detection")]
-    [SerializeField] private LayerMask targetLayer;
-    [SerializeField] private LayerMask obstacleLayer;
+    [SerializeField] private LayerMask targetLayer;   // 탐지 대상 레이어.
+    [SerializeField] private LayerMask obstacleLayer; // 시야를 막는 레이어.
 
-    private Transform target;
-    private float damageTargetLockUntil;
-    private float nextRetargetTime;
+    private Transform target;                   // 현재 추적 대상.
+    private float damageTargetLockUntil;        // 최초 공격자 우선 종료 시각.
+    private float nextRetargetTime;             // 다음 재탐색 시각.
+    private IEnemyTargetFilter targetFilter;    // 적별 타깃 허용 조건.
 
     public Transform Target => target;
     public event System.Action<Transform> OnTargetDetected;
 
+    private void Awake()
+    {
+        targetFilter = GetComponent<IEnemyTargetFilter>();
+    }
+
     /// <summary>
-    /// 잠수함처럼 큰 대상의 중심점 대신 관찰자와 가장 가까운 Collider 표면점을 반환한다.
-    /// 추격 및 공격 상태가 이 좌표를 사용하면 상어가 선체 중심으로 파고들지 않고 외벽을 기준으로 움직인다.
+    /// 관찰자와 가장 가까운 대상 Collider 표면점 반환.
     /// </summary>
-    /// <param name="observerPosition">대상 표면점을 계산할 상어 또는 공격 히트박스의 위치.</param>
+    /// <param name="observerPosition">대상 표면점을 계산할 적 또는 공격 히트박스의 위치.</param>
     public Vector3 GetTargetPoint(Vector3 observerPosition)
     {
         if (target == null)
             return observerPosition;
 
-        // 탐지용 자식 Collider를 우선 사용하고, 없을 때만 자식 계층에서 대체 Collider를 찾는다.
+        // 대상 Collider 기준.
         Collider targetCollider = target.GetComponent<Collider>();
         if (targetCollider == null)
             targetCollider = target.GetComponentInChildren<Collider>();
 
-        // Collider를 사용할 수 없다면 일반 캐릭터도 계속 추적할 수 있도록 Transform 위치로 대체한다.
+        // Collider가 없으면 Transform 위치 기준.
         return targetCollider != null && targetCollider.enabled
             ? targetCollider.ClosestPoint(observerPosition)
             : target.position;
@@ -46,9 +55,9 @@ public class SharkTargeting : MonoBehaviour
     private float ViewAngle => enemyData.viewAngle;
 
     /// <summary>
-    /// 공격 대상을 상어의 타깃으로 지정할 수 있는지 확인하고 최초 공격자 우선 시간을 설정한다.
+    /// 피해를 준 공격자를 우선 타깃으로 설정.
     /// </summary>
-    /// <param name="source">상어에게 피해를 준 공격 주체.</param>
+    /// <param name="source">적에게 피해를 준 공격 주체.</param>
     public bool TrySetDamageTarget(GameObject source)
     {
         if (source == null)
@@ -63,7 +72,10 @@ public class SharkTargeting : MonoBehaviour
         if ((targetLayer.value & attackerLayerMask) == 0)
             return false;
 
-        // 잠금 중에는 후속 공격자가 최초 공격자를 덮어쓰지 않는다.
+        if (!PassesTargetFilter(attacker))
+            return false;
+
+        // 최초 공격자 잠금 시간 기준.
         if (Time.time >= damageTargetLockUntil)
         {
             SetTarget(attacker);
@@ -75,8 +87,7 @@ public class SharkTargeting : MonoBehaviour
     }
 
     /// <summary>
-    /// 가까운 대상은 방향과 관계없이 / 먼 대상은 전방 시야각 안에서 탐색
-    /// 이미 발견한 대상은 추적 가능 조건을 만족하는 동안 계속 유지한다.
+    /// 탐지 범위 내 최근접 추적 가능 타깃 탐색.
     /// </summary>
     public bool TryFindTarget()
     {
@@ -98,13 +109,15 @@ public class SharkTargeting : MonoBehaviour
         {
             Transform candidate = targetCollider.transform;
 
-            // 죽은 대상은 후보에서 제외 (추격용 탐색과 동일하게 처리해 Patrol⇄Chase 무한 전환 방지)
+            if (!PassesTargetFilter(candidate))
+                continue;
+
+            // 사망 대상 후보 제외.
             Damageable candidateDamageable = candidate.GetComponentInParent<Damageable>();
             if (candidateDamageable != null && candidateDamageable.IsDead)
                 continue;
 
-            // 대상 중심이 아니라 실제 Collider 표면까지의 거리로 탐지 범위와 시야각을 계산한다.
-            // 큰 잠수함은 중심이 멀어도 외벽이 탐지 범위 안에 들어올 수 있기 때문이다.
+            // Collider 표면 거리 기준 탐지 범위 및 시야각 계산.
             Vector3 targetPoint = targetCollider.ClosestPoint(transform.position);
             Vector3 offsetToTarget = targetPoint - transform.position;
             float distanceToTarget = offsetToTarget.magnitude;
@@ -137,9 +150,7 @@ public class SharkTargeting : MonoBehaviour
     }
 
     /// <summary>
-    /// 추격 중인 타깃 갱신
-    /// 최초 공격자 잠금 시간에는 현재 타깃을 우선하고
-    /// 잠금 이후에는 일정 주기로 가장 가까운 타깃을 찾는다.
+    /// 추격 타깃 유지 또는 갱신.
     /// </summary>
     public bool TryUpdateChaseTarget()
     {
@@ -171,7 +182,7 @@ public class SharkTargeting : MonoBehaviour
 
         if (currentTargetIsValid && nearestTarget != target)
         {
-            // 현재 대상도 동일하게 표면 거리로 비교해야 새 후보와의 거리 기준이 일관된다.
+            // Collider 표면 거리 기준 후보 비교.
             float currentDistance = Vector3.Distance(
                 transform.position,
                 GetTargetPoint(transform.position));
@@ -185,7 +196,7 @@ public class SharkTargeting : MonoBehaviour
     }
 
     /// <summary>
-    /// 추적 타깃 지정
+    /// 추적 타깃 지정.
     /// </summary>
     /// <param name="newTarget">새로 지정할 타깃.</param>
     private void SetTarget(Transform newTarget)
@@ -198,18 +209,18 @@ public class SharkTargeting : MonoBehaviour
     }
 
     /// <summary>
-    /// 현재 추적 중인 타깃 해제
+    /// 현재 추적 타깃 해제.
     /// </summary>
-    private void ClearTarget()
+    public void ClearTarget()
     {
         target = null;
     }
 
     /// <summary>
-    /// 추격 해제 거리 안에서 살아 있고 장애물에 가려지지 않은 가장 가까운 타깃을 찾는다.
+    /// 추격 범위 내 최근접 유효 타깃 탐색.
     /// </summary>
     /// <param name="nearestTarget">조건을 만족하는 가장 가까운 타깃.</param>
-    /// <param name="nearestDistance">상어와 가장 가까운 타깃 사이의 거리.</param>
+    /// <param name="nearestDistance">적과 가장 가까운 타깃 사이의 거리.</param>
     private bool TryFindNearestTrackableTarget(out Transform nearestTarget, out float nearestDistance)
     {
         nearestTarget = null;
@@ -223,15 +234,17 @@ public class SharkTargeting : MonoBehaviour
 
         foreach (Collider candidateCollider in candidates)
         {
-            // attachedRigidbody의 루트 Transform을 사용하면 잠수함 중심을 타깃으로 저장하게 된다.
-            // 탐지된 자식 Collider 자체를 보존해야 이후 ClosestPoint로 외벽 좌표를 계속 구할 수 있다.
+            // 탐지된 자식 Collider 기준 타깃 저장.
             Transform candidate = candidateCollider.transform;
+
+            if (!PassesTargetFilter(candidate))
+                continue;
 
             Damageable candidateDamageable = candidate.GetComponentInParent<Damageable>();
             if (candidateDamageable != null && candidateDamageable.IsDead)
                 continue;
 
-            // 재타깃 후보 역시 중심점이 아닌 Collider 표면까지의 실제 거리를 사용한다.
+            // Collider 표면 거리 기준 재타깃 후보 비교.
             Vector3 targetPoint = candidateCollider.ClosestPoint(transform.position);
             Vector3 offsetToCandidate = targetPoint - transform.position;
             float distanceToCandidate = offsetToCandidate.magnitude;
@@ -254,16 +267,19 @@ public class SharkTargeting : MonoBehaviour
     }
 
     /// <summary>
-    /// 지정한 타깃이 살아 있고 추격 해제 거리 안에 있으며 장애물에 가려지지 않았는지 확인한다.
+    /// 지정 타깃의 추적 유지 조건 확인.
     /// </summary>
     /// <param name="trackedTarget">현재 추적 중인 타깃.</param>
     private bool CanContinueTracking(Transform trackedTarget)
     {
+        if (!PassesTargetFilter(trackedTarget))
+            return false;
+
         Damageable trackedDamageable = trackedTarget.GetComponentInParent<Damageable>();
         if (trackedDamageable != null && trackedDamageable.IsDead)
             return false;
 
-        // 추격 유지 여부도 잠수함 중심이 아닌 가장 가까운 선체 표면을 기준으로 판단한다.
+        // 최근접 Collider 표면 기준 추격 유지 판정.
         Vector3 targetPoint = GetTargetPoint(transform.position);
         Vector3 offsetToTarget = targetPoint - transform.position;
         float distanceToTarget = offsetToTarget.magnitude;
@@ -279,10 +295,21 @@ public class SharkTargeting : MonoBehaviour
     }
 
     /// <summary>
-    /// 상어와 타깃 사이에 장애물 레이어가 존재하는지 Raycast로 확인한다.
+    /// 적별 필터 기준 타깃 후보 검사.
     /// </summary>
-    /// <param name="directionToTarget">상어에서 타깃을 향하는 정규화된 방향.</param>
-    /// <param name="distanceToTarget">상어와 타깃 사이의 거리.</param>
+    private bool PassesTargetFilter(Transform candidate)
+    {
+        if (targetFilter == null)
+            targetFilter = GetComponent<IEnemyTargetFilter>();
+
+        return candidate != null && (targetFilter == null || targetFilter.CanTarget(candidate));
+    }
+
+    /// <summary>
+    /// 적과 타깃 사이 장애물 Raycast 확인.
+    /// </summary>
+    /// <param name="directionToTarget">적에서 타깃을 향하는 정규화된 방향.</param>
+    /// <param name="distanceToTarget">적과 타깃 사이의 거리.</param>
     private bool IsTargetBlocked(Vector3 directionToTarget, float distanceToTarget)
     {
         return Physics.Raycast(

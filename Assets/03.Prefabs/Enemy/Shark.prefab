@@ -755,9 +755,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 4880988355093290315}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a13369ad3d9b468e9219fda67cd7d905, type: 3}
+  m_Script: {fileID: 11500000, guid: 2b3db0606f8f4634b8cb8f775762c2ef, type: 3}
   m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::SharkTargeting
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyTargeting
   enemyData: {fileID: 11400000, guid: 619bb3a7a9cc80e458b1a78eb38f50f0, type: 2}
   targetLayer:
     serializedVersion: 2
@@ -774,9 +774,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 4880988355093290315}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: aaeeb60229aa40f8afd064dac2390fe1, type: 3}
+  m_Script: {fileID: 11500000, guid: 85b9ea3045fe4323b72dc102ad6a8881, type: 3}
   m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::SharkNavigator
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyNavigator
   enemyData: {fileID: 11400000, guid: 619bb3a7a9cc80e458b1a78eb38f50f0, type: 2}
 --- !u!114 &4816400313698311707
 MonoBehaviour:
