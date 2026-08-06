@@ -8,7 +8,8 @@ public enum DamageType
     Collision, // 동굴 벽
     Bite, // 상어 이빨
     Projectile, // 투사체 (총)
-    Melee // 근접
+    Melee, // 근접
+    Environmental // 환경 장애물 (열수구, 낙석 등)
 }
 
 // 한번의 공격이 가지고 있는 모든 입력 정보 저장

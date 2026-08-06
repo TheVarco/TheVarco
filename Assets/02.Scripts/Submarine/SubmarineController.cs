@@ -4,7 +4,7 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 // 운전자의 입력을 받아 잠수함의 전진/후진, 상승/하강, 좌우 회전 처리
 // 속도를 즉시 바꾸지 않고 누적·감속하여 무거운 관성 적용
-public class SubmarineController : MonoBehaviour
+public class SubmarineController : MonoBehaviour, IExternalMotionReceiver
 {
     [Header("Forward / Reverse")]
     // 선체의 로컬 forward 방향으로 움직이는 속도와 가속/자연 감속 설정
@@ -42,6 +42,15 @@ public class SubmarineController : MonoBehaviour
     [SerializeField, Min(0f)] private float maximumCollisionDamage = 30f;
     [SerializeField, Min(0f)] private float collisionDamageCooldown = 0.5f;
 
+    // 열수구 외부 이동 설정
+    [Header("External Motion")]
+    [Tooltip("External impulses and acceleration are scaled before being added to the submarine.")]
+    [SerializeField, Min(0f)] private float externalMotionMultiplier = 0.35f; // 외부 힘을 잠수함 이동에 반영할 비율
+    [SerializeField, Min(0f)] private float externalVelocityDamping = 2f; // 외부 속도가 초당 감소하는 양
+    [SerializeField, Min(0f)] private float maximumExternalSpeed = 6f; // 누적 가능한 외부 속도 상한
+    [Tooltip("Only this fraction of vent-created velocity contributes to wall collision damage.")]
+    [SerializeField, Range(0f, 1f)] private float externalCollisionDamageMultiplier = 0.25f; // 외부 속도의 충돌 피해 반영 비율
+
     [Header("Seat Manager")]
     [SerializeField] private SubmarineSeatManager seatManager;
 
@@ -50,11 +59,15 @@ public class SubmarineController : MonoBehaviour
     public SubmarinePlayMode CurrentPlayMode => seatManager != null
         ? seatManager.CurrentPlayMode
         : SubmarinePlayMode.Solo;
-    public float CurrentSpeed => new Vector2(forwardVelocity, verticalVelocity).magnitude;
+    public float CurrentSpeed => CurrentWorldVelocity.magnitude;
     public float CurrentYawSpeed => Mathf.Abs(yawVelocity);
+    public int ExternalMotionReceiverId => GetInstanceID(); // 다중 콜라이더를 잠수함 하나로 식별
     
     // 하차하는 플레이어에게 전달할 수 있도록 현재 이동 속도를 월드 벡터로 변환
-    public Vector3 CurrentWorldVelocity => transform.forward * forwardVelocity + Vector3.up * verticalVelocity;
+    // 조종 속도와 외부 속도 분리
+    public Vector3 DrivenWorldVelocity => transform.forward * forwardVelocity + Vector3.up * verticalVelocity; // 조종 입력으로 만든 속도
+    public Vector3 ExternalWorldVelocity => externalWorldVelocity; // 열수구 등 외부 힘으로 만든 속도
+    public Vector3 CurrentWorldVelocity => DrivenWorldVelocity + externalWorldVelocity; // 실제 이동에 사용하는 합산 속도
 
     // 조이스틱 스크립트에서 읽을 수 있는 현재 입력값
     public float ThrottleInput => seatManager != null ? seatManager.ThrottleInput : 0f;
@@ -72,6 +85,7 @@ public class SubmarineController : MonoBehaviour
     private float forwardVelocity;
     private float verticalVelocity;
     private float yawVelocity;
+    private Vector3 externalWorldVelocity; // 감쇠 전 현재 외부 속도
 
     private void Awake()
     {
@@ -126,7 +140,9 @@ public class SubmarineController : MonoBehaviour
             dt);
 
         // 누적된 속도를 물리 프레임의 위치/회전 변화량으로 변환
-        Vector3 worldVelocityBeforeCollision = CurrentWorldVelocity;
+        Vector3 drivenVelocityBeforeCollision = DrivenWorldVelocity; // 충돌 전 조종 속도
+        Vector3 externalVelocityBeforeCollision = externalWorldVelocity; // 충돌 전 외부 속도
+        Vector3 worldVelocityBeforeCollision = drivenVelocityBeforeCollision + externalVelocityBeforeCollision; // 이동 검사에 사용할 전체 속도
         Vector3 displacement = worldVelocityBeforeCollision * dt;
         Quaternion yawDelta = Quaternion.AngleAxis(yawVelocity * dt, Vector3.up);
 
@@ -139,11 +155,16 @@ public class SubmarineController : MonoBehaviour
 
         if (hitWall)
         {
-            Vector3 slidingVelocity = Vector3.ProjectOnPlane(worldVelocityBeforeCollision, wallHit.normal);
-            forwardVelocity = Vector3.Dot(slidingVelocity, transform.forward);
-            verticalVelocity = Vector3.Dot(slidingVelocity, Vector3.up);
+            // 벽 법선 방향 속도를 제거해 벽면을 따라 미끄러지게 처리
+            Vector3 drivenSlidingVelocity = Vector3.ProjectOnPlane(drivenVelocityBeforeCollision, wallHit.normal);
+            externalWorldVelocity = Vector3.ProjectOnPlane(externalVelocityBeforeCollision, wallHit.normal);
+            forwardVelocity = Vector3.Dot(drivenSlidingVelocity, transform.forward);
+            verticalVelocity = Vector3.Dot(drivenSlidingVelocity, Vector3.up);
 
-            float normalSpeed = Mathf.Abs(Vector3.Dot(worldVelocityBeforeCollision, wallHit.normal));
+            // 외부 속도 충돌 피해 감쇠
+            float drivenNormalSpeed = Mathf.Abs(Vector3.Dot(drivenVelocityBeforeCollision, wallHit.normal)); // 벽을 향한 조종 속도 크기
+            float externalNormalSpeed = Mathf.Abs(Vector3.Dot(externalVelocityBeforeCollision, wallHit.normal)); // 벽을 향한 외부 속도 크기
+            float normalSpeed = drivenNormalSpeed + externalNormalSpeed * externalCollisionDamageMultiplier; // 감쇠한 외부 속도를 합친 피해 기준 속도
             ApplyCollisionDamage(
                 wallHit.collider,
                 wallHit.point,
@@ -164,6 +185,35 @@ public class SubmarineController : MonoBehaviour
         // 키네마틱 Rigidbody는 Transform을 직접 변경하지 않고 Move 계열 API로 이동
         body.MovePosition(nextPosition);
         body.MoveRotation(nextRotation);
+
+        // 물리 프레임마다 외부 속도를 영으로 이동시켜 자연 감쇠
+        externalWorldVelocity = Vector3.MoveTowards(
+            externalWorldVelocity,
+            Vector3.zero,
+            externalVelocityDamping * dt);
+    }
+
+    // 외부 순간 속도에 잠수함 반영 비율을 곱해 누적
+    public void ApplyExternalImpulse(Vector3 velocityChange)
+    {
+        AddExternalVelocity(velocityChange * externalMotionMultiplier);
+    }
+
+    // 외부 가속도에 시간과 잠수함 반영 비율을 곱해 속도로 누적
+    public void ApplyExternalAcceleration(Vector3 acceleration, float deltaTime)
+    {
+        if (deltaTime <= 0f)
+            return;
+
+        AddExternalVelocity(acceleration * externalMotionMultiplier * deltaTime);
+    }
+
+    // 외부 속도 합산 후 최대 속도 제한
+    private void AddExternalVelocity(Vector3 velocityDelta)
+    {
+        externalWorldVelocity = Vector3.ClampMagnitude(
+            externalWorldVelocity + velocityDelta,
+            maximumExternalSpeed);
     }
 
     /// <summary>
@@ -408,6 +458,7 @@ public class SubmarineController : MonoBehaviour
     private void OnDisable()
     {
         lastDamageTimeByCollider.Clear();
+        externalWorldVelocity = Vector3.zero;
     }
 
     private void OnDrawGizmosSelected()
