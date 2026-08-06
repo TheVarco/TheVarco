@@ -13,7 +13,7 @@ public enum VentState
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Collider))]
 // 개별 분출구 제어
-public sealed class VentController : MonoBehaviour
+public sealed class VentController : MonoBehaviour, IPatternTarget
 {
     [Header("Effect Volume")]
     [SerializeField] private Collider effectCollider; // 기체가 영향을 주는 트리거 범위
@@ -39,7 +39,7 @@ public sealed class VentController : MonoBehaviour
     private readonly HashSet<int> impulsedTargets = new HashSet<int>(); // 현재 분출에서 초기 충격을 받은 대상
     private readonly HashSet<int> damagedTargets = new HashSet<int>(); // 현재 분출에서 피해를 받은 대상
     private readonly HashSet<int> acceleratedThisFixedStep = new HashSet<int>(); // 현재 물리 프레임에서 가속한 대상
-    private VentPattern patternOwner; // 현재 분출구를 제어하는 외부 패턴
+    private ObstaclePatternBase patternOwner; // 현재 분출구를 제어하는 외부 패턴
     private Coroutine aloneRoutine; // 자동 Alone 반복 코루틴
     private bool hasStarted; // Start 호출 완료 여부
 
@@ -47,6 +47,44 @@ public sealed class VentController : MonoBehaviour
     public Vector3 EruptionDirection => transform.up; // 오브젝트 위쪽을 기준으로 한 분출 방향
     public bool IsHazardActive => CurrentState == VentState.Active; // 물리 판정 활성 여부
     public bool IsPatternControlled => patternOwner != null; // 외부 패턴 제어 여부
+
+    Object IPatternTarget.PatternTargetObject => this; // 공용 패턴의 Unity 생명주기 검사 대상
+
+    // 공용 패턴에서 분출구 제어권을 요청
+    bool IPatternTarget.ClaimPatternControl(ObstaclePatternBase owner)
+    {
+        return ClaimPatternControl(owner);
+    }
+
+    // 공용 패턴에서 분출구 제어권을 반환
+    void IPatternTarget.ReleasePatternControl(ObstaclePatternBase owner)
+    {
+        ReleasePatternControl(owner);
+    }
+
+    // 공용 Warning 명령을 분출구 예고 상태로 변환
+    void IPatternTarget.EnterPatternWarning()
+    {
+        SetState(VentState.Warning);
+    }
+
+    // 공용 Active 명령을 실제 분출 상태로 변환
+    void IPatternTarget.EnterPatternActive()
+    {
+        SetState(VentState.Active);
+    }
+
+    // 공용 Inactive 명령을 분출 정지 상태로 변환
+    void IPatternTarget.EnterPatternInactive()
+    {
+        SetState(VentState.Inactive);
+    }
+
+    // 공용 Reset 명령으로 파티클과 접촉 기록 완전 초기화
+    void IPatternTarget.ResetPatternTarget()
+    {
+        ResetVent();
+    }
 
     // 컴포넌트 추가 시 같은 오브젝트의 콜라이더 자동 연결
     private void Reset()
@@ -86,7 +124,7 @@ public sealed class VentController : MonoBehaviour
     }
 
     // 외부 패턴에 제어권을 넘기고 자동 Alone 중지
-    internal bool ClaimPatternControl(VentPattern owner)
+    internal bool ClaimPatternControl(ObstaclePatternBase owner)
     {
         if (owner == null)
             return false;
@@ -105,7 +143,7 @@ public sealed class VentController : MonoBehaviour
     }
 
     // 외부 패턴 제어 해제 후 자동 Alone 복구
-    internal void ReleasePatternControl(VentPattern owner)
+    internal void ReleasePatternControl(ObstaclePatternBase owner)
     {
         if (patternOwner != owner)
             return;
