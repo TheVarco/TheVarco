@@ -74,6 +74,9 @@ public class PlayerInteractor : MonoBehaviour
                 // 콜라이더 피벗이 아니라 "플레이어와 가장 가까운 표면 지점"을 기준으로 삼음
                 // (피벗이 문틀 안쪽 등 실제 표면과 동떨어진 위치에 있으면 그쪽으로 쏜 레이가 엉뚱한 곳에 막힐 수 있음)
                 Vector3 nearestPoint = col.ClosestPointOnBounds(lookReference.position);
+                // 경계(모서리)에 딱 걸쳐있으면 문틀처럼 바로 옆에 붙은 콜라이더를 스쳐서 매 프레임 막혔다 안 막혔다 깜빡일 수 있어서,
+                // 중심 쪽으로 살짝 당겨서 안정적인 지점을 조준하게 함
+                nearestPoint = Vector3.Lerp(nearestPoint, col.bounds.center, 0.1f);
                 Vector3 toTarget = nearestPoint - lookReference.position;
 
                 // 2단계: 정면 기준 각도(부채꼴) 안에 들어오는지 확인
