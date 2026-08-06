@@ -8,8 +8,11 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
 {
     [Tooltip("접속 시 스폰할 플레이어 프리팹 (Network Object + Network Transform 붙어있어야 함)")]
     public NetworkPrefabRef playerPrefab;
+    [Tooltip("멀티플레이 시작 시 불러올 게임 씬 경로 (Build Settings에 포함되어 있어야 함)")]
+    public string targetScenePath = "Assets/01.Scenes/MainScene.unity";
 
     private NetworkRunner runner;
+    private PlayerCameraRig localCameraRig;
 
     // 화면에 임시로 띄울 시작 버튼 (테스트용, 나중에 제대로 된 UI로 교체)
     void OnGUI()
@@ -25,6 +28,11 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
         {
             StartGame(GameMode.Client);
         }
+
+        if (GUI.Button(new Rect(20, 120, 200, 40), "싱글플레이로 시작"))
+        {
+            StartGame(GameMode.Single);
+        }
     }
 
     async void StartGame(GameMode mode)
@@ -32,11 +40,13 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
         runner = gameObject.AddComponent<NetworkRunner>();
         runner.ProvideInput = true; // 이 클라이언트가 입력을 보낼 수 있게 함
 
+        int buildIndex = UnityEngine.SceneManagement.SceneUtility.GetBuildIndexByScenePath(targetScenePath);
+
         await runner.StartGame(new StartGameArgs
         {
             GameMode = mode,
             SessionName = "TestRoom", // 같은 이름을 쓰는 사람끼리 같은 방에 모임
-            Scene = SceneRef.FromIndex(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex),
+            Scene = SceneRef.FromIndex(buildIndex),
             SceneManager = gameObject.AddComponent<NetworkSceneManagerDefault>()
         });
     }
@@ -52,7 +62,24 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
 
     
     public void OnPlayerLeft(NetworkRunner runner, PlayerRef player) { }
-    public void OnInput(NetworkRunner runner, NetworkInput input) { }
+
+    public void OnInput(NetworkRunner runner, NetworkInput input)
+    {
+        if (localCameraRig == null)
+            localCameraRig = FindFirstObjectByType<PlayerCameraRig>();
+
+        var data = new NetworkInputData
+        {
+            Horizontal = Input.GetAxisRaw("Horizontal"),
+            Vertical = Input.GetAxisRaw("Vertical"),
+            Up = Input.GetKey(KeyCode.Space),
+            Down = Input.GetKey(KeyCode.LeftControl),
+            Dash = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift),
+            Yaw = localCameraRig != null ? localCameraRig.Yaw : 0f,
+            Pitch = localCameraRig != null ? localCameraRig.Pitch : 0f
+        };
+        input.Set(data);
+    }
     public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input) { }
     public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason) { }
     public void OnConnectedToServer(NetworkRunner runner) { }

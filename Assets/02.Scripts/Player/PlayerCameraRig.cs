@@ -47,34 +47,25 @@ public class PlayerCameraRig : MonoBehaviour
     private float yaw;
     private float pitch;
 
+    // 네트워크 입력 전송용 (NetworkTestStarter.OnInput에서 읽어감)
+    public float Yaw => yaw;
+    public float Pitch => pitch;
+
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
-        if (target == null)
-        {
-            FindPlayerTarget();
-        }
     }
 
-    private void FindPlayerTarget()
+    // PlayerController가 스폰 시(입력 권한이 있을 때만) 직접 호출해서 타겟을 등록함.
+    // 여러 명이 접속했을 때 아무 플레이어나 찾아버리는 걸 방지하기 위해
+    // 카메라가 찾아 나서지 않고 로컬 플레이어 쪽에서 스스로 등록하는 방식으로 바꿈.
+    public void SetTarget(Transform t)
     {
-        GameObject player = GameObject.FindWithTag("Player");
-        if (player == null) player = GameObject.Find("OtterPlayer");
-        if (player == null)
-        {
-            PlayerController controller = FindFirstObjectByType<PlayerController>();
-            if (controller != null) player = controller.gameObject;
-        }
-        if (player != null) target = player.transform;
+        target = t;
     }
 
     void Update()
     {
-        if (target == null)
-        {
-            FindPlayerTarget();
-        }
-
         yaw += Input.GetAxis("Mouse X") * mouseSensitivity;
         pitch -= Input.GetAxis("Mouse Y") * mouseSensitivity;
         if (clampPitch)
