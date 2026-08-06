@@ -1,10 +1,11 @@
 using UnityEngine;
+using Fusion;
 
 // 박스(또는 캡슐) 프로토타입에 Rigidbody와 함께 붙이는 플레이어 이동 스크립트.
 // 카메라의 "방향"만 참조하고, 카메라를 어떻게 붙이는지는 신경쓰지 않는다.
 // -> 나중에 1인칭/3인칭을 바꿔도 이 스크립트는 그대로 재사용 가능.
 [RequireComponent(typeof(Rigidbody))]
-public class PlayerController : MonoBehaviour
+public class PlayerController : NetworkBehaviour
 {
     [Header("이동 감각")]
     [Tooltip("최대 일반 이동 속도")]
@@ -126,6 +127,19 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    // 이 오브젝트가 네트워크에 스폰된 직후 한 번 호출됨 (Fusion 콜백)
+    public override void Spawned()
+    {
+        if (Object.HasInputAuthority)
+        {
+            if (cameraRig == null)
+                cameraRig = FindFirstObjectByType<PlayerCameraRig>();
+
+            if (cameraRig != null)
+                cameraRig.SetTarget(transform);
+        }
+    }
+
     private PlayerInteractor interactor;
 
     void OnEnable()
@@ -162,19 +176,12 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        ReadInput();
-        ApplyRotation();
-        UpdateAnimator();
+        UpdateAnimator(); // 순수 시각 동기화라 모든 인스턴스에서 실행 (원격 캐릭터도 애니메이션 정상 표시되게)
+
+        if (!Object.HasInputAuthority) return;
+
         HandleQuickRotate();
         HandleClickMotions();
-        HandleJumpInput();
-    }
-
-    // 걷기 모드에서 Space로 점프. 수영 모드에선 Space가 상하 이동으로 이미 쓰이고 있어서 여기서 관여 안 함
-    private void HandleJumpInput()
-    {
-        if (!isSwimMode && Input.GetKeyDown(KeyCode.Space) && IsGrounded())
-            jumpRequested = true;
     }
 
     private bool IsGrounded()
@@ -295,8 +302,14 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    void FixedUpdate()
+    public override void FixedUpdateNetwork()
     {
+        if (GetInput(out NetworkInputData input))
+        {
+            ReadInput(input);
+        }
+
+        ApplyRotation();
         ApplyMovement();
 
         if (jumpRequested)
@@ -306,19 +319,21 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void ReadInput()
-    {
-        float h = Input.GetAxisRaw("Horizontal"); // A/D
-        float v = Input.GetAxisRaw("Vertical");   // W/S
+    private NetworkInputData lastInput;
 
-        Vector3 forward = lookReference != null ? lookReference.forward : transform.forward;
-        Vector3 right = lookReference != null ? lookReference.right : transform.right;
+    private void ReadInput(NetworkInputData input)
+    {
+        lastInput = input;
+
+        Quaternion lookRotation = Quaternion.Euler(input.Pitch, input.Yaw, 0f);
+        Vector3 forward = lookRotation * Vector3.forward;
+        Vector3 right = lookRotation * Vector3.right;
 
         float up = 0f;
         if (isSwimMode)
         {
-            if (Input.GetKey(KeyCode.Space)) up += 1f;
-            if (Input.GetKey(KeyCode.LeftControl)) up -= 1f;
+            if (input.Up) up += 1f;
+            if (input.Down) up -= 1f;
         }
         else
         {
@@ -327,15 +342,18 @@ public class PlayerController : MonoBehaviour
             right.y = 0f;
             forward.Normalize();
             right.Normalize();
+
+            // 걷기 모드에서 Space로 점프. 수영 모드에선 Space가 상하 이동으로 이미 쓰이고 있어서 여기서 관여 안 함
+            if (input.Up && IsGrounded())
+                jumpRequested = true;
         }
 
-        inputDirection = forward * v + right * h + Vector3.up * up;
+        inputDirection = forward * input.Vertical + right * input.Horizontal + Vector3.up * up;
 
         if (inputDirection.sqrMagnitude > 1f)
             inputDirection.Normalize();
 
-        bool shiftHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
-        IsDashing = shiftHeld && inputDirection.sqrMagnitude > 0.01f;
+        IsDashing = input.Dash && inputDirection.sqrMagnitude > 0.01f;
     }
 
     private void ApplyMovement()
@@ -367,7 +385,7 @@ public class PlayerController : MonoBehaviour
             // 입력이 없거나 수영 외 다른 모션 실행 중일 경우 자연스러운 감속 처리
             if (inputDirection.sqrMagnitude < 0.01f || !isSwimMotion)
             {
-                rb.linearVelocity = Vector3.Lerp(rb.linearVelocity, Vector3.zero, drag * Time.fixedDeltaTime);
+                rb.linearVelocity = Vector3.Lerp(rb.linearVelocity, Vector3.zero, drag * Runner.DeltaTime);
             }
         }
         else
@@ -379,7 +397,7 @@ public class PlayerController : MonoBehaviour
 
             if (inputDirection.sqrMagnitude < 0.01f || !isSwimMotion)
             {
-                Vector3 damped = Vector3.Lerp(horizontalVelocity, Vector3.zero, drag * Time.fixedDeltaTime);
+                Vector3 damped = Vector3.Lerp(horizontalVelocity, Vector3.zero, drag * Runner.DeltaTime);
                 rb.linearVelocity = new Vector3(damped.x, rb.linearVelocity.y, damped.z);
             }
         }
@@ -394,12 +412,11 @@ public class PlayerController : MonoBehaviour
             shouldFaceCamera = shouldFaceCamera || cameraRig.viewMode == PlayerCameraRig.ViewMode.FirstPerson || cameraRig.IsAiming;
         }
 
-        if (shouldFaceCamera && lookReference != null)
+        if (shouldFaceCamera)
         {
             // 마우스 이동으로 카메라가 보는 방향으로 플레이어 몸통도 정렬 (Z축 회전은 0으로 고정)
-            Vector3 euler = lookReference.rotation.eulerAngles;
-            float pitch = isSwimMode ? euler.x : 0f; // 걷기 모드에선 몸이 위아래로 안 기울어짐
-            transform.rotation = Quaternion.Euler(pitch, euler.y, 0f);
+            float pitch = isSwimMode ? lastInput.Pitch : 0f; // 걷기 모드에선 몸이 위아래로 안 기울어짐
+            transform.rotation = Quaternion.Euler(pitch, lastInput.Yaw, 0f);
             return;
         }
 
@@ -409,8 +426,7 @@ public class PlayerController : MonoBehaviour
             Quaternion targetRotation = Quaternion.LookRotation(inputDirection, Vector3.up);
             Vector3 euler = targetRotation.eulerAngles;
             Quaternion fixedTarget = Quaternion.Euler(euler.x, euler.y, 0f);
-            float dt = Time.deltaTime > 0f ? Time.deltaTime : Time.fixedDeltaTime;
-            transform.rotation = Quaternion.Slerp(transform.rotation, fixedTarget, rotationSpeed * dt);
+            transform.rotation = Quaternion.Slerp(transform.rotation, fixedTarget, rotationSpeed * Runner.DeltaTime);
         }
     }
 }
