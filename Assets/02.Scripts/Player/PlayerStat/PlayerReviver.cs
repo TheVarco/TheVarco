@@ -101,12 +101,18 @@ public class PlayerReviver : NetworkBehaviour
             : $"{reviveKey} : 부활시키기 (누르고 있기)");
     }
 
+    private bool promptActive; // 지금 화면 문구가 내가 쓴 것인지
+
     // 상호작용을 잠그지 않고 문구만 덮어쓴다.
     // (잠가버리면 쓰러진 동료 옆에 떨어진 산소통조차 주울 수 없게 됨)
     private void SetPrompt(string text)
     {
         if (interactor == null) return;
+        // 문구 칸은 PlayerItemGiver와 공유한다. 내가 쓴 게 아니면 남의 문구를 지우지 않는다
+        if (text == null && !promptActive) return;
+
         interactor.SetOverridePrompt(text);
+        promptActive = text != null;
     }
 
     void OnDisable()

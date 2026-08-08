@@ -56,14 +56,17 @@ public class Projectile : NetworkBehaviour
         // "띄엄띄엄 맞는" 터널링이 생김. NetworkRigidbody3D가 매 틱 위치를 덮어써서
         // Rigidbody의 연속 충돌 판정도 기대할 수 없다.
         Vector3 step = rb.linearVelocity * Runner.DeltaTime;
+
+        // QueryTriggerInteraction.Ignore가 없으면 잠수함 걷기존 같은 트리거 볼륨에 총알이 죽는다
         if (!hasHit && step.sqrMagnitude > 0f
-            && Physics.Raycast(transform.position, step.normalized, out RaycastHit hit, step.magnitude))
+            && Physics.Raycast(transform.position, step.normalized, out RaycastHit hit, step.magnitude,
+                               ~0, QueryTriggerInteraction.Ignore))
         {
             HandleHit(hit.collider);
-            return;
         }
 
-        if (Runner.SimulationTime >= despawnTime)
+        // 쏜 사람 콜라이더에 걸려 HandleHit가 그냥 빠져나온 경우에도 수명 체크는 돌아야 한다
+        if (!hasHit && Runner.SimulationTime >= despawnTime)
             Runner.Despawn(Object);
     }
 

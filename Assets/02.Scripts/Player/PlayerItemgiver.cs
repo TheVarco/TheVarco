@@ -41,8 +41,8 @@ public class PlayerItemGiver : NetworkBehaviour
         GameObject teammate = (active != null && active.isConsumable) ? FindTeammate() : null;
 
         // 부활 안내가 우선. 같은 문구 칸을 둘이 번갈아 덮어쓰면 깜빡임
-        if (interactor != null && (reviver == null || !reviver.HasReviveTarget))
-            interactor.SetOverridePrompt(teammate != null ? $"{giveKey} : {active.itemName} 건네주기" : null);
+        if (reviver == null || !reviver.HasReviveTarget)
+            SetPrompt(teammate != null ? $"{giveKey} : {active.itemName} {active.giveActionName}" : null);
 
         if (teammate == null || !Input.GetKeyDown(giveKey)) return;
 
@@ -52,9 +52,21 @@ public class PlayerItemGiver : NetworkBehaviour
             hotbar.RemoveActiveItem();
     }
 
+    private bool promptActive; // 지금 화면 문구가 내가 쓴 것인지
+
+    // 문구 칸은 PlayerReviver와 공유한다. 내가 쓴 게 아니면 남의 문구를 지우지 않는다
+    private void SetPrompt(string text)
+    {
+        if (interactor == null) return;
+        if (text == null && !promptActive) return;
+
+        interactor.SetOverridePrompt(text);
+        promptActive = text != null;
+    }
+
     void OnDisable()
     {
-        if (interactor != null) interactor.SetOverridePrompt(null);
+        SetPrompt(null);
     }
 
     private GameObject FindTeammate()
