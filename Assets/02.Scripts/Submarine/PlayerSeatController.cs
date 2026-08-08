@@ -1,12 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
+using Fusion;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
 // 플레이어의 착석 상태를 관리
 // 착석할 때는 플레이어 이동/행동과 충돌을 잠그고 조종석에 고정
 // 하차할 때는 착석 전에 저장해 둔 상태를 다시 복원
-public class PlayerSeatController : MonoBehaviour
+public class PlayerSeatController : NetworkBehaviour
 {
     private KeyCode exitKey = KeyCode.E; // 하차 상호작용 키
     private float statusMessageDuration = 1.5f; // 메시지 표시 시간
@@ -71,6 +72,9 @@ public class PlayerSeatController : MonoBehaviour
 
     private void Update()
     {
+        // 내 캐릭터가 아니면(원격 플레이어) 로컬 입력을 읽지 않음. 비네트워크 씬에선 Object가 null이라 그대로 동작
+        if (Object != null && !Object.HasInputAuthority) return;
+
         // 착석한 프레임에는 E 입력 무시 > 앉을 때 사용한 E가 곧바로 하차 입력으로 처리되는 거 방지
         if (!IsSeated || Time.frameCount <= enteredFrame)
             return;

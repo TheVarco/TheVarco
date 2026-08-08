@@ -14,6 +14,8 @@ public class HungerStat : DepletingStat
 
     protected override void Update()
     {
+        if (!HasAuthority) return; // 계단식 감소도 권한자만 (머신마다 따로 닳는 것 방지)
+
         stepTimer += Time.deltaTime;
 
         if (stepTimer >= stepInterval)

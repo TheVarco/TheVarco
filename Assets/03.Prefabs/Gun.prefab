@@ -142,7 +142,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RangedWeaponItem
   itemName: "\uCD1D"
-  isConsumable: 1
+  isConsumable: 0
   icon: {fileID: 0}
   holdPositionOffset: {x: 0.00193, y: 0.00108, z: 0.00026}
   holdRotationOffset: {x: -27, y: 50, z: 111}

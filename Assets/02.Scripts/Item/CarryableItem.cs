@@ -11,6 +11,8 @@ public class CarryableItem : MonoBehaviour, Interactable
     public bool isConsumable = true;
     [Tooltip("핫바 UI에 표시될 아이콘 (안 채우면 텍스트만 표시됨)")]
     public Sprite icon;
+    [Tooltip("팀원에게 사용할 때 안내 문구에 붙일 동사 (예: 산소통이면 '채워주기', 식량이면 '먹여주기')")]
+    public string giveActionName = "사용해주기";
 
     [Header("손에 들었을 때 위치 보정")]
     public Vector3 holdPositionOffset;
