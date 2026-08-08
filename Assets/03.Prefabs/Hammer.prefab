@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 2124003965240336264}
   - component: {fileID: 4467250443656081559}
   - component: {fileID: 903412007100000001}
+  - component: {fileID: -2899905983869207817}
   m_Layer: 7
   m_Name: Hammer
   m_TagString: Untagged
@@ -21,20 +22,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &903412007100000001
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8304581905840188584}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3f2e5c90963840a3a39a4b3264392991, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::SonarTarget
-  category: 1
-  detectionPoint: {fileID: 0}
 --- !u!4 &3634779920455167651
 Transform:
   m_ObjectHideFlags: 0
@@ -144,6 +131,7 @@ MonoBehaviour:
   itemName: "\uD574\uBA38"
   isConsumable: 0
   icon: {fileID: 0}
+  giveActionName: "\uC0AC\uC6A9\uD574\uC8FC\uAE30"
   holdPositionOffset: {x: 0, y: 0, z: 0}
   holdRotationOffset: {x: 0, y: 0, z: 0}
   repairAmount: 10
@@ -152,3 +140,36 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   progressUI: {fileID: 0}
+--- !u!114 &903412007100000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8304581905840188584}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f2e5c90963840a3a39a4b3264392991, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SonarTarget
+  category: 1
+  detectionPoint: {fileID: 0}
+--- !u!114 &-2899905983869207817
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8304581905840188584}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 4183192911
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 4467250443656081559}
+  ForceRemoteRenderTimeframe: 0

@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 1790637974770456348}
   - component: {fileID: 5303959029185062594}
   - component: {fileID: 903412007100000004}
+  - component: {fileID: -1458918587860876138}
   m_Layer: 7
   m_Name: RopeItem
   m_TagString: Untagged
@@ -21,20 +22,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &903412007100000004
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3834630700010999236}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3f2e5c90963840a3a39a4b3264392991, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::SonarTarget
-  category: 1
-  detectionPoint: {fileID: 0}
 --- !u!4 &901805411465125966
 Transform:
   m_ObjectHideFlags: 0
@@ -145,10 +132,45 @@ MonoBehaviour:
   itemName: "\uBC27\uC904"
   isConsumable: 1
   icon: {fileID: 0}
+  giveActionName: "\uC0AC\uC6A9\uD574\uC8FC\uAE30"
   holdPositionOffset: {x: 0, y: 0, z: 0}
   holdRotationOffset: {x: 0, y: 0, z: 0}
   ropeProjectilePrefab: {fileID: 3498688313566668995, guid: 3d362de4b0fe3814ea68f3993b74549d, type: 3}
   ropeVisualPrefab: {fileID: 5811950906510464521, guid: cb8acdc333f11fd4ea6500cf985f9dbd, type: 3}
+  throwDelay: 0.5
   throwCooldown: 1
   muzzlePoint: {fileID: 0}
   muzzleForwardOffset: 1
+--- !u!114 &903412007100000004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3834630700010999236}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f2e5c90963840a3a39a4b3264392991, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SonarTarget
+  category: 1
+  detectionPoint: {fileID: 0}
+--- !u!114 &-1458918587860876138
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3834630700010999236}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 3304633767
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 5303959029185062594}
+  ForceRemoteRenderTimeframe: 0

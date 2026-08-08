@@ -1,9 +1,14 @@
+using Fusion;
 using UnityEngine;
 
 // 산소통, 자원 등 "손에 들고 다니다가 나중에 쓰거나 내려놓는" 아이템에 붙이는 스크립트.
 // 기존 Interactable을 구현해서 PlayerInteractor(E키)로 집을 수 있게 한다.
+//
+// 네트워크에서는 "누가 들고 있는가"(HolderId)만 복제하고, 손에 붙이는 건 각 머신이
+// 자기 화면의 손 위치를 기준으로 직접 처리한다. 호스트 좌표를 복제받아 붙이면
+// 정작 아이템을 든 본인이 자기 손보다 늦게 따라오는 아이템을 보게 되기 때문.
 [RequireComponent(typeof(Collider))]
-public class CarryableItem : MonoBehaviour, Interactable
+public class CarryableItem : NetworkBehaviour, Interactable
 {
     [Header("아이템 정보")]
     public string itemName = "산소통";
@@ -21,10 +26,79 @@ public class CarryableItem : MonoBehaviour, Interactable
     protected Rigidbody rb { get; private set; }
     protected Collider col { get; private set; }
 
+    [Networked, OnChangedRender(nameof(OnHolderChanged))]
+    private NetworkId HolderId { get; set; } // 유효하지 않으면 바닥에 있는 상태
+
+    [Networked] private Vector3 DroppedPosition { get; set; }
+
+    // 핫바 슬롯을 바꿔서 손에서 잠깐 감출 때. 기본 false = 보임
+    [Networked, OnChangedRender(nameof(OnHiddenChanged))]
+    private NetworkBool NetworkedHidden { get; set; }
+
     protected virtual void Awake()
     {
         rb = GetComponent<Rigidbody>();
         col = GetComponent<Collider>();
+    }
+
+    // 핫바가 "이 사람이 집겠다"고 호스트에 요청할 때 호출
+    public void RequestPickup(NetworkId holder)
+    {
+        if (Object == null) return;
+        RPC_RequestPickup(holder);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestPickup(NetworkId requester)
+    {
+        if (HolderId.IsValid) return; // 동시에 집으면 먼저 도착한 쪽이 가져간다
+        HolderId = requester;
+    }
+
+    // 핫바가 내려놓을 때 호출
+    public void RequestDrop(Vector3 dropPosition)
+    {
+        if (Object == null) { OnDropped(dropPosition); return; } // 러너 없는 씬은 그 자리에서 처리
+        RPC_RequestDrop(dropPosition);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestDrop(Vector3 dropPosition)
+    {
+        DroppedPosition = dropPosition;
+        NetworkedHidden = false; // 바닥에 놓으면 무조건 보이게
+        HolderId = default;
+    }
+
+    // 소모품을 다 써서 없앨 때 호출
+    public void RequestDespawn()
+    {
+        if (Object == null) { Destroy(gameObject); return; }
+        RPC_RequestDespawn();
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestDespawn()
+    {
+        Runner.Despawn(Object);
+    }
+
+    // 소유자가 바뀌면 모든 머신에서 실행. 각자 자기 화면의 손에 붙이거나 바닥에 내려놓는다
+    private void OnHolderChanged()
+    {
+        if (!Runner.TryFindObject(HolderId, out NetworkObject holder))
+        {
+            OnDropped(DroppedPosition);
+            return;
+        }
+
+        PlayerHotbar hotbar = holder.GetComponent<PlayerHotbar>();
+        if (hotbar == null || hotbar.handSocket == null) return;
+
+        OnPickedUp(hotbar.handSocket);
+
+        // 슬롯 관리는 들고 있는 본인 머신에서만 (내 인벤토리는 내가 안다)
+        if (holder.HasInputAuthority) hotbar.RegisterPickedUpItem(this);
     }
 
     public virtual string GetInteractionPrompt()
@@ -78,6 +152,19 @@ public class CarryableItem : MonoBehaviour, Interactable
 
     // 내려놓지는 않고, 다른 핫바 슬롯으로 바꿨을 때 화면에서만 잠깐 숨기는 용도
     public void SetVisible(bool visible)
+    {
+        ApplyVisible(visible); // 내 화면엔 즉시 반영
+        if (Object == null) return;
+
+        RPC_RequestHidden(!visible); // 나머지 머신에도 전파 (안 하면 상대는 안 든 아이템까지 계속 보임)
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestHidden(NetworkBool hidden) => NetworkedHidden = hidden;
+
+    private void OnHiddenChanged() => ApplyVisible(!NetworkedHidden);
+
+    private void ApplyVisible(bool visible)
     {
         Renderer[] renderers = GetComponentsInChildren<Renderer>();
         foreach (Renderer r in renderers)

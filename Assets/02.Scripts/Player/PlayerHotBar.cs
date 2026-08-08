@@ -134,18 +134,38 @@ public class PlayerHotbar : NetworkBehaviour
     // 새 아이템을 주웠을 때 빈 슬롯(2 또는 3)에 넣는다. 슬롯이 꽉 차 있으면 false 반환
     public bool TryAddItem(CarryableItem item)
     {
+        if (item == null || !HasFreeSlot()) return false;
+
+        // 네트워크 세션에서는 호스트가 소유자를 정한다. 그 결과가 돌아오면
+        // CarryableItem.OnHolderChanged가 각 머신에서 손에 붙이고,
+        // 내 것이면 RegisterPickedUpItem으로 슬롯에 들어온다
+        if (item.Object != null && Object != null)
+        {
+            item.RequestPickup(Object.Id);
+            return true;
+        }
+
+        return AddToSlot(item, true);
+    }
+
+    // 아이템이 이미 손에 붙은 뒤 슬롯에만 등록할 때 (네트워크 경로에서 CarryableItem이 호출)
+    public void RegisterPickedUpItem(CarryableItem item) => AddToSlot(item, false);
+
+    private bool AddToSlot(CarryableItem item, bool attachToHand)
+    {
+        foreach (CarryableItem slot in itemSlots)
+            if (slot == item) return true; // 이미 들고 있음 (중복 등록 방지)
+
         for (int i = 0; i < itemSlots.Length; i++)
         {
-            if (itemSlots[i] == null)
-            {
-                itemSlots[i] = item;
-                item.OnPickedUp(handSocket);
-                int slotNumber = IndexToSlotNumber(i);
+            if (itemSlots[i] != null) continue;
 
-                // 아이템을 줍는 즉시 해당 아이템이 들어간 슬롯으로 자동 전환
-                SwitchTo(slotNumber);
-                return true;
-            }
+            itemSlots[i] = item;
+            if (attachToHand) item.OnPickedUp(handSocket);
+
+            // 아이템을 줍는 즉시 해당 아이템이 들어간 슬롯으로 자동 전환
+            SwitchTo(IndexToSlotNumber(i));
+            return true;
         }
         return false; // 핫바가 꽉 참
     }
@@ -191,7 +211,7 @@ public class PlayerHotbar : NetworkBehaviour
         {
             item.OnPrimaryHeld(gameObject, aimReference, false); // 서영 추가
             item.OnSecondaryHeld(gameObject, aimReference, false);
-            Destroy(item.gameObject); // 소모품은 실제로 파괴해야 손에 남아있지 않음
+            item.RequestDespawn(); // 소모품은 실제로 없애야 손에 남아있지 않음 (네트워크면 호스트가 despawn)
         }
     }
 
@@ -208,8 +228,8 @@ public class PlayerHotbar : NetworkBehaviour
             + transform.forward * dropDistance
             + Vector3.up * dropHeightOffset;
 
-        item.OnDropped(dropPosition); // 다시 세상에 존재하는 오브젝트로 되돌림 (안전한 위치 + 물리 켜기)
-        ClearActiveSlot();            // 파괴하지 않고 슬롯 데이터만 비움
+        item.RequestDrop(dropPosition); // 네트워크면 호스트가 소유자를 풀고, 각 머신이 그 위치에 내려놓음
+        ClearActiveSlot();              // 파괴하지 않고 슬롯 데이터만 비움
     }
 
     // 클라이언트는 네트워크 오브젝트를 직접 스폰할 수 없어서 호스트에 요청한다.
