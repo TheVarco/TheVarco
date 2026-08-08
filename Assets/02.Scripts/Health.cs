@@ -31,9 +31,13 @@ public class Health : MonoBehaviour, Damageable
     private static readonly int HPHash = Animator.StringToHash("HP");
     private float lastHitAnimationTime = -999f;
 
+    // 네트워크 동기화 등으로 데미지 처리를 다른 곳에 넘겨야 하는 경우에만 존재 (없으면 예전과 동일하게 동작)
+    private IDamageRouter damageRouter;
+
     void Awake()
     {
         CurrentHealth = maxHealth;
+        damageRouter = GetComponent<IDamageRouter>();
         if (animator == null || animator.runtimeAnimatorController == null)
         {
             Animator[] anims = GetComponentsInChildren<Animator>(true);
@@ -73,6 +77,10 @@ public class Health : MonoBehaviour, Damageable
     public float ApplyDamage(DamageInfo damageInfo)
     {
         if (IsDead || damageInfo.RequestedAmount <= 0f)
+            return 0f;
+
+        // 네트워크 동기화 대상이면 여기서 직접 깎지 않고 권한자(호스트)에게 넘김
+        if (damageRouter != null && damageRouter.RouteDamage(damageInfo))
             return 0f;
 
         float appliedAmount = Mathf.Min(damageInfo.RequestedAmount, CurrentHealth); // 실제 남은 체력보다 더 많은 데미지가 들어가는 거 방지용
@@ -143,5 +151,19 @@ public class Health : MonoBehaviour, Damageable
         UpdateAnimatorHP();
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
         OnRevived?.Invoke();
+    }
+
+    // 외부(네트워크 동기화 등)에서 권위 있는 값으로 그대로 맞출 때 사용.
+    // 데미지/회복 판정 없이 값만 반영하고, 사망/부활 전이 시 기존 이벤트를 그대로 발생시킴.
+    public void SyncFrom(float syncedHealth, bool syncedIsDead)
+    {
+        bool wasDead = IsDead;
+        CurrentHealth = Mathf.Clamp(syncedHealth, 0f, maxHealth);
+        IsDead = syncedIsDead;
+        UpdateAnimatorHP();
+        OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
+
+        if (!wasDead && IsDead) OnDeath?.Invoke();
+        else if (wasDead && !IsDead) OnRevived?.Invoke();
     }
 }

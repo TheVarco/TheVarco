@@ -1,7 +1,8 @@
+using Fusion;
 using UnityEngine;
 
 // 플레이어의 근접 공격. 앞쪽 일정 범위 안의 Damageable을 모두 때린다.
-public class MeleeAttack : MonoBehaviour
+public class MeleeAttack : NetworkBehaviour
 {
     [Header("공격 수치 (밸런싱용 - 여기서 직접 조절)")]
     [Tooltip("한 번 때릴 때 주는 데미지")]
@@ -12,6 +13,8 @@ public class MeleeAttack : MonoBehaviour
     public float attackCooldown = 0.5f;
     [Tooltip("정면 기준 이 각도 안에 있는 대상만 타격 (예: 60이면 좌우 30도씩, 총 60도 부채꼴)")]
     public float attackAngle = 60f;
+    [Tooltip("이 거리 안이면 각도 판정을 건너뜀 (바짝 붙었을 때 대상 방향이 불안정해지는 문제 방지)")]
+    public float closeRangeIgnoreAngle = 1f;
 
     [Header("참조")]
     [Tooltip("공격 판정의 중심이 될 위치 (보통 Player 앞쪽에 빈 오브젝트를 만들어 연결)")]
@@ -27,7 +30,6 @@ public class MeleeAttack : MonoBehaviour
     public Animator animator;
 
     private float cooldownTimer = 0f;
-    private static readonly int AttackHash = Animator.StringToHash("Attack");
 
     void Awake()
     {
@@ -43,6 +45,9 @@ public class MeleeAttack : MonoBehaviour
 
     void Update()
     {
+        // 내 캐릭터가 아니면(원격 플레이어) 로컬 입력을 읽지 않음. 비네트워크 씬에선 Object가 null이라 그대로 동작
+        if (Object != null && !Object.HasInputAuthority) return;
+
         // 무기를 들고 있으면 우클릭은 조준 용도로 넘어가므로, 여기서는 무시함
         bool bareHanded = hotbar == null || hotbar.ActiveSlot == 1;
         if (!bareHanded) return;
@@ -59,10 +64,8 @@ public class MeleeAttack : MonoBehaviour
 
     private void PerformAttack()
     {
-        if (animator != null)
-        {
-            animator.SetTrigger(AttackHash);
-        }
+        // 공격 모션은 PlayerController.HandleClickMotions가 네트워크로 재생하므로 여기선 데미지만 담당한다.
+        // (애니메이터에 "Attack" 파라미터가 없어서 예전 SetTrigger는 경고만 내고 아무 동작도 안 했음)
 
         if (attackPoint == null)
         {
@@ -77,10 +80,17 @@ public class MeleeAttack : MonoBehaviour
             // 자기 자신은 때리지 않도록 제외 (자식 오브젝트에 Collider가 있어도 안전하게 걸러지도록 root로 비교)
             if (hit.transform.root == transform.root) continue;
 
-            // 정면 기준 각도 체크: 부채꼴 범위 밖(등 뒤 등)에 있으면 무시
-            Vector3 directionToTarget = (hit.transform.position - attackPoint.position).normalized;
-            float angle = Vector3.Angle(attackPoint.forward, directionToTarget);
-            if (angle > attackAngle * 0.5f) continue;
+            // 콜라이더 피벗(플레이어는 발밑)이 아니라 몸통 중심을 기준으로 방향을 잡는다
+            Vector3 toTarget = hit.bounds.center - attackPoint.position;
+            float dist = toTarget.magnitude;
+
+            // 정면 기준 각도 체크: 부채꼴 범위 밖(등 뒤 등)에 있으면 무시.
+            // 단, 바짝 붙으면 대상 방향이 불안정해져서 각도가 오히려 방해가 되므로 가까울 땐 건너뛴다
+            if (dist > closeRangeIgnoreAngle)
+            {
+                float angle = Vector3.Angle(attackPoint.forward, toTarget);
+                if (angle > attackAngle * 0.5f) continue;
+            }
 
             Damageable target = hit.GetComponentInParent<Damageable>();
             if (target != null && !target.IsDead)

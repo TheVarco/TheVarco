@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using Fusion;
 
@@ -108,6 +109,8 @@ public class PlayerController : NetworkBehaviour
             animator.SetFloat("HP", 100f); // 첫 프레임 HP=0 평가로 인한 Dead 모션 자동 발동 방지
         }
 
+        CacheAnimatorParameters();
+
         if (hotbar == null)
         {
             hotbar = GetComponent<PlayerHotbar>();
@@ -126,6 +129,22 @@ public class PlayerController : NetworkBehaviour
             }
         }
     }
+
+    private HashSet<int> animatorParameterHashes;
+
+    // 애니메이터 컨트롤러에 실제로 존재하는 파라미터만 기억해둔다.
+    // (컨트롤러에서 파라미터가 빠져도 매 프레임 "Parameter does not exist" 경고가 쏟아지지 않게)
+    private void CacheAnimatorParameters()
+    {
+        animatorParameterHashes = new HashSet<int>();
+        if (animator == null || animator.runtimeAnimatorController == null) return;
+
+        foreach (AnimatorControllerParameter p in animator.parameters)
+            animatorParameterHashes.Add(p.nameHash);
+    }
+
+    private bool HasAnimatorParameter(int hash)
+        => animatorParameterHashes != null && animatorParameterHashes.Contains(hash);
 
     // 이 오브젝트가 네트워크에 스폰된 직후 한 번 호출됨 (Fusion 콜백)
     public override void Spawned()
@@ -178,7 +197,7 @@ public class PlayerController : NetworkBehaviour
     {
         UpdateAnimator(); // 순수 시각 동기화라 모든 인스턴스에서 실행 (원격 캐릭터도 애니메이션 정상 표시되게)
 
-        if (!Object.HasInputAuthority) return;
+        if (Object != null && !Object.HasInputAuthority) return;
 
         HandleQuickRotate();
         HandleClickMotions();
@@ -213,10 +232,7 @@ public class PlayerController : NetworkBehaviour
         if (Input.GetMouseButtonDown(0))
         {
             animator.SetBool(IsPushPullHash, true);
-            if (animator.HasState(0, PushPullStateHash))
-            {
-                animator.Play(PushPullStateHash, 0, 0f);
-            }
+            PlayMotionState(PushPullStateHash);
         }
         else if (Input.GetMouseButtonUp(0))
         {
@@ -226,12 +242,31 @@ public class PlayerController : NetworkBehaviour
         // 우클릭: NoWeapon 모션 실행
         if (Input.GetMouseButtonDown(1))
         {
-            animator.SetTrigger(AttackHash);
-            if (animator.HasState(0, NoWeaponStateHash))
-            {
-                animator.Play(NoWeaponStateHash, 0, 0f);
-            }
+            PlayMotionState(NoWeaponStateHash);
         }
+    }
+
+    // 네트워크 세션이면 모두에게 전파하고, 러너가 없는 씬(팀원 테스트 씬 등)이면 로컬에서만 재생한다.
+    // RPC는 스폰된 NetworkObject가 있어야 하므로 Object가 null이면 호출하면 안 된다
+    private void PlayMotionState(int stateHash)
+    {
+        if (Object != null)
+        {
+            RPC_PlayMotionState(stateHash);
+            return;
+        }
+
+        if (animator != null && animator.HasState(0, stateHash))
+            animator.Play(stateHash, 0, 0f);
+    }
+
+    // 클릭 모션처럼 순간적으로 한 번 재생되는 동작을 모든 클라이언트에 전파한다.
+    // (이동/수영 애니메이션은 복제된 속도로 각자 계산되므로 여기서 다루지 않음)
+    [Rpc(RpcSources.InputAuthority, RpcTargets.All)]
+    private void RPC_PlayMotionState(int stateHash)
+    {
+        if (animator != null && animator.HasState(0, stateHash))
+            animator.Play(stateHash, 0, 0f);
     }
 
     private void HandleQuickRotate()
@@ -284,31 +319,52 @@ public class PlayerController : NetworkBehaviour
         spinCoroutine = null;
     }
 
+    private float GetAnimationSpeed()
+    {
+        // 내가 시뮬레이션하는 캐릭터는 로컬 값이 가장 즉각적이라 그대로 쓴다
+        bool isLocallySimulated = Object == null || Object.HasInputAuthority || Object.HasStateAuthority;
+        if (isLocallySimulated)
+        {
+            float activeTargetSpeed = IsDashing ? dashSpeed : moveSpeed;
+            return rb != null ? rb.linearVelocity.magnitude : inputDirection.magnitude * activeTargetSpeed;
+        }
+
+        // 남의 캐릭터(프록시)는 kinematic이라 로컬 속도가 0이므로, 권한자가 보내준 값을 쓴다
+        return NetworkedSpeed;
+    }
+
     private void UpdateAnimator()
     {
         if (animator == null) return;
 
-        float activeTargetSpeed = IsDashing ? dashSpeed : moveSpeed;
-        float currentSpeed = rb != null ? rb.linearVelocity.magnitude : inputDirection.magnitude * activeTargetSpeed;
+        float currentSpeed = GetAnimationSpeed();
         bool isMoving = inputDirection.sqrMagnitude > 0.01f || currentSpeed > 0.1f;
 
         animator.SetBool(IsMovingHash, isMoving);
         animator.SetFloat(SpeedHash, currentSpeed);
         animator.SetBool(IsSwimmingHash, true);
 
-        if (hotbar != null)
+        if (hotbar != null && HasAnimatorParameter(HasWeaponHash))
         {
             animator.SetBool(HasWeaponHash, hotbar.GetActiveItem() != null);
         }
     }
 
+    // 애니메이션용 속도. 프록시는 Physics Addon이 Rigidbody를 강제로 kinematic으로 만들고
+    // 속도 복제를 건너뛰기 때문에 rb.linearVelocity가 항상 0이라, 권한자가 이 값을 실어 보낸다.
+    [Networked] private float NetworkedSpeed { get; set; }
+
     public override void FixedUpdateNetwork()
     {
-        if (GetInput(out NetworkInputData input))
-        {
-            ReadInput(input);
-        }
+        if (Object.HasStateAuthority && rb != null)
+            NetworkedSpeed = rb.linearVelocity.magnitude;
 
+        // 프록시(내 화면 속 남의 캐릭터)에서는 GetInput이 false라 입력이 없다.
+        // 그 상태로 이동/회전을 계산하면 기본값(Yaw=0, 정지)으로 몸을 꺾고 제동을 걸어서
+        // NetworkRigidbody3D가 복제하는 진짜 값과 싸우게 되므로, 입력이 있을 때만 계산한다.
+        if (!GetInput(out NetworkInputData input)) return;
+
+        ReadInput(input);
         ApplyRotation();
         ApplyMovement();
 

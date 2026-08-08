@@ -1,10 +1,11 @@
+using Fusion;
 using UnityEngine;
 
 // 좌클릭을 누르고 있는 동안, 바라보는 GrabbableItem을 물리적으로 끌어당겨 들고 다니는 스크립트.
 // SpringJoint 대신 매 프레임 직접 스프링-감쇠 힘을 계산해서 AddForce로 적용한다.
 // 이렇게 하면 최대 힘(maxForce)을 확실하게 제한할 수 있어서 "날아다니는" 현상을 막을 수 있고,
 // 손에 딱 붙이는 방식(부모-자식)이 아니라서 여러 명이 동시에 같은 물체를 잡아도 각자 힘이 자연스럽게 더해진다.
-public class PlayerGrabber : MonoBehaviour
+public class PlayerGrabber : NetworkBehaviour
 {
     [Header("감지 설정")]
     public float grabRange = 2.5f;
@@ -45,6 +46,9 @@ public class PlayerGrabber : MonoBehaviour
 
     void Update()
     {
+        // 내 캐릭터가 아니면(원격 플레이어) 로컬 입력을 읽지 않음. 비네트워크 씬에선 Object가 null이라 그대로 동작
+        if (Object != null && !Object.HasInputAuthority) return;
+
         // 무기 슬롯을 들고 있으면 손이 찼으니 무거운 물체를 못 잡게 함
         bool bareHanded = hotbar == null || hotbar.ActiveSlot == 1;
         if (!bareHanded)

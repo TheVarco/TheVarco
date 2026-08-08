@@ -1,3 +1,4 @@
+using Fusion;
 using UnityEngine;
 
 // 원거리 무기 아이템. CarryableItem의 좌/우클릭 기본 동작을 재정의해서,
@@ -7,6 +8,8 @@ public class RangedWeaponItem : CarryableItem
 {
     [Header("발사 설정 (밸런싱용)")]
     public GameObject projectilePrefab;
+    [Tooltip("네트워크 스폰용 총알 프리팹. 비어있으면 위의 projectilePrefab으로 로컬 생성 (러너 없는 씬용)")]
+    public NetworkPrefabRef projectilePrefabRef;
     [Tooltip("다시 발사 가능해지기까지 걸리는 시간(초)")]
     public float fireCooldown = 0.5f;
     [Tooltip("총구가 실제로 태어나는 위치를 지정하고 싶으면 이 무기 모델의 자식으로 만들어 연결. 비워두면 조준 기준점(카메라) 위치에서 발사됨")]
@@ -141,6 +144,14 @@ public class RangedWeaponItem : CarryableItem
         }
 
         Vector3 fireDirection = (targetPoint - spawnPosition).normalized;
+
+        // 네트워크 세션이면 호스트가 총알을 스폰하고 판정까지 담당한다
+        PlayerHotbar userHotbar = user != null ? user.GetComponent<PlayerHotbar>() : null;
+        if (userHotbar != null && userHotbar.Object != null && projectilePrefabRef.IsValid)
+        {
+            userHotbar.SpawnProjectile(projectilePrefabRef, spawnPosition, fireDirection);
+            return;
+        }
 
         GameObject spawned = Instantiate(
             projectilePrefab,

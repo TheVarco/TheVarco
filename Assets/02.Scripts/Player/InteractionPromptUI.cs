@@ -17,6 +17,20 @@ public class InteractionPromptUI : MonoBehaviour
         HandlePromptChanged(null); // 시작할 땐 아무것도 안 보이게
     }
 
+    // 로컬 플레이어가 스폰될 때 자기 자신을 등록하기 위해 호출 (씬 UI는 동적 스폰된 플레이어를 미리 참조할 수 없음)
+    public void SetInteractor(PlayerInteractor newInteractor)
+    {
+        if (interactor != null)
+            interactor.OnPromptChanged -= HandlePromptChanged;
+
+        interactor = newInteractor;
+
+        if (interactor != null)
+            interactor.OnPromptChanged += HandlePromptChanged;
+
+        HandlePromptChanged(null);
+    }
+
     void OnDestroy()
     {
         // 구독 해제 안 하면, 이 오브젝트가 사라진 뒤에도 PlayerInteractor가

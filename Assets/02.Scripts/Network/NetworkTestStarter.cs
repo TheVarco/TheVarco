@@ -1,4 +1,5 @@
 using Fusion;
+using Fusion.Addons.Physics;
 using Fusion.Sockets;
 using UnityEngine;
 
@@ -39,6 +40,12 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
     {
         runner = gameObject.AddComponent<NetworkRunner>();
         runner.ProvideInput = true; // 이 클라이언트가 입력을 보낼 수 있게 함
+
+        // NetworkRigidbody3D가 자동으로 붙여주는 기본값은 ClientPhysicsSimulation.Disabled 라서,
+        // 클라이언트가 자기 움직임을 예측하지 못하고 호스트가 돌려준 결과를 기다리게 된다(입력 지연).
+        // 직접 붙여서 클라이언트에서도 물리를 시뮬레이션(예측)하도록 설정한다.
+        var physicsSimulation = gameObject.AddComponent<RunnerSimulatePhysics3D>();
+        physicsSimulation.ClientPhysicsSimulation = ClientPhysicsSimulation.SimulateAlways;
 
         int buildIndex = UnityEngine.SceneManagement.SceneUtility.GetBuildIndexByScenePath(targetScenePath);
 
