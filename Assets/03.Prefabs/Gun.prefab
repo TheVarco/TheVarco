@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 6898703537421372119}
   - component: {fileID: 6809265370350088681}
   - component: {fileID: 903412007100000002}
+  - component: {fileID: -7107617921089338239}
   m_Layer: 7
   m_Name: Gun
   m_TagString: Untagged
@@ -21,20 +22,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &903412007100000002
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7587697551435802306}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3f2e5c90963840a3a39a4b3264392991, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::SonarTarget
-  category: 1
-  detectionPoint: {fileID: 0}
 --- !u!4 &4496379754624556189
 Transform:
   m_ObjectHideFlags: 0
@@ -144,9 +131,45 @@ MonoBehaviour:
   itemName: "\uCD1D"
   isConsumable: 0
   icon: {fileID: 0}
+  giveActionName: "\uC0AC\uC6A9\uD574\uC8FC\uAE30"
   holdPositionOffset: {x: 0.00193, y: 0.00108, z: 0.00026}
   holdRotationOffset: {x: -27, y: 50, z: 111}
   projectilePrefab: {fileID: 1204494174198073114, guid: e835af6273f2bbc43a3c25a782916ab6, type: 3}
+  projectilePrefabRef:
+    RawGuidValue: 00000000000000000000000000000000
   fireCooldown: 0.3
   muzzlePoint: {fileID: 0}
   muzzleForwardOffset: 1
+--- !u!114 &903412007100000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7587697551435802306}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f2e5c90963840a3a39a4b3264392991, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SonarTarget
+  category: 1
+  detectionPoint: {fileID: 0}
+--- !u!114 &-7107617921089338239
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7587697551435802306}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 4070576583
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 6809265370350088681}
+  ForceRemoteRenderTimeframe: 0

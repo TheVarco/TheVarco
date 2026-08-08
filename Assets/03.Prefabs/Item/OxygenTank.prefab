@@ -103,6 +103,7 @@ GameObject:
   - component: {fileID: 2409642660373272941}
   - component: {fileID: 1731377030182209832}
   - component: {fileID: 903412007100000005}
+  - component: {fileID: 2886523082759981568}
   m_Layer: 7
   m_Name: OxygenTank
   m_TagString: Untagged
@@ -162,6 +163,7 @@ MonoBehaviour:
   itemName: "\uC0B0\uC18C\uD1B5"
   isConsumable: 1
   icon: {fileID: 0}
+  giveActionName: "\uC0AC\uC6A9\uD574\uC8FC\uAE30"
   holdPositionOffset: {x: 0, y: 0.01, z: 0.001}
   holdRotationOffset: {x: 0, y: 0, z: 180}
   refillAmount: 50
@@ -206,6 +208,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SonarTarget
   category: 1
   detectionPoint: {fileID: 0}
+--- !u!114 &2886523082759981568
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8677332698467392810}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 3033590066
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 2409642660373272941}
+  ForceRemoteRenderTimeframe: 0
 --- !u!1 &9166591089588559613
 GameObject:
   m_ObjectHideFlags: 0

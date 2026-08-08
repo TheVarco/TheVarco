@@ -13,8 +13,8 @@ GameObject:
   - component: {fileID: 5226237020376369950}
   - component: {fileID: 2992046803541010456}
   - component: {fileID: 9218813463295739997}
-  - component: {fileID: 4810876736771655386}
   - component: {fileID: 903412007100000003}
+  - component: {fileID: -6732476939766284223}
   m_Layer: 7
   m_Name: NomalItem
   m_TagString: Untagged
@@ -22,20 +22,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &903412007100000003
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3442563439716620189}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3f2e5c90963840a3a39a4b3264392991, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::SonarTarget
-  category: 1
-  detectionPoint: {fileID: 0}
 --- !u!4 &6800865464644984752
 Transform:
   m_ObjectHideFlags: 0
@@ -146,10 +132,11 @@ MonoBehaviour:
   itemName: "\uC0B0\uC18C\uD1B5"
   isConsumable: 1
   icon: {fileID: 0}
+  giveActionName: "\uC0AC\uC6A9\uD574\uC8FC\uAE30"
   holdPositionOffset: {x: 0, y: 0.01, z: 0.001}
   holdRotationOffset: {x: 0, y: 0, z: 180}
   refillAmount: 50
---- !u!114 &4810876736771655386
+--- !u!114 &903412007100000003
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -158,11 +145,27 @@ MonoBehaviour:
   m_GameObject: {fileID: 3442563439716620189}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: de8fb6f142695f8439868bed00c2ecb8, type: 3}
+  m_Script: {fileID: 11500000, guid: 3f2e5c90963840a3a39a4b3264392991, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CarryableItem
-  itemName: "\uC0B0\uC18C\uD1B5"
-  isConsumable: 1
-  icon: {fileID: 0}
-  holdPositionOffset: {x: 0, y: 0, z: 0}
-  holdRotationOffset: {x: 0, y: 0, z: 0}
+  m_EditorClassIdentifier: Assembly-CSharp::SonarTarget
+  category: 1
+  detectionPoint: {fileID: 0}
+--- !u!114 &-6732476939766284223
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3442563439716620189}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 557059651
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 9218813463295739997}
+  ForceRemoteRenderTimeframe: 0

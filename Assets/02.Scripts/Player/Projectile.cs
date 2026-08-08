@@ -15,6 +15,8 @@ public class Projectile : NetworkBehaviour
     public float damage = 15f;
     [Tooltip("아무것도 안 맞고 이 시간(초)이 지나면 자동으로 사라짐 (허공으로 날아가다 안 없어지는 것 방지)")]
     public float lifeTime = 5f;
+    [Tooltip("판정 굵기. 0이면 얇은 선으로 훑어서 대상 옆구리로 스칠 때 놓침")]
+    public float hitRadius = 0.1f;
 
     // 쏜 사람 (자기 자신에게 맞지 않게 구분하고, TakeDamage에 누가 쐈는지 전달하는 용도)
     [HideInInspector] public GameObject owner;
@@ -59,8 +61,8 @@ public class Projectile : NetworkBehaviour
 
         // QueryTriggerInteraction.Ignore가 없으면 잠수함 걷기존 같은 트리거 볼륨에 총알이 죽는다
         if (!hasHit && step.sqrMagnitude > 0f
-            && Physics.Raycast(transform.position, step.normalized, out RaycastHit hit, step.magnitude,
-                               ~0, QueryTriggerInteraction.Ignore))
+            && Physics.SphereCast(transform.position, hitRadius, step.normalized, out RaycastHit hit,
+                                  step.magnitude, ~0, QueryTriggerInteraction.Ignore))
         {
             HandleHit(hit.collider);
         }

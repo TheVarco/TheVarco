@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 // 잠수함 내부처럼 "걸어야 하는 공간"에 트리거로 배치.
@@ -10,30 +11,34 @@ public class PlayerWalkZone : MonoBehaviour
     public float groundCheckDistance = 1f;
     public LayerMask groundLayer = ~0;
 
-    private PlayerController playerInZone;
+    // 여러 명이 동시에 들어올 수 있다. 한 명만 들고 있으면 나중에 들어온 사람이 앞사람을 덮어써서,
+    // 모든 플레이어의 이동을 시뮬레이션하는 호스트에서 누군가는 잠수함 안인데도 수영 모드로 남는다
+    private readonly HashSet<PlayerController> playersInZone = new HashSet<PlayerController>();
 
     private void OnTriggerEnter(Collider other)
     {
         PlayerController controller = other.GetComponentInParent<PlayerController>();
         if (controller != null)
-            playerInZone = controller;
+            playersInZone.Add(controller);
     }
 
     private void OnTriggerExit(Collider other)
     {
         PlayerController controller = other.GetComponentInParent<PlayerController>();
-        if (controller == playerInZone)
-        {
-            playerInZone = null;
+        if (controller != null && playersInZone.Remove(controller))
             controller.SetSwimMode(true);
-        }
     }
 
     private void Update()
     {
-        if (playerInZone == null) return;
+        if (playersInZone.Count == 0) return;
 
-        bool nearGround = Physics.Raycast(playerInZone.transform.position, Vector3.down, groundCheckDistance, groundLayer);
-        playerInZone.SetSwimMode(!nearGround);
+        playersInZone.RemoveWhere(p => p == null); // 나가서 despawn된 플레이어 정리
+
+        foreach (PlayerController player in playersInZone)
+        {
+            bool nearGround = Physics.Raycast(player.transform.position, Vector3.down, groundCheckDistance, groundLayer);
+            player.SetSwimMode(!nearGround);
+        }
     }
 }

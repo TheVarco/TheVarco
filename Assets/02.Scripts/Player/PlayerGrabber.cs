@@ -30,7 +30,7 @@ public class PlayerGrabber : NetworkBehaviour
 
     private Rigidbody grabbedBody;
     private GrabbableItem grabbedItem;
-    private static readonly int IsPushPullHash = Animator.StringToHash("IsPushPull");
+    private PlayerController controller; // 미는 자세를 네트워크로 전파하려면 여기를 거친다
 
     void Awake()
     {
@@ -42,6 +42,13 @@ public class PlayerGrabber : NetworkBehaviour
                 animator = GetComponentInChildren<Animator>();
             }
         }
+
+        controller = GetComponent<PlayerController>();
+    }
+
+    private void SetPushPull(bool value)
+    {
+        if (controller != null) controller.SetPushPull(value);
     }
 
     void Update()
@@ -54,16 +61,13 @@ public class PlayerGrabber : NetworkBehaviour
         if (!bareHanded)
         {
             if (grabbedBody != null) Release();
-            if (animator != null) animator.SetBool(IsPushPullHash, false);
+            SetPushPull(false);
             return;
         }
 
         // 맨손 상태에서 좌클릭(Mouse0)을 누르고 있으면 PushPull 모션 실행
         bool isHoldingGrab = Input.GetKey(grabKey);
-        if (animator != null)
-        {
-            animator.SetBool(IsPushPullHash, isHoldingGrab || grabbedBody != null);
-        }
+        SetPushPull(isHoldingGrab || grabbedBody != null);
 
         if (Input.GetKeyDown(grabKey))
             TryGrab();
@@ -125,10 +129,7 @@ public class PlayerGrabber : NetworkBehaviour
         grabbedBody = bestBody;
         grabbedItem = bestTarget;
 
-        if (animator != null)
-        {
-            animator.SetBool(IsPushPullHash, true);
-        }
+        SetPushPull(true);
     }
 
     private void Release()
@@ -136,10 +137,7 @@ public class PlayerGrabber : NetworkBehaviour
         grabbedBody = null;
         grabbedItem = null;
 
-        if (animator != null)
-        {
-            animator.SetBool(IsPushPullHash, false);
-        }
+        SetPushPull(false);
     }
 
     // 서영 추가 (잠수함 조종)
