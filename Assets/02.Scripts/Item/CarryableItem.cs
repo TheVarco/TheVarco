@@ -187,18 +187,13 @@ public class CarryableItem : NetworkBehaviour, Interactable
     // 반환값(true/false)은 "이 행동 이후 아이템을 핫바에서 제거(소모)할지"를 PlayerHotbar에게 알려주는 용도.
     public virtual bool OnPrimaryAction(GameObject user, Transform aimReference)
     {
+        // 애니메이터에 없는 파라미터(HasWeapon/Attack)를 호출하면 경고만 나므로 제거하고,
+        // 실제로 존재하는 MeleeWeapon 스테이트를 네트워크 경로로 재생한다 (원격에서도 보이게)
         if (user != null)
         {
-            Animator anim = user.GetComponentInChildren<Animator>();
-            if (anim != null)
-            {
-                anim.SetBool("HasWeapon", true);
-                anim.SetTrigger("Attack");
-                if (anim.HasState(0, Animator.StringToHash("MeleeWeapon")))
-                {
-                    anim.Play(Animator.StringToHash("MeleeWeapon"), 0, 0f);
-                }
-            }
+            PlayerController controller = user.GetComponent<PlayerController>();
+            if (controller != null)
+                controller.PlayMotionState(Animator.StringToHash("MeleeWeapon"));
         }
         OnUse(user, user); // 기본은 자기 자신을 대상으로 사용
         return isConsumable;

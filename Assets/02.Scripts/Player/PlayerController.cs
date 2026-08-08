@@ -231,12 +231,12 @@ public class PlayerController : NetworkBehaviour
         // 좌클릭: PushPull 모션 실행
         if (Input.GetMouseButtonDown(0))
         {
-            animator.SetBool(IsPushPullHash, true);
+            SetPushPull(true);
             PlayMotionState(PushPullStateHash);
         }
         else if (Input.GetMouseButtonUp(0))
         {
-            animator.SetBool(IsPushPullHash, false);
+            SetPushPull(false);
         }
 
         // 우클릭: NoWeapon 모션 실행
@@ -248,7 +248,7 @@ public class PlayerController : NetworkBehaviour
 
     // 네트워크 세션이면 모두에게 전파하고, 러너가 없는 씬(팀원 테스트 씬 등)이면 로컬에서만 재생한다.
     // RPC는 스폰된 NetworkObject가 있어야 하므로 Object가 null이면 호출하면 안 된다
-    private void PlayMotionState(int stateHash)
+    public void PlayMotionState(int stateHash)
     {
         if (Object != null)
         {
@@ -344,6 +344,10 @@ public class PlayerController : NetworkBehaviour
         animator.SetFloat(SpeedHash, currentSpeed);
         animator.SetBool(IsSwimmingHash, true);
 
+        // 본인은 로컬 값이라 즉각 반응하고, 남의 캐릭터는 복제된 값을 쓴다
+        bool pushPull = (Object == null || Object.HasInputAuthority) ? localPushPull : NetworkedPushPull;
+        if (HasAnimatorParameter(IsPushPullHash)) animator.SetBool(IsPushPullHash, pushPull);
+
         if (hotbar != null && HasAnimatorParameter(HasWeaponHash))
         {
             animator.SetBool(HasWeaponHash, hotbar.GetActiveItem() != null);
@@ -353,6 +357,22 @@ public class PlayerController : NetworkBehaviour
     // 애니메이션용 속도. 프록시는 Physics Addon이 Rigidbody를 강제로 kinematic으로 만들고
     // 속도 복제를 건너뛰기 때문에 rb.linearVelocity가 항상 0이라, 권한자가 이 값을 실어 보낸다.
     [Networked] private float NetworkedSpeed { get; set; }
+
+    // 물건을 미는 자세. 누르고 있는 동안 유지되는 상태라 한 번 재생하는 모션(RPC)과 달리 값으로 들고 있어야 한다
+    private bool localPushPull;
+    [Networked] private NetworkBool NetworkedPushPull { get; set; }
+
+    public void SetPushPull(bool value)
+    {
+        if (localPushPull == value) return;
+        localPushPull = value;
+
+        if (Object == null) return; // 러너 없는 씬은 로컬 값만으로 충분
+        RPC_SetPushPull(value);
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_SetPushPull(NetworkBool value) => NetworkedPushPull = value;
 
     public override void FixedUpdateNetwork()
     {
