@@ -55,6 +55,48 @@ public class RepairableStructure : MonoBehaviour
     public int SlotCount => damageSlots?.Length ?? 0;
     public float RepairCycleDuration => repairCycleDuration;
 
+    // 체크포인트용 부위별 누적 손상 복사
+    public float[] CaptureCheckpointDamage()
+    {
+        float[] values = new float[SlotCount];
+        for (int i = 0; i < values.Length; i++)
+            values[i] = damageSlots[i]?.accumulatedDamage ?? 0f;
+        return values;
+    }
+
+    // 체크포인트용 부위별 수리 진행 시간 복사
+    public float[] CaptureCheckpointRepairProgress()
+    {
+        float[] values = new float[SlotCount];
+        for (int i = 0; i < values.Length; i++)
+            values[i] = damageSlots[i]?.repairProgressSeconds ?? 0f;
+        return values;
+    }
+
+    // 체크포인트 데이터로 부위 손상과 수리 진행 상태 복원
+    // 복원 이후 데칼 표시 즉시 갱신
+    public void RestoreCheckpointDamage(float[] accumulatedDamage, float[] repairProgress)
+    {
+        activeRepairSlot = -1;
+        if (damageSlots == null)
+            return;
+
+        for (int i = 0; i < damageSlots.Length; i++)
+        {
+            DamageDecalSlot slot = damageSlots[i];
+            if (slot == null)
+                continue;
+
+            slot.accumulatedDamage = accumulatedDamage != null && i < accumulatedDamage.Length
+                ? Mathf.Max(0f, accumulatedDamage[i])
+                : 0f;
+            slot.repairProgressSeconds = repairProgress != null && i < repairProgress.Length
+                ? Mathf.Clamp(repairProgress[i], 0f, repairCycleDuration)
+                : 0f;
+            UpdateSlotDamageVisual(slot);
+        }
+    }
+
     private void Awake()
     {
         health = GetComponent<Health>();

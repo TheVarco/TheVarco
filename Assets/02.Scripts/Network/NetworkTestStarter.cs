@@ -88,7 +88,13 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
         Vector3 basePosition = spawnOrigin != null ? spawnOrigin.position : Vector3.zero;
         Vector3 offset = Quaternion.Euler(0f, player.PlayerId * 90f, 0f) * Vector3.forward * spawnSpreadRadius;
 
-        spawnedPlayers[player] = runner.Spawn(playerPrefab, basePosition + offset, Quaternion.identity, player);
+        NetworkObject playerObject = runner.Spawn(
+            playerPrefab,
+            basePosition + offset,
+            Quaternion.identity,
+            player);
+        spawnedPlayers[player] = playerObject;
+        runner.SetPlayerObject(player, playerObject);
     }
 
     // 나간 사람 캐릭터를 지우지 않으면 월드에 유령처럼 남아서 길을 막고,

@@ -12,6 +12,24 @@ public class SubmarineDoor : MonoBehaviour, Interactable
     private bool isOpen;
     private Coroutine autoCloseRoutine;
 
+    // 현재 논리 문 열림 상태
+    public bool IsOpen => isOpen;
+
+    // 자동 닫힘 예약을 취소하고 체크포인트 문 상태 적용
+    public void RestoreCheckpointState(bool open)
+    {
+        if (autoCloseRoutine != null)
+        {
+            StopCoroutine(autoCloseRoutine);
+            autoCloseRoutine = null;
+        }
+
+        if (open)
+            OpenDoor();
+        else
+            CloseDoor();
+    }
+
     void Awake()
     {
         if (doorAnimator == null)

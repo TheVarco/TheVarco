@@ -40,6 +40,18 @@ public abstract class ObstaclePatternBase : MonoBehaviour
     // 설정 그룹에서 제어 가능한 대상만 확보해 선택된 시간표 시작
     public bool StartPattern()
     {
+        return StartPatternAtGroup(0);
+    }
+
+    // 저장된 그룹부터 새 타이머로 패턴 재시작
+    public bool RestartPatternAtGroup(int groupIndex)
+    {
+        StopAndReset();
+        return StartPatternAtGroup(groupIndex);
+    }
+
+    private bool StartPatternAtGroup(int groupIndex)
+    {
         if (IsRunning || !isActiveAndEnabled)
             return false;
 
@@ -66,7 +78,7 @@ public abstract class ObstaclePatternBase : MonoBehaviour
         ResetAllTargets();
         IsRunning = true;
         patternRoutine = StartCoroutine(UsesCrossPattern
-            ? RunCrossPattern()
+            ? RunCrossPattern(Mathf.Clamp(groupIndex, 0, 1))
             : RunAlonePattern());
         return true;
     }
@@ -112,19 +124,20 @@ public abstract class ObstaclePatternBase : MonoBehaviour
     }
 
     // 시작 지연 후 두 그룹을 사전 예고시간에 맞춰 교대로 활성화
-    private IEnumerator RunCrossPattern()
+    private IEnumerator RunCrossPattern(int initialGroupIndex)
     {
-        CurrentGroupIndex = 0;
+        CurrentGroupIndex = initialGroupIndex;
         yield return WaitForDuration(GetSafeStartDelay());
         if (!IsRunning)
             yield break;
 
-        SetGroupWarning(runtimeGroupA);
+        IReadOnlyList<IPatternTarget> initialGroup = GetRuntimeGroup(CurrentGroupIndex);
+        SetGroupWarning(initialGroup);
         yield return WaitForDuration(GetSafeWarningDuration());
         if (!IsRunning)
             yield break;
 
-        SetGroupActive(runtimeGroupA);
+        SetGroupActive(initialGroup);
 
         while (IsRunning)
         {

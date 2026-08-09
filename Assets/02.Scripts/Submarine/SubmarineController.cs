@@ -74,6 +74,26 @@ public class SubmarineController : MonoBehaviour, IExternalMotionReceiver
     public float SteeringInput => seatManager != null ? seatManager.SteeringInput : 0f;
     public float VerticalInput => seatManager != null ? seatManager.VerticalInput : 0f;
 
+    /// <summary>
+    /// 체크포인트에서 저장하지 않는 이동 속도 초기화
+    /// 조종 입력 결과와 외부 힘 결과 제거
+    /// 충돌 피해 재사용 대기 기록 제거
+    /// </summary>
+    public void ResetMotionState()
+    {
+        forwardVelocity = 0f;
+        verticalVelocity = 0f;
+        yawVelocity = 0f;
+        externalWorldVelocity = Vector3.zero;
+        lastDamageTimeByCollider.Clear();
+
+        if (body != null)
+        {
+            body.linearVelocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
+        }
+    }
+
     private Rigidbody body;
     private Health health;
 

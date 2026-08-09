@@ -132,6 +132,17 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
         ChangeState(OctopusStateType.Dead);
     }
 
+    // 체크포인트 복원 후 타깃 제거
+    // 생존 위험 단계면 Idle 상태에서 재시작
+    public void RestoreCheckpointAI()
+    {
+        Targeting?.ClearTarget();
+        ChangeState(
+            !health.IsDead && harvestable.Phase == HarvestableCreature.CreaturePhase.Hazard
+                ? OctopusStateType.Idle
+                : OctopusStateType.Dead);
+    }
+
     /// <summary>
     /// 생존 및 빈 얼굴 슬롯 기준 타깃 허용
     /// </summary>

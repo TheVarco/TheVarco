@@ -259,6 +259,42 @@ public class HarvestableCreature : CarryableItem
             OnDetached?.Invoke(previousSlot);
     }
 
+    // 체크포인트 당시 채집 단계와 부착 슬롯 복원
+    // 기존 부착 관계를 먼저 해제한 뒤 목표 단계 적용
+    public void RestoreCheckpointPhase(CreaturePhase targetPhase, AttachmentSlot targetSlot)
+    {
+        if (IsAttached)
+            MakeCollectible();
+
+        if (targetPhase == CreaturePhase.Attached && targetSlot != null)
+        {
+            phase = CreaturePhase.Hazard;
+            if (TryAttach(targetSlot))
+                return;
+        }
+
+        if (targetPhase == CreaturePhase.Hazard)
+        {
+            RestoreHostCollisions();
+            _attachedSlot = null;
+            phase = CreaturePhase.Hazard;
+            transform.SetParent(null, true);
+            if (col != null)
+                col.enabled = true;
+            if (rb != null)
+            {
+                rb.isKinematic = false;
+                rb.useGravity = false;
+                rb.interpolation = detachedInterpolation;
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
+            return;
+        }
+
+        MakeCollectible();
+    }
+
     private void HandleDeath()
     {
         MakeCollectible();

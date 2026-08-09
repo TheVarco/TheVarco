@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -28,6 +29,7 @@ public class SharkController : MonoBehaviour
     private Dictionary<SharkStateType, ISharkState> states; // 상태별 실행 객체.
     private ISharkState currentState;                        // 현재 실행 상태.
     private SharkStateType currentStateType;                 // 현재 상태 종류.
+    private Coroutine delayedDestroyRoutine;
 
     public EnemyData Data => enemyData;
     public EnemyAttackHitbox AttackHitbox => attackHitbox;
@@ -103,6 +105,49 @@ public class SharkController : MonoBehaviour
     private void HandleDeath()
     {
         ChangeState(SharkStateType.Dead);
+    }
+
+    // 사망 연출 이후 제거 예약
+    // 체크포인트 복원을 위해 취소 가능한 코루틴 사용
+    public void ScheduleDestroyAfterDeath(float delay)
+    {
+        CancelScheduledDestroy();
+        delayedDestroyRoutine = StartCoroutine(DestroyAfterDelay(delay));
+    }
+
+    // 저장하지 않는 타깃과 공격 상태 초기화
+    // 생존 상태면 Idle 상태에서 AI 재시작
+    public void RestoreCheckpointAI()
+    {
+        CancelScheduledDestroy();
+        Targeting?.ClearTarget();
+        EndAttackHitbox();
+        if (!IsDead)
+            ChangeState(SharkStateType.Idle);
+    }
+
+    /// <summary>
+    /// 생존 체크포인트 복원을 위한 지연 제거 취소
+    /// </summary>
+    public void CancelScheduledDestroyForCheckpoint()
+    {
+        CancelScheduledDestroy();
+    }
+
+    private IEnumerator DestroyAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(Mathf.Max(0f, delay));
+        delayedDestroyRoutine = null;
+        Destroy(gameObject);
+    }
+
+    private void CancelScheduledDestroy()
+    {
+        if (delayedDestroyRoutine == null)
+            return;
+
+        StopCoroutine(delayedDestroyRoutine);
+        delayedDestroyRoutine = null;
     }
 
     /// <summary>
