@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 // 마우스로 상하좌우를 자유롭게 둘러보는 카메라 리그.
 // 핵심 아이디어: 1인칭이든 3인칭이든 "같은 시선 방향"을 공유하고,
@@ -77,8 +78,14 @@ public class PlayerCameraRig : MonoBehaviour
             Cursor.lockState = Cursor.lockState == CursorLockMode.Locked ? CursorLockMode.None : CursorLockMode.Locked;
         }
 
-        // 플레이어가 연결된 상태에서 화면을 좌클릭하면 다시 마우스 잠금
-        if (target != null && Cursor.lockState != CursorLockMode.Locked && Input.GetMouseButtonDown(0))
+        // 플레이어가 연결된 상태에서 게임 화면을 좌클릭하면 다시 마우스 잠금
+        // UI 위의 클릭은 버튼 입력이 끝날 수 있도록 잠금 대상에서 제외
+        bool isPointerOverUi = EventSystem.current != null
+            && EventSystem.current.IsPointerOverGameObject();
+        if (target != null
+            && Cursor.lockState != CursorLockMode.Locked
+            && Input.GetMouseButtonDown(0)
+            && !isPointerOverUi)
         {
             Cursor.lockState = CursorLockMode.Locked;
         }

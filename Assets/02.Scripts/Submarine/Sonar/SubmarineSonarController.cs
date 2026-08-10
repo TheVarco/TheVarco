@@ -1,12 +1,29 @@
 using System.Collections.Generic;
+using Fusion;
 using UnityEngine;
 using UnityEngine.Events;
 
+// 잠수함 소나 상태 동기화
+// 호스트가 소나 대상 탐지와 접촉점 정렬 수행
+// 가까운 접촉점 최대 서른두 개 복제
+// 핑 순번과 공개 틱과 만료 틱으로 표시 시점 통일
+// 각 피어는 복제 결과로 파동과 잔상과 소리 재생
+
+public struct SonarEchoNetworkData : INetworkStruct
+{
+    public Vector2 NormalizedPosition;
+    public int Category;
+    public int VerticalDirection;
+    // Fusion 구조 제한 대응
+    public int RevealTickRaw;
+    public int ExpireTickRaw;
+}
+
+[DisallowMultipleComponent]
 /// <summary>
 /// 일정 간격으로 소나 핑을 발생시키고 탐지된 대상의 월드 위치를 소나 화면 좌표로 변환
 /// </summary>
-[DisallowMultipleComponent]
-public sealed class SubmarineSonarController : MonoBehaviour
+public sealed class SubmarineSonarController : NetworkBehaviour
 {
     [Header("Sonar Timing")]
     [Tooltip("원 안에 표시할 최대 거리")]
@@ -44,15 +61,27 @@ public sealed class SubmarineSonarController : MonoBehaviour
 
     // 한 번의 핑에서 위치를 스냅샷으로 저장한 접촉점들
     private readonly List<SonarEchoVisual> echoes = new List<SonarEchoVisual>();
+    private readonly List<SonarEchoNetworkData> networkEchoBuffer = new List<SonarEchoNetworkData>(32);
     private float nextPingTime;
     private float pingStartedAt = float.NegativeInfinity;
+    private int lastRenderedPingSequence = -1;
+
+    [Networked] private TickTimer NetworkedPingTimer { get; set; }
+    [Networked] private int NetworkedPingStartedTickRaw { get; set; }
+    [Networked] private int NetworkedPingSequence { get; set; }
+    [Networked] private int NetworkedEchoCount { get; set; }
+    [Networked, Capacity(32)] private NetworkArray<SonarEchoNetworkData> NetworkedEchoes => default;
+
+    private bool IsNetworkActive => Object != null && Object.IsValid && Runner != null && Runner.IsRunning;
 
     public float DetectionRange => detectionRange;
     public UnityEvent OnPing => onPing;
     public SubmarineSonarGraphic Display => display;
 
+    // 소나 표시 색상과 UI 참조 초기화
     private void Awake()
     {
+        // 표시 컴포넌트를 찾고 카테고리별 색상 팔레트 전달
         if (display == null)
         {
             Debug.LogError(
@@ -71,13 +100,53 @@ public sealed class SubmarineSonarController : MonoBehaviour
             pointOfInterestColor);
     }
 
+    // 로컬 소나 첫 핑 시점 초기화
     private void OnEnable()
     {
+        // 활성화 직후 첫 Update에서 핑을 시작하도록 현재 시간 저장
         nextPingTime = Time.time;
     }
 
+    // 소나 네트워크 배열과 첫 핑 타이머 초기화
+    public override void Spawned()
+    {
+        // 호스트만 접촉점 수와 핑 순번과 시작 틱을 기록
+        if (Object.HasStateAuthority)
+        {
+            NetworkedEchoCount = 0;
+            NetworkedPingSequence = 0;
+            NetworkedPingStartedTickRaw = Runner.Tick.Raw;
+            NetworkedPingTimer = TickTimer.CreateFromSeconds(Runner, 0f);
+        }
+        // 각 피어가 첫 핑 이벤트를 한 번 재생하도록 렌더 캐시 초기화
+        lastRenderedPingSequence = -1;
+    }
+
+    // 호스트 틱에서 핑 타이머 만료와 다음 핑 예약 처리
+    public override void FixedUpdateNetwork()
+    {
+        // 권한과 타이머를 확인한 뒤 네트워크 접촉점 갱신
+        if (!Object.HasStateAuthority || !NetworkedPingTimer.ExpiredOrNotRunning(Runner))
+            return;
+
+        BeginNetworkPing();
+        NetworkedPingTimer = TickTimer.CreateFromSeconds(Runner, pingInterval);
+    }
+
+    // 네트워크 소나 프레임 렌더
+    public override void Render()
+    {
+        // 복제 상태를 각 피어의 UI 데이터로 변환
+        RenderNetworkSonar();
+    }
+
+    // 네트워크가 없는 씬의 로컬 소나 갱신
     private void Update()
     {
+        // 핑 간격과 파동 진행률과 접촉점 잔상 계산
+        if (IsNetworkActive)
+            return;
+
         float now = Time.time;
 
         // 핑 간격이 지나면 현재 대상 위치를 새로 스냅샷으로 저장
@@ -106,8 +175,10 @@ public sealed class SubmarineSonarController : MonoBehaviour
         display.SetFrame(normalizedPulse, now, echoes);
     }
 
+    // 로컬 씬에서 현재 탐지 가능한 소나 대상 수집
     private void BeginPing(float now)
     {
+        // 소나 원점에서 활성 대상을 검사해 공개 시간과 만료 시간 생성
         pingStartedAt = now;
         Vector3 origin = sonarOrigin != null ? sonarOrigin.position : transform.position;
 
@@ -136,12 +207,117 @@ public sealed class SubmarineSonarController : MonoBehaviour
         onPing.Invoke();
     }
 
+    // 호스트가 현재 소나 접촉점을 수집해 네트워크 배열 갱신
+    private void BeginNetworkPing()
+    {
+        // 현재 틱과 틱 간격과 소나 원점을 이번 핑의 공통 기준으로 고정
+        Tick nowTick = Runner.Tick;
+        float tickDelta = Runner.DeltaTime;
+        Vector3 origin = sonarOrigin != null ? sonarOrigin.position : transform.position;
+
+        // 이전 계산 결과를 제거하고 아직 유효한 잔상부터 다시 수집
+        networkEchoBuffer.Clear();
+
+        // 이전 핑 잔상 보존
+        int existingCount = Mathf.Min(NetworkedEchoCount, NetworkedEchoes.Length);
+        for (int i = 0; i < existingCount; i++)
+        {
+            SonarEchoNetworkData existing = NetworkedEchoes.Get(i);
+            if (existing.ExpireTickRaw > nowTick.Raw)
+                networkEchoBuffer.Add(existing);
+        }
+
+        foreach (SonarTarget target in SonarTarget.ActiveTargets)
+        {
+            // 탐지 범위와 대상 활성 조건을 통과한 접촉점만 처리
+            if (!ShouldDetect(target, origin, out Vector3 worldOffset, out float distance))
+                continue;
+
+            // 월드 오프셋을 잠수함 로컬 평면 좌표와 공개 시점으로 변환
+            Vector3 localOffset = Quaternion.Inverse(transform.rotation) * worldOffset;
+            int revealTicks = Mathf.Max(0, Mathf.RoundToInt(
+                pulseDuration * Mathf.Clamp01(distance / detectionRange) / tickDelta));
+            Tick revealTick = nowTick.Next(revealTicks);
+            Tick expireTick = revealTick.Next(Mathf.Max(1, Mathf.CeilToInt(echoLingerDuration / tickDelta)));
+
+            networkEchoBuffer.Add(new SonarEchoNetworkData
+            {
+                NormalizedPosition = new Vector2(localOffset.x, localOffset.z) / detectionRange,
+                Category = (int)target.Category,
+                VerticalDirection = (int)GetVerticalDirection(localOffset.y, verticalThreshold),
+                RevealTickRaw = revealTick.Raw,
+                ExpireTickRaw = expireTick.Raw
+            });
+        }
+
+        // 가까운 접촉점 우선
+        networkEchoBuffer.Sort((left, right) =>
+            left.NormalizedPosition.sqrMagnitude.CompareTo(right.NormalizedPosition.sqrMagnitude));
+
+        // 가까운 순서대로 배열 용량까지만 네트워크 상태에 기록
+        int count = Mathf.Min(networkEchoBuffer.Count, NetworkedEchoes.Length);
+        for (int i = 0; i < count; i++)
+            NetworkedEchoes.Set(i, networkEchoBuffer[i]);
+
+        // 접촉점 수와 핑 시작 틱과 순번을 마지막에 함께 갱신
+        NetworkedEchoCount = count;
+        NetworkedPingStartedTickRaw = nowTick.Raw;
+        NetworkedPingSequence++;
+    }
+
+    // 복제된 소나 상태를 현재 피어의 UI 프레임으로 변환
+    private void RenderNetworkSonar()
+    {
+        // 네트워크와 표시 대상이 준비되지 않으면 렌더 작업 생략
+        if (!IsNetworkActive || display == null)
+            return;
+
+        // Fusion 틱을 초 단위 시간과 파동 진행률로 변환
+        float tickDelta = Runner.DeltaTime;
+        float now = Runner.Tick.Raw * tickDelta;
+        float startedAt = NetworkedPingStartedTickRaw * tickDelta;
+        float elapsed = now - startedAt;
+        float normalizedPulse = elapsed >= 0f && elapsed <= pulseDuration
+            ? Mathf.Clamp01(elapsed / pulseDuration)
+            : -1f;
+
+        // 만료되지 않은 복제 접촉점만 시각 데이터로 재구성
+        echoes.Clear();
+        int count = Mathf.Min(NetworkedEchoCount, NetworkedEchoes.Length);
+        for (int i = 0; i < count; i++)
+        {
+            SonarEchoNetworkData echo = NetworkedEchoes.Get(i);
+            if (echo.ExpireTickRaw <= Runner.Tick.Raw)
+                continue;
+
+            echoes.Add(new SonarEchoVisual(
+                echo.NormalizedPosition,
+                (SonarTargetCategory)echo.Category,
+                (SonarVerticalDirection)echo.VerticalDirection,
+                echo.RevealTickRaw * tickDelta,
+                echo.ExpireTickRaw * tickDelta));
+        }
+
+        // 새 핑 순번을 처음 본 프레임에서만 핑 이벤트 실행
+        if (lastRenderedPingSequence != NetworkedPingSequence)
+        {
+            lastRenderedPingSequence = NetworkedPingSequence;
+            if (NetworkedPingSequence > 0)
+                onPing.Invoke();
+        }
+
+        // 파동 진행률과 현재 시간과 접촉점 목록을 소나 UI에 전달
+        display.SetFrame(normalizedPulse, now, echoes);
+    }
+
+    // 소나 대상이 현재 핑에 포함될 수 있는지 판정
     private bool ShouldDetect(
         SonarTarget target,
         Vector3 origin,
         out Vector3 worldOffset,
         out float distance)
     {
+        // 대상 활성 상태와 거리와 범주 조건으로 탐지 여부 결정
         worldOffset = default;
         distance = 0f;
 
@@ -176,6 +352,7 @@ public sealed class SubmarineSonarController : MonoBehaviour
         Vector3 targetPosition,
         float range)
     {
+        // 월드 위치 차이를 기준 회전의 로컬 평면 좌표로 정규화
         if (range <= 0f)
             return Vector2.zero;
 
@@ -186,6 +363,7 @@ public sealed class SubmarineSonarController : MonoBehaviour
     /// <summary>높이 차이를 위, 같은 높이, 아래 중 하나로 분류</summary>
     public static SonarVerticalDirection GetVerticalDirection(float localHeight, float threshold)
     {
+        // 높이 임계값을 기준으로 위와 아래와 같은 높이 분류
         threshold = Mathf.Max(0f, threshold);
         if (localHeight > threshold)
             return SonarVerticalDirection.Above;
@@ -197,14 +375,17 @@ public sealed class SubmarineSonarController : MonoBehaviour
     /// <summary>접촉점이 공개된 뒤 잔상 시간 동안 1에서 0으로 감소하는 투명도를 계산.</summary>
     public static float EvaluateEchoAlpha(float now, float revealTime, float expireTime)
     {
+        // 공개 전과 만료 후를 제외하고 남은 시간 비율 계산
         if (now < revealTime || now >= expireTime || expireTime <= revealTime)
             return 0f;
 
         return 1f - Mathf.InverseLerp(revealTime, expireTime, now);
     }
 
+    // 인스펙터 소나 시간과 거리 설정값 보정
     private void OnValidate()
     {
+        // 음수와 영 값이 들어오지 않도록 최소 범위 적용
         // Inspector나 YAML에서 잘못된 값이 들어와 0으로 나누거나 핑이 매 프레임 발생하는 것을 방지
         detectionRange = Mathf.Max(1f, detectionRange);
         pingInterval = Mathf.Max(0.1f, pingInterval);

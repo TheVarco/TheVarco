@@ -5,6 +5,10 @@ using UnityEngine;
 
 namespace Varco.GameFlow
 {
+    // 게임 흐름 권한 관리
+    // 호스트가 체크포인트 캡처와 복원을 실행
+    // 참가자 순서를 고정해 내부 스폰 위치 배정
+    // 실패와 성공 상태를 모든 피어에 전파
     // 성공 실패 체크포인트 상태를 총괄하는 권한 기반 조정자
     [DisallowMultipleComponent]
     public sealed class GameFlowCoordinator : MonoBehaviour
@@ -53,8 +57,9 @@ namespace Varco.GameFlow
         public event Action<int> CheckpointChanged;
 
         // 잠수함과 네트워크 경계를 연결하고 최초 상태 시작
-        public void Initialize(SubmarineController targetSubmarine, IGameFlowNetworkBridge networkBridge)
-        {
+    public void Initialize(SubmarineController targetSubmarine, IGameFlowNetworkBridge networkBridge)
+    {
+        // 잠수함 참조와 네트워크 브리지를 저장하고 초기 체크포인트 준비
             if (initialized)
                 return;
 
@@ -87,9 +92,31 @@ namespace Varco.GameFlow
             PublishCurrentState();
         }
 
+        // 시작 참가자 내부 배치 갱신
+    public void RefreshStartupPlayersAfterJoin()
+    {
+        // 시작 구역 권한 상태인지 확인한 뒤 참가자 전체를 다시 배치
+            if (!initialized
+                || !IsAuthority
+                || State != GameFlowState.Playing
+                || CurrentCheckpointZone != 1)
+            {
+                return;
+            }
+
+            IReadOnlyList<IPlayerCheckpointParticipant> players = bridge.Players;
+            if (players == null || players.Count == 0)
+                return;
+
+            PlacePlayersAtSubmarineSpawnPoints(players);
+            checkpointService.Capture(1, players);
+            WarnIfPlayerSnapshotIsIncomplete();
+        }
+
         // 이벤트 구독 정리
-        private void OnDestroy()
-        {
+    private void OnDestroy()
+    {
+        // 연결했던 잠수함과 브리지 이벤트 구독 해제
             if (submarineHealth != null)
                 submarineHealth.OnDeath.RemoveListener(ReportSubmarineDestroyed);
             if (bridge != null)
@@ -97,8 +124,9 @@ namespace Varco.GameFlow
         }
 
         // 권한 인스턴스에서 파티 전멸 상태 감시
-        private void Update()
-        {
+    private void Update()
+    {
+        // 호스트에서 모든 참가자의 생존 여부를 매 프레임 검사
             if (!initialized || !IsAuthority || State != GameFlowState.Playing)
                 return;
 
@@ -123,8 +151,9 @@ namespace Varco.GameFlow
         }
 
         // 같은 프레임의 모든 결과를 모은 뒤 최종 상태 확정
-        private void LateUpdate()
-        {
+    private void LateUpdate()
+    {
+        // 같은 프레임에 모인 성공 실패 후보 중 최종 결과 하나 적용
             if (!IsAuthority || State != GameFlowState.Playing || pendingOutcome == GameFlowOutcomeCandidate.None)
                 return;
 
@@ -138,21 +167,24 @@ namespace Varco.GameFlow
         }
 
         // 잠수함 체력 소진 결과 접수
-        public void ReportSubmarineDestroyed()
-        {
+    public void ReportSubmarineDestroyed()
+    {
+        // 잠수함 파괴를 실패 후보로 등록
             QueueOutcome(GameFlowOutcomeCandidate.SubmarineDestroyed);
         }
 
         // 등록된 잠수함의 Z7 출구 도달 결과 접수
-        public void ReportExitReached(SubmarineController reachedSubmarine)
-        {
+    public void ReportExitReached(SubmarineController reachedSubmarine)
+    {
+        // 현재 잠수함이 출구에 도달한 경우 성공 후보 등록
             if (reachedSubmarine == submarine)
                 QueueOutcome(GameFlowOutcomeCandidate.Success);
         }
 
         // 더 앞선 구역에서만 새 스냅샷 저장
-        public bool TryActivateCheckpoint(int zone, SubmarineController reachedSubmarine)
-        {
+    public bool TryActivateCheckpoint(int zone, SubmarineController reachedSubmarine)
+    {
+        // 호스트와 진행 방향과 잠수함 일치 조건을 순서대로 검증
             // 판정 권한과 진행 상태와 잠수함 일치 여부 확인
             if (!IsAuthority
                 || State != GameFlowState.Playing
@@ -175,8 +207,9 @@ namespace Varco.GameFlow
         }
 
         // 실패 화면의 체크포인트 재시작 명령 처리
-        public void RequestRestartFromCheckpoint()
-        {
+    public void RequestRestartFromCheckpoint()
+    {
+        // 실패 상태와 저장 스냅샷이 준비된 경우 복원 코루틴 시작
             if (!IsAuthority || State != GameFlowState.Failed || checkpointService.CurrentSnapshot == null)
                 return;
 
@@ -184,8 +217,9 @@ namespace Varco.GameFlow
         }
 
         // 성공 실패 화면의 시작 화면 명령 처리
-        public void RequestReturnToStart()
-        {
+    public void RequestReturnToStart()
+    {
+        // 종료 상태에서만 브리지에 시작 화면 복귀 요청 전달
             if (!IsAuthority || State is not (GameFlowState.Failed or GameFlowState.Succeeded))
                 return;
 
@@ -193,8 +227,9 @@ namespace Varco.GameFlow
         }
 
         // 현재 프레임의 최고 우선순위 결과만 보관
-        private void QueueOutcome(GameFlowOutcomeCandidate candidate)
-        {
+    private void QueueOutcome(GameFlowOutcomeCandidate candidate)
+    {
+        // 이미 예약된 결과와 우선순위를 비교해 더 강한 후보 보관
             if (!IsAuthority || State != GameFlowState.Playing)
                 return;
 
@@ -202,8 +237,9 @@ namespace Varco.GameFlow
         }
 
         // 사망 결과와 겹치지 않는 안전한 캡처 시점 확인
-        private bool CanCaptureCheckpoint()
-        {
+    private bool CanCaptureCheckpoint()
+    {
+        // 잠수함과 플레이어가 저장 가능한 상태인지 확인
             if (pendingOutcome is GameFlowOutcomeCandidate.SubmarineDestroyed or GameFlowOutcomeCandidate.PartyWiped)
                 return false;
             // 잠수함 파괴 직전 캡처 차단
@@ -225,8 +261,9 @@ namespace Varco.GameFlow
         }
 
         // 첫 구역 트리거 진입 전 실패에 사용할 Z1 캡처
-        private IEnumerator CaptureInitialCheckpointAfterStartup()
-        {
+    private IEnumerator CaptureInitialCheckpointAfterStartup()
+    {
+        // 호스트와 첫 플레이어가 준비될 때까지 프레임 단위 대기
             while (initialized
                 && State == GameFlowState.Playing
                 && checkpointService.CurrentSnapshot == null)
@@ -254,8 +291,9 @@ namespace Varco.GameFlow
         }
 
         // 정지 해제 제거 복원 재연결 재개 순서의 복원 트랜잭션
-        private IEnumerator RestoreCheckpointRoutine()
-        {
+    private IEnumerator RestoreCheckpointRoutine()
+    {
+        // 입력 차단과 상태 복원과 물리 반영과 입력 재개 순서로 실행
             // 모든 참가자 입력과 시뮬레이션 차단
             TransitionTo(GameFlowState.Restoring, GameFailureReason.None);
             IReadOnlyList<IPlayerCheckpointParticipant> players = bridge.Players;
@@ -277,9 +315,10 @@ namespace Varco.GameFlow
         }
 
         // 플레이어 키 순서대로 잠수함 내부 스폰 위치 배정
-        private void PlacePlayersAtSubmarineSpawnPoints(
-            IReadOnlyList<IPlayerCheckpointParticipant> players)
-        {
+    private void PlacePlayersAtSubmarineSpawnPoints(
+        IReadOnlyList<IPlayerCheckpointParticipant> players)
+    {
+        // 참가자를 고정 키로 정렬해 서로 다른 내부 스폰 지점에 배치
             if (players == null || players.Count == 0)
                 return;
             if (submarinePlayerSpawnPoints == null || submarinePlayerSpawnPoints.Count == 0)
@@ -333,10 +372,11 @@ namespace Varco.GameFlow
         }
 
         // 숫자형 PlayerKey를 우선 사용하고 문자열 키를 보조 기준으로 사용
-        private static int ComparePlayersByKey(
-            IPlayerCheckpointParticipant left,
-            IPlayerCheckpointParticipant right)
-        {
+    private static int ComparePlayersByKey(
+        IPlayerCheckpointParticipant left,
+        IPlayerCheckpointParticipant right)
+    {
+        // 숫자 키를 우선 비교하고 실패하면 문자열 키로 순서 결정
             string leftKey = left?.PlayerKey ?? string.Empty;
             string rightKey = right?.PlayerKey ?? string.Empty;
             if (long.TryParse(leftKey, out long leftNumber)
@@ -351,8 +391,9 @@ namespace Varco.GameFlow
         }
 
         // 상태와 실패 원인을 함께 전환
-        private void TransitionTo(GameFlowState nextState, GameFailureReason reason)
-        {
+    private void TransitionTo(GameFlowState nextState, GameFailureReason reason)
+    {
+        // 상태와 실패 원인과 버전을 갱신한 뒤 변경 이벤트 전파
             State = nextState;
             FailureReason = reason;
 
@@ -365,16 +406,18 @@ namespace Varco.GameFlow
         }
 
         // 새 버전을 생성하고 로컬 적용 후 네트워크 전파
-        private void PublishCurrentState()
-        {
+    private void PublishCurrentState()
+    {
+        // 현재 게임 흐름 값을 복제 구조체로 만들어 브리지에 전달
             GameFlowReplicatedState state = new(State, FailureReason, CurrentCheckpointZone, ++revision);
             ApplyReplicatedState(state);
             bridge?.PublishState(state);
         }
 
         // 더 최신인 수신 상태만 적용
-        private void ApplyReplicatedState(GameFlowReplicatedState replicatedState)
-        {
+    private void ApplyReplicatedState(GameFlowReplicatedState replicatedState)
+    {
+        // 더 최신 버전만 받아 로컬 상태와 결과 화면 갱신
             if (replicatedState.Revision <= lastAppliedRevision)
                 return;
 
@@ -396,8 +439,9 @@ namespace Varco.GameFlow
         }
 
         // 팀 플레이어 어댑터가 없을 때 제한 사항 경고
-        private void WarnIfPlayerSnapshotIsIncomplete()
-        {
+    private void WarnIfPlayerSnapshotIsIncomplete()
+    {
+        // 참가자 스냅샷 지원 범위를 검사해 경고를 한 번만 출력
             if (warnedIncompletePlayerSnapshot)
                 return;
 
@@ -422,6 +466,7 @@ namespace Varco.GameFlow
         // 투사체 로프 투사체 활성 낙석 제거
         public static void Clear(IGameFlowNetworkBridge bridge)
         {
+            // 체크포인트 임시 엔티티와 월드 임시 오브젝트를 차례로 제거
             foreach (Projectile projectile in UnityEngine.Object.FindObjectsByType<Projectile>(FindObjectsSortMode.None))
             {
                 if (projectile == null)

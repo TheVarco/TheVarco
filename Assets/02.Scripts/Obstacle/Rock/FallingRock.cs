@@ -81,8 +81,12 @@ public sealed class FallingRock : MonoBehaviour
         hasImpacted = false;
         despawnTime = 0f;
 
-        body.linearVelocity = Vector3.zero;
-        body.angularVelocity = Vector3.zero;
+        // 충돌 처리에서 이미 Kinematic으로 전환된 본체에는 속도를 다시 쓰지 않음
+        if (!body.isKinematic)
+        {
+            body.linearVelocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
+        }
         body.detectCollisions = false;
         body.useGravity = false;
         body.collisionDetectionMode = CollisionDetectionMode.Discrete;

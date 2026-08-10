@@ -31,6 +31,10 @@ public class Health : MonoBehaviour, Damageable
     private static readonly int HPHash = Animator.StringToHash("HP");
     private float lastHitAnimationTime = -999f;
 
+    // 공용 Health가 다른 Animator 파라미터를 잘못 호출하지 않도록 지원 여부 저장 서영 추가
+    private bool supportsHitParameter;
+    private bool supportsHPParameter;
+
     // 네트워크 동기화 등으로 데미지 처리를 다른 곳에 넘겨야 하는 경우에만 존재 (없으면 예전과 동일하게 동작)
     private IDamageRouter damageRouter;
 
@@ -51,12 +55,39 @@ public class Health : MonoBehaviour, Damageable
             }
             if (animator == null) animator = GetComponent<Animator>();
         }
+        CacheAnimatorParameterSupport();
         UpdateAnimatorHP();
+    }
+
+    // 상어와 잠수함처럼 다른 Controller를 사용하는 대상의 해시 경고를 막기 위해 파라미터 검사 서영 추가
+    private void CacheAnimatorParameterSupport()
+    {
+        supportsHitParameter = false;
+        supportsHPParameter = false;
+
+        if (animator == null || animator.runtimeAnimatorController == null)
+            return;
+
+        // 이름과 타입이 모두 맞는 파라미터만 Health 애니메이션 호출 대상으로 인정 서영 추가
+        foreach (AnimatorControllerParameter parameter in animator.parameters)
+        {
+            if (parameter.nameHash == HitHash
+                && parameter.type == AnimatorControllerParameterType.Trigger)
+            {
+                supportsHitParameter = true;
+            }
+            else if (parameter.nameHash == HPHash
+                && parameter.type == AnimatorControllerParameterType.Float)
+            {
+                supportsHPParameter = true;
+            }
+        }
     }
 
     private void UpdateAnimatorHP()
     {
-        if (animator != null)
+        // HP Float가 있는 플레이어 Animator에만 현재 체력 전달 서영 추가
+        if (animator != null && supportsHPParameter)
         {
             animator.SetFloat(HPHash, CurrentHealth);
         }
@@ -88,7 +119,8 @@ public class Health : MonoBehaviour, Damageable
             return 0f;
 
         // if (playHitAnimation && animator != null)
-        if (damageInfo.PlayHitAnimation && animator != null) // 서영 변경
+        // Hit Trigger가 없는 상어와 잠수함 Animator에는 피격 트리거를 보내지 않음 서영 추가
+        if (damageInfo.PlayHitAnimation && animator != null && supportsHitParameter) // 서영 변경
         {
             if (Time.time - lastHitAnimationTime >= hitAnimationCooldown)
             {
