@@ -407,7 +407,7 @@ MonoBehaviour:
   - {fileID: 9000136554262916702}
   - {fileID: 6979411412585706810}
   - {fileID: 5961030891790580359}
-  - {fileID: -7861617683994697948}
+  - {fileID: 0}
   floatUpForce: 2
   reviveHealthRatio: 0.3
   reviveOxygenRatio: 0.5
@@ -504,10 +504,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.35
+  m_Radius: 0.2
   m_Height: 1.2
   m_Direction: 1
-  m_Center: {x: 0, y: 0.5, z: 0}
+  m_Center: {x: 0, y: 0.5, z: 0.1}
 --- !u!114 &777700000000000001
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -561,7 +561,6 @@ MonoBehaviour:
   hotbar: {fileID: 709331647815549706}
   visualTransform: {fileID: 0}
   quickRotateKey: 113
-  spinDuration: 0.4
   jumpForce: 3
   groundCheckDistance: 0.2
   groundLayer:

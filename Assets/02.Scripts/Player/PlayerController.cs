@@ -41,10 +41,9 @@ public class PlayerController : NetworkBehaviour
     [Tooltip("OtterVisual 트랜스폼 (미지정 시 'OtterVisual' 또는 첫 번째 자식 자동 감지)")]
     public Transform visualTransform;
 
-    [Header("Q버튼 회전 효과")]
+    [Header("Q버튼 동작 설정")]
+    [Tooltip("Q키를 눌렀을 때 실행할 단축키")]
     public KeyCode quickRotateKey = KeyCode.Q;
-    [Tooltip("OtterVisual 360도 스핀 애니메이션 지속 시간(초)")]
-    public float spinDuration = 0.4f;
 
     [Header("걷기 모드 - 점프")]
     [Tooltip("점프 시 순간적으로 부여되는 위쪽 속도. 문턱 같은 낮은 턱을 넘는 용도라 약하게 잡음")]
@@ -55,7 +54,6 @@ public class PlayerController : NetworkBehaviour
 
     private Rigidbody rb;
     private Vector3 inputDirection;
-    private Coroutine spinCoroutine;
     private bool jumpRequested;
     [SerializeField] private bool isSwimMode = true;
 
@@ -76,6 +74,8 @@ public class PlayerController : NetworkBehaviour
     private static readonly int IsPushPullHash = Animator.StringToHash("IsPushPull");
     private static readonly int GetHash = Animator.StringToHash("Get");
     private static readonly int GettingStateHash = Animator.StringToHash("Getting");
+    private static readonly int ThrowHash = Animator.StringToHash("Throw");
+    private static readonly int ThrowStateHash = Animator.StringToHash("Throw");
     private static readonly int DefaultStateHash = Animator.StringToHash("Default");
     private static readonly int Swim1StateHash = Animator.StringToHash("Swim1");
     private static readonly int Swim2StateHash = Animator.StringToHash("Swim2");
@@ -199,7 +199,7 @@ public class PlayerController : NetworkBehaviour
 
         if (Object != null && !Object.HasInputAuthority) return;
 
-        HandleQuickRotate();
+        HandleQuickThrow();
         HandleClickMotions();
     }
 
@@ -214,9 +214,23 @@ public class PlayerController : NetworkBehaviour
 
         // 어떠한 애니메이션/동작 상태라도 OtterVisual의 좌표 및 로테이션은 0으로 고정
         visualTransform.localPosition = Vector3.zero;
-        if (spinCoroutine == null)
+        visualTransform.localRotation = Quaternion.identity;
+    }
+
+    public void TriggerThrowAnimation()
+    {
+        if (animator == null) return;
+        if (HasAnimatorParameter(ThrowHash))
+            animator.SetTrigger(ThrowHash);
+
+        PlayMotionState(ThrowStateHash);
+    }
+
+    private void HandleQuickThrow()
+    {
+        if (Input.GetKeyDown(quickRotateKey))
         {
-            visualTransform.localRotation = Quaternion.identity;
+            TriggerThrowAnimation();
         }
     }
 
@@ -267,56 +281,6 @@ public class PlayerController : NetworkBehaviour
     {
         if (animator != null && animator.HasState(0, stateHash))
             animator.Play(stateHash, 0, 0f);
-    }
-
-    private void HandleQuickRotate()
-    {
-        if (Input.GetKeyDown(quickRotateKey))
-        {
-            if (visualTransform != null)
-            {
-                // Default 또는 Swim(Swim1, Swim2) 모션 외에 다른 모션(Getting, PushPull, NoWeapon 등)이 실행 중이면 Q키 제한
-                if (animator != null)
-                {
-                    AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
-                    bool isDefaultOrSwim = stateInfo.shortNameHash == DefaultStateHash ||
-                                           stateInfo.shortNameHash == Swim1StateHash ||
-                                           stateInfo.shortNameHash == Swim2StateHash;
-                    if (!isDefaultOrSwim)
-                    {
-                        return;
-                    }
-                }
-
-                float currentSpeed = rb != null ? rb.linearVelocity.magnitude : inputDirection.magnitude * moveSpeed;
-                bool isSwimming = inputDirection.sqrMagnitude > 0.01f || currentSpeed > 0.1f;
-
-                // 수영 중이면 Z축 360도 회전(배럴 롤), 멈춰있으면(Default) Y축 360도 회전
-                Vector3 spinAxis = isSwimming ? new Vector3(0f, 0f, 360f) : new Vector3(0f, 360f, 0f);
-
-                if (spinCoroutine != null)
-                {
-                    StopCoroutine(spinCoroutine);
-                }
-                spinCoroutine = StartCoroutine(AnimateVisualSpin(spinAxis));
-            }
-        }
-    }
-
-    private System.Collections.IEnumerator AnimateVisualSpin(Vector3 spinAxis)
-    {
-        float elapsed = 0f;
-        while (elapsed < spinDuration)
-        {
-            elapsed += Time.deltaTime;
-            float progress = Mathf.Clamp01(elapsed / spinDuration);
-            visualTransform.localPosition = Vector3.zero;
-            visualTransform.localRotation = Quaternion.Euler(spinAxis * progress);
-            yield return null;
-        }
-        visualTransform.localPosition = Vector3.zero;
-        visualTransform.localRotation = Quaternion.identity;
-        spinCoroutine = null;
     }
 
     private float GetAnimationSpeed()
