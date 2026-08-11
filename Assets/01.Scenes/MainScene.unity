@@ -1209,56 +1209,6 @@ MonoBehaviour:
   stat: {fileID: 0}
   fillImage: {fileID: 1251394073}
   lockedOverlay: {fileID: 2097878480}
---- !u!1 &487411195
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 487411197}
-  - component: {fileID: 487411196}
-  m_Layer: 0
-  m_Name: Tonado
-  m_TagString: Untagged
-  m_Icon: {fileID: 2974397684917235467, guid: 0000000000000000d000000000000000, type: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &487411196
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 487411195}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5995ee9d864b7ed4eb6820c7e124a03d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Whirlpool
-  outerRadius: 5
-  innerRadius: 2
-  maxPullForce: 20
-  playerLayer:
-    serializedVersion: 2
-    m_Bits: 8
---- !u!4 &487411197
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 487411195}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -6.27, y: 0.93104, z: -5.45}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &499699258
 GameObject:
   m_ObjectHideFlags: 0
@@ -3432,6 +3382,63 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 842409cbc83c9ba44916d2045afa4821, type: 3}
   m_PrefabInstance: {fileID: 1036469761}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &1078884391
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2815872981717421480, guid: d7d4784521192f345aa6c59816afb850, type: 3}
+      propertyPath: m_Name
+      value: Tonado
+      objectReference: {fileID: 0}
+    - target: {fileID: 6813561630838073926, guid: d7d4784521192f345aa6c59816afb850, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -3.51928
+      objectReference: {fileID: 0}
+    - target: {fileID: 6813561630838073926, guid: d7d4784521192f345aa6c59816afb850, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.26527
+      objectReference: {fileID: 0}
+    - target: {fileID: 6813561630838073926, guid: d7d4784521192f345aa6c59816afb850, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 16.59
+      objectReference: {fileID: 0}
+    - target: {fileID: 6813561630838073926, guid: d7d4784521192f345aa6c59816afb850, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6813561630838073926, guid: d7d4784521192f345aa6c59816afb850, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6813561630838073926, guid: d7d4784521192f345aa6c59816afb850, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6813561630838073926, guid: d7d4784521192f345aa6c59816afb850, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6813561630838073926, guid: d7d4784521192f345aa6c59816afb850, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6813561630838073926, guid: d7d4784521192f345aa6c59816afb850, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6813561630838073926, guid: d7d4784521192f345aa6c59816afb850, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: d7d4784521192f345aa6c59816afb850, type: 3}
 --- !u!1 &1098469563
 GameObject:
   m_ObjectHideFlags: 0
@@ -12074,10 +12081,10 @@ SceneRoots:
   - {fileID: 1646210376}
   - {fileID: 1280276283}
   - {fileID: 1410969637}
+  - {fileID: 1078884391}
   - {fileID: 2160708911185441949}
   - {fileID: 1848434113}
   - {fileID: 625463673}
-  - {fileID: 487411197}
   - {fileID: 4212835993787307092}
   - {fileID: 2018190275}
   - {fileID: 693812066}

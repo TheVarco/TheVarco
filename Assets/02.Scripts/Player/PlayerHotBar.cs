@@ -250,6 +250,10 @@ public class PlayerHotbar : NetworkBehaviour
             {
                 Projectile projectile = obj.GetComponent<Projectile>();
                 if (projectile != null) projectile.owner = gameObject;
+
+                // 밧줄은 모든 머신이 던진 사람을 알아야 로프 시작점(손)을 잡는다
+                RopeProjectile rope = obj.GetComponent<RopeProjectile>();
+                if (rope != null) rope.InitOwner(Object.Id);
             });
     }
 

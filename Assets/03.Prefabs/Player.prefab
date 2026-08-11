@@ -135,12 +135,15 @@ GameObject:
   - component: {fileID: 2100133268840799161}
   - component: {fileID: 2369332555751942481}
   - component: {fileID: -7861617683994697948}
+  - component: {fileID: 1237134412095099667}
   - component: {fileID: 709331647815549706}
   - component: {fileID: 3732126355975195756}
+  - component: {fileID: -8802968464546664485}
   - component: {fileID: 7042758014388821367}
   - component: {fileID: 6979411412585706810}
   - component: {fileID: 5733996912656585725}
   - component: {fileID: 6682594510011704645}
+  - component: {fileID: -8271087483271982452}
   - component: {fileID: 6701935319186568204}
   - component: {fileID: 2071805099486795210}
   - component: {fileID: 1324831643843595721}
@@ -251,6 +254,24 @@ MonoBehaviour:
   lookReference: {fileID: 4496859473968051685}
   interactor: {fileID: 0}
   hotbar: {fileID: 0}
+--- !u!114 &1237134412095099667
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2602492756997362024}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d01192d7f1f7c9b4bab2ca87c1bcd81a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerRopeTarget
+  leashLength: 2
+  ropeSpring: 40
+  ropeDamper: 8
+  ropeMaxDistance: 15
+  ropeVisualPrefab: {fileID: 5811950906510464521, guid: cb8acdc333f11fd4ea6500cf985f9dbd, type: 3}
+  ropeLingerDuration: 0.5
 --- !u!114 &709331647815549706
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -293,6 +314,24 @@ MonoBehaviour:
   closeRangeIgnoreAngle: 1
   lookReference: {fileID: 4496859473968051685}
   interactKey: 101
+--- !u!114 &-8802968464546664485
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2602492756997362024}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7adfdd12f86583540bdf43e11a03955a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerTrappedIndicator
+  headOffset: {x: 0, y: 1.4, z: 0}
+  occluderMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  selfMessage: "\uAC07\uD798!"
+  otherMessage: "\uAC07\uD798!"
 --- !u!114 &7042758014388821367
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -388,6 +427,21 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   animator: {fileID: 0}
+--- !u!114 &-8271087483271982452
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2602492756997362024}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1b65c7c0bd46ee54a94d2f006923d9a3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerWhirlpoolState
+  rescueImmunityDuration: 2
+  releaseRadiusMultiplier: 1.4
+  ropedPullMultiplier: 0.3
 --- !u!114 &6701935319186568204
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -586,10 +640,12 @@ MonoBehaviour:
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: -7861617683994697948}
+  - {fileID: 1237134412095099667}
   - {fileID: 709331647815549706}
   - {fileID: 3732126355975195756}
   - {fileID: 7042758014388821367}
   - {fileID: 6979411412585706810}
+  - {fileID: -8271087483271982452}
   - {fileID: 6701935319186568204}
   - {fileID: 2071805099486795210}
   - {fileID: 1324831643843595721}

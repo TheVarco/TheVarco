@@ -1,14 +1,13 @@
+using Fusion;
 using UnityEngine;
-using GogoGaga.OptimizedRopesAndCables;
 
 // 좌클릭하면 밧줄(RopeProjectile)을 던지는 아이템.
 // 이미 누군가와 연결되어 있는 상태면, 좌클릭이 "던지기"가 아니라 "연결 해제"로 동작함 (토글 방식).
 public class RopeItem : CarryableItem
 {
     [Header("발사 설정 (밸런싱용)")]
-    public GameObject ropeProjectilePrefab;
-    [Tooltip("입체적인 로프 비주얼을 그려주는 프리팹 (GogoGaga Rope 컴포넌트가 붙은 것)")]
-    public GameObject ropeVisualPrefab;
+    [Tooltip("호스트가 스폰할 밧줄 프리팹 (NetworkObject가 붙어 있어야 함)")]
+    public NetworkPrefabRef ropeProjectilePrefabRef;
     [Tooltip("던지기 버튼 누른 후 로프 투사체가 실제로 발사되기까지의 대기 시간(초)")]
     public float throwDelay = 0.5f;
     [Tooltip("빗나갔을 때 로프가 완전히 정리될 시간을 감안해서, Rope Projectile의 Life Time보다 여유 있게 설정 권장")]
@@ -18,7 +17,6 @@ public class RopeItem : CarryableItem
     public float muzzleForwardOffset = 1f;
 
     private float cooldownTimer = 0f;
-    private PlayerRopeTarget currentTarget; // 지금 이 밧줄로 연결하고 있는 대상 (없으면 null)
 
     void Update()
     {
@@ -28,10 +26,12 @@ public class RopeItem : CarryableItem
 
     public override bool OnPrimaryAction(GameObject user, Transform aimReference)
     {
-        // 이미 누군가와 연결되어 있으면, 이번 클릭은 "연결 해제"
-        if (currentTarget != null)
+        // 이미 누군가를 묶고 있으면 이번 클릭은 "연결 해제".
+        // 연결 상태는 대상 쪽(PlayerRopeTarget.PullerId)이 들고 있으므로 거기서 찾는다
+        PlayerRopeTarget attached = FindMyRopeTarget(user);
+        if (attached != null)
         {
-            currentTarget.DetachRope();
+            attached.RequestDetach();
             return false;
         }
 
@@ -80,9 +80,13 @@ public class RopeItem : CarryableItem
 
     private void Throw(GameObject user, Transform aimReference)
     {
-        if (ropeProjectilePrefab == null || ropeVisualPrefab == null || aimReference == null)
+        // 조용히 로컬 생성으로 새면 "던진 사람 화면에서만 도는 밧줄"이 돼서 원인 찾기가 어렵다.
+        // 싱글플레이도 러너를 타므로 네트워크 경로 하나만 둔다
+        PlayerHotbar userHotbar = user != null ? user.GetComponent<PlayerHotbar>() : null;
+        if (aimReference == null || userHotbar == null || userHotbar.Object == null
+            || !ropeProjectilePrefabRef.IsValid)
         {
-            Debug.LogWarning($"{itemName}: 필요한 프리팹/참조 중 비어있는 게 있음");
+            Debug.LogWarning($"{itemName}: Rope Projectile Prefab Ref가 비어있거나 러너가 없어 던질 수 없음");
             return;
         }
 
@@ -121,33 +125,18 @@ public class RopeItem : CarryableItem
 
         Vector3 throwDirection = (targetPoint - spawnPosition).normalized;
 
-        GameObject projectileObj = Instantiate(
-            ropeProjectilePrefab,
-            spawnPosition,
-            Quaternion.LookRotation(throwDirection)
-        );
+        // 호스트가 투사체를 스폰하고 판정까지 담당한다.
+        // 로프 비주얼은 투사체가 각 머신에서 직접 만들기 때문에 여기서 안 만든다
+        userHotbar.SpawnProjectile(ropeProjectilePrefabRef, spawnPosition, throwDirection);
+    }
 
-        // 비활성 상태로 생성해서 Awake가 돌기 전에 시작점/끝점을 먼저 채워넣음
-        GameObject visualObj = Instantiate(ropeVisualPrefab);
-        visualObj.SetActive(false);
+    // 내가 지금 묶고 있는 대상. 연결 상태는 대상 쪽이 들고 있어서 거기서 찾아온다
+    private PlayerRopeTarget FindMyRopeTarget(GameObject user)
+    {
+        if (user == null) return null;
 
-        Rope visualRope = visualObj.GetComponent<Rope>();
-        if (visualRope != null)
-        {
-            Transform startTransform = rightHandBone != null ? rightHandBone : user.transform;
-            visualRope.SetStartPoint(startTransform, false);
-            visualRope.SetEndPoint(projectileObj.transform, false);
-        }
-
-        visualObj.SetActive(true);
-
-        RopeProjectile projectile = projectileObj.GetComponent<RopeProjectile>();
-        if (projectile != null)
-        {
-            projectile.owner = user;
-            projectile.visualRope = visualRope;
-            projectile.sourceItem = this;
-        }
+        NetworkObject userObject = user.GetComponent<NetworkObject>();
+        return userObject != null ? PlayerRopeTarget.FindPulledBy(userObject.Id) : null;
     }
 
     private Transform GetRightHandBone(GameObject user)
@@ -209,18 +198,4 @@ public class RopeItem : CarryableItem
         return ray.GetPoint(maxDistance);
     }
 
-    // RopeProjectile이 누군가를 맞혔을 때 호출됨
-    public void SetCurrentTarget(PlayerRopeTarget target)
-    {
-        currentTarget = target;
-        currentTarget.OnDetached += HandleTargetDetached; // 거리 초과 등으로 저쪽에서 스스로 끊어져도 알림받기
-    }
-
-    private void HandleTargetDetached()
-    {
-        if (currentTarget != null)
-            currentTarget.OnDetached -= HandleTargetDetached;
-
-        currentTarget = null;
-    }
 }

@@ -136,7 +136,8 @@ MonoBehaviour:
   holdPositionOffset: {x: 0, y: 0, z: 0}
   holdRotationOffset: {x: 0, y: 0, z: 0}
   ropeProjectilePrefab: {fileID: 3498688313566668995, guid: 3d362de4b0fe3814ea68f3993b74549d, type: 3}
-  ropeVisualPrefab: {fileID: 5811950906510464521, guid: cb8acdc333f11fd4ea6500cf985f9dbd, type: 3}
+  ropeProjectilePrefabRef:
+    RawGuidValue: 3d362de4b0fe3814ea68f3993b74549d
   throwDelay: 0.5
   throwCooldown: 1
   muzzlePoint: {fileID: 0}
