@@ -55,7 +55,6 @@ namespace Varco.GameFlow
             {
                 Position = transform.position,
                 Rotation = transform.rotation,
-                Motion = controller != null ? controller.CaptureMotionState() : default,
                 Health = GameFlowHealthUtility.Capture(health),
                 AccumulatedDamage = repairable != null ? repairable.CaptureCheckpointDamage() : null,
                 RepairProgress = repairable != null ? repairable.CaptureCheckpointRepairProgress() : null,
@@ -94,20 +93,30 @@ namespace Varco.GameFlow
             if (state is not SubmarineState submarineState)
                 return;
 
-            // Rigidbody가 있으면 물리 위치를 직접 적용
-            if (body != null)
+            // 체크포인트 재시작 시 정지 상태 적용
+            // 자세 예약 전 저장 속도와 잔여 속도 제거
+            controller?.ResetMotionState();
+
+            // State Authority Simulation Tick에서 네트워크 물리 자세 적용
+            // 로컬 및 비네트워크 실행은 자세 즉시 적용
+            bool queuedNetworkTeleport = controller != null
+                && controller.QueueCheckpointTeleport(
+                    submarineState.Position,
+                    submarineState.Rotation);
+            if (!queuedNetworkTeleport && body != null)
             {
                 body.position = submarineState.Position;
                 body.rotation = submarineState.Rotation;
+                transform.SetPositionAndRotation(
+                    submarineState.Position,
+                    submarineState.Rotation);
             }
-            else
+            else if (!queuedNetworkTeleport)
             {
                 transform.SetPositionAndRotation(submarineState.Position, submarineState.Rotation);
             }
 
-            // 캡처 당시의 틱 이동 속도와 외력을 함께 복원
-            controller.RestoreMotionState(submarineState.Motion);
-            // 공개 API를 통한 체력과 부위 손상 복원
+            // 공개 API 기반 체력과 부위 손상 복원
             GameFlowHealthUtility.Restore(health, submarineState.Health);
             repairable?.RestoreCheckpointDamage(
                 submarineState.AccumulatedDamage,
@@ -124,7 +133,7 @@ namespace Varco.GameFlow
     {
         // 복원과 종료 화면 동안 잠수함 이동 시뮬레이션 활성 상태 변경
             if (controller != null)
-                controller.enabled = enabled;
+                controller.SetCheckpointGameplayEnabled(enabled);
         }
 
         // 잠수함 전체 복원 데이터
@@ -132,7 +141,6 @@ namespace Varco.GameFlow
         {
             public Vector3 Position;
             public Quaternion Rotation;
-            public SubmarineMotionState Motion;
             public HealthCheckpointState Health;
             public float[] AccumulatedDamage;
             public float[] RepairProgress;

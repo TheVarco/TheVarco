@@ -55,6 +55,20 @@ public class CarryableItem : NetworkBehaviour, Interactable
         HolderId = requester;
     }
 
+    // State Authority에서만 실행되도록 (문어/성게 부착 해제, 소유자 지정 등)
+    // 서영 추가
+    protected bool TryAssignHolderFromStateAuthority(NetworkId requester)
+    {
+        // 호스트만 소유자 변경 허용
+        // 이미 점유된 아이템의 중복 획득 차단
+        if (Object == null || !Object.IsValid || !Object.HasStateAuthority || HolderId.IsValid)
+            return false;
+
+        // 요청자를 최종 소유자로 게시
+        HolderId = requester;
+        return true;
+    }
+
     // 핫바가 내려놓을 때 호출
     public void RequestDrop(Vector3 dropPosition)
     {

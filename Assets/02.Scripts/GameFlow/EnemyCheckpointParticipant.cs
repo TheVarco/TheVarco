@@ -82,9 +82,14 @@ namespace Varco.GameFlow
             if (state is not EnemyState enemyState)
                 return;
 
-            transform.SetPositionAndRotation(enemyState.Position, enemyState.Rotation);
-            // AI 속도는 저장하지 않고 동적 Rigidbody에서만 초기화
-            // Kinematic 성게와 부착 생물에는 지원되지 않는 속도 값을 쓰지 않음
+            // 상어 최초 배치 위치 복원
+            // 나머지 적의 체크포인트 자세 유지
+            if (shark != null)
+                shark.RestoreInitialCheckpointPose();
+            else
+                transform.SetPositionAndRotation(enemyState.Position, enemyState.Rotation);
+            // AI 속도 저장 제외 및 동적 Rigidbody만 초기화
+            // Kinematic 성게와 부착 생물의 속도 쓰기 제외
             if (body != null && !body.isKinematic)
             {
                 body.linearVelocity = Vector3.zero;
@@ -94,7 +99,7 @@ namespace Varco.GameFlow
             GameFlowHealthUtility.Restore(health, enemyState.Health);
             harvestable?.RestoreCheckpointPhase(enemyState.CreaturePhase, enemyState.AttachedSlot);
 
-            // 생존 적 AI는 Idle 상태로 재시작
+            // 생존 적 AI의 Idle 상태 재시작
             if (shark != null && !enemyState.Health.IsDead)
                 shark.RestoreCheckpointAI();
             octopus?.RestoreCheckpointAI();

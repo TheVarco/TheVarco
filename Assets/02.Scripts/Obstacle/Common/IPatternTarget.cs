@@ -3,7 +3,8 @@ using UnityEngine;
 // 공용 패턴 시간표가 제어할 장애물의 명령 규칙
 public interface IPatternTarget
 {
-    Object PatternTargetObject { get; } // 중복 검사와 경고 출력에 사용할 Unity 오브젝트
+    Object PatternTargetObject { get; } // 중복 검사와 경고 출력용 Unity 오브젝트
+    bool HasPatternAuthority { get; } // 로컬 실행 또는 State Authority 권한
 
     bool ClaimPatternControl(ObstaclePatternBase owner); // 외부 패턴에 제어권을 전달
     void ReleasePatternControl(ObstaclePatternBase owner); // 외부 패턴 제어권을 반환

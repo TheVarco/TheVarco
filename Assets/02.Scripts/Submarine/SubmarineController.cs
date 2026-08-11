@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Fusion;
+using Fusion.Addons.Physics;
 using UnityEngine;
 
 // 잠수함 이동 상태 동기화
@@ -18,25 +19,38 @@ public struct SubmarineMotionState
 }
 
 [RequireComponent(typeof(Rigidbody))]
-// 운전자의 입력을 받아 잠수함의 전진/후진, 상승/하강, 좌우 회전 처리
+// 운전자 입력 기반 전진 후진 상승 하강 좌우 회전 처리
 // 속도를 즉시 바꾸지 않고 누적·감속하여 무거운 관성 적용
 public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
 {
+    private struct CollisionContact
+    {
+        public Collider Collider;
+        public Vector3 Point;
+        public Vector3 Normal;
+        public bool HasImpactPoint;
+    }
+
+    private const int MaxCollisionContacts = 3;
+    private const float MovementEpsilon = 0.0001f;
+    private const float ContactDirectionEpsilon = 0.0001f;
+    private const float RotationDepthTolerance = 0.00001f;
+
     [Header("Forward / Reverse")]
-    // 선체의 로컬 forward 방향으로 움직이는 속도와 가속/자연 감속 설정
+    // 선체 로컬 forward 방향 속도와 가속 및 자연 감속 설정
     [SerializeField] private float maxForwardSpeed = 8f;
     [SerializeField] private float maxReverseSpeed = 4f;
     [SerializeField] private float forwardAcceleration = 2.5f;
     [SerializeField] private float forwardCoastDeceleration = 0.75f;
 
     [Header("Vertical")]
-    // 월드 Y축 기준 상승/하강 속도와 가속/자연 감속 설정
+    // 월드 Y축 기준 상승 하강 속도와 가속 및 자연 감속 설정
     [SerializeField] private float maxVerticalSpeed = 3f;
     [SerializeField] private float verticalAcceleration = 2f;
     [SerializeField] private float verticalCoastDeceleration = 0.65f;
 
     [Header("Yaw")]
-    // 월드 Y축 기준 좌우 회전 속도와 가속/자연 감속 설정
+    // 월드 Y축 기준 좌우 회전 속도와 가속 및 자연 감속 설정
     [SerializeField] private float maxYawSpeed = 30f;
     [SerializeField] private float yawAcceleration = 18f;
     [SerializeField] private float yawCoastDeceleration = 7f;
@@ -81,7 +95,10 @@ public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
     
     // 하차하는 플레이어에게 전달할 수 있도록 현재 이동 속도를 월드 벡터로 변환
     // 조종 속도와 외부 속도 분리
-    public Vector3 DrivenWorldVelocity => transform.forward * forwardVelocity + Vector3.up * verticalVelocity; // 조종 입력으로 만든 속도
+    public Vector3 DrivenWorldVelocity =>
+        transform.forward * forwardVelocity +
+        Vector3.up * verticalVelocity +
+        drivenSlideWorldVelocity; // 조종 입력과 벽면을 따라 남은 접선 속도
     public Vector3 ExternalWorldVelocity => externalWorldVelocity; // 열수구 등 외부 힘으로 만든 속도
     public Vector3 CurrentWorldVelocity => DrivenWorldVelocity + externalWorldVelocity; // 실제 이동에 사용하는 합산 속도
 
@@ -126,6 +143,7 @@ public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
         verticalVelocity = Mathf.Clamp(state.VerticalVelocity, -maxVerticalSpeed, maxVerticalSpeed);
         yawVelocity = Mathf.Clamp(state.YawVelocity, -maxYawSpeed, maxYawSpeed);
         externalWorldVelocity = Vector3.ClampMagnitude(state.ExternalWorldVelocity, maximumExternalSpeed);
+        drivenSlideWorldVelocity = Vector3.zero;
         // 복원 전 충돌 피해 재사용 대기 기록 제거
         lastDamageTimeByCollider.Clear();
 
@@ -141,9 +159,15 @@ public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
 
     private Rigidbody body;
     private Health health;
+    private NetworkRigidbody3D networkBody;
+    private CapsuleCollider rotationProbeCollider;
+    private Vector3 rotationProbeLocalPosition;
+    private Quaternion rotationProbeLocalRotation;
 
     private readonly RaycastHit[] castHits = new RaycastHit[32];
     private readonly Collider[] overlapHits = new Collider[32];
+    private readonly Collider[] currentOverlapHits = new Collider[32];
+    private readonly CollisionContact[] collisionContacts = new CollisionContact[MaxCollisionContacts];
     private readonly Dictionary<int, float> lastDamageTimeByCollider = new Dictionary<int, float>();
     
     // 매 FixedUpdate마다 가속/감속되는 실제 내부 속도값들
@@ -151,14 +175,31 @@ public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
     [Networked] private float NetworkedVerticalVelocity { get; set; }
     [Networked] private float NetworkedYawVelocity { get; set; }
     [Networked] private Vector3 NetworkedExternalWorldVelocity { get; set; }
+    [Networked] private Vector3 NetworkedDrivenSlideWorldVelocity { get; set; }
 
     // 네트워크 스폰 전 로컬 테스트 씬에서 사용하는 동일 상태 저장소
     private float localForwardVelocity;
     private float localVerticalVelocity;
     private float localYawVelocity;
     private Vector3 localExternalWorldVelocity;
+    private Vector3 localDrivenSlideWorldVelocity;
+
+    // FixedUpdateNetwork 기반 Checkpoint 복원
+    // 권위 Tick의 Rigidbody 자세와 NetworkRigidbody 상태 동시 적용
+    private bool checkpointGameplayEnabled = true;
+    private bool hasPendingCheckpointTeleport;
+    private Vector3 pendingCheckpointPosition;
+    private Quaternion pendingCheckpointRotation;
+    private ulong checkpointTeleportRequestSequence;
+    private ulong checkpointTeleportCompletedSequence;
 
     public bool IsNetworkActive => Object != null && Object.IsValid && Runner != null && Runner.IsRunning;
+
+    // Coordinator용 Checkpoint 동기화 상태
+    // Sequence 기반 개별 복원 요청 완료 대기
+    internal bool IsCheckpointTeleportPending => hasPendingCheckpointTeleport;
+    internal ulong CheckpointTeleportRequestSequence => checkpointTeleportRequestSequence;
+    internal ulong CheckpointTeleportCompletedSequence => checkpointTeleportCompletedSequence;
 
     private float forwardVelocity
     {
@@ -200,12 +241,23 @@ public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
         }
     }
 
+    private Vector3 drivenSlideWorldVelocity
+    {
+        get => IsNetworkActive ? NetworkedDrivenSlideWorldVelocity : localDrivenSlideWorldVelocity;
+        set
+        {
+            if (IsNetworkActive) NetworkedDrivenSlideWorldVelocity = value;
+            else localDrivenSlideWorldVelocity = value;
+        }
+    }
+
     // Rigidbody와 체력과 좌석 관리자와 충돌체 준비
     private void Awake()
     {
         // 필수 컴포넌트를 수집하고 네트워크와 로컬 이동 상태 초기화
         body = GetComponent<Rigidbody>();
         health = GetComponent<Health>();
+        networkBody = GetComponent<NetworkRigidbody3D>();
         if (seatManager == null)
             seatManager = GetComponent<SubmarineSeatManager>();
 
@@ -215,11 +267,53 @@ public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
         body.useGravity = false;
         body.isKinematic = true; // Rigidbody 키네마틱 사용
         body.interpolation = RigidbodyInterpolation.Interpolate;
+        CacheRotationProbe();
+    }
+
+    private void CacheRotationProbe()
+    {
+        CapsuleCollider[] candidates = GetComponentsInChildren<CapsuleCollider>(true);
+        for (int i = 0; i < candidates.Length; i++)
+        {
+            CapsuleCollider candidate = candidates[i];
+            if (candidate != null && candidate.name == "Shark Target Volume")
+            {
+                rotationProbeCollider = candidate;
+                break;
+            }
+        }
+
+        if (rotationProbeCollider == null)
+        {
+            for (int i = 0; i < candidates.Length; i++)
+            {
+                CapsuleCollider candidate = candidates[i];
+                if (candidate == null || candidate.direction != 2)
+                    continue;
+
+                if (Mathf.Approximately(candidate.radius, collisionProbeRadius)
+                    && Mathf.Approximately(candidate.height, collisionProbeHeight))
+                {
+                    rotationProbeCollider = candidate;
+                    break;
+                }
+            }
+        }
+
+        if (rotationProbeCollider == null)
+            return;
+
+        rotationProbeLocalPosition = Quaternion.Inverse(transform.rotation)
+            * (rotationProbeCollider.transform.position - transform.position);
+        rotationProbeLocalRotation = Quaternion.Inverse(transform.rotation) * rotationProbeCollider.transform.rotation;
     }
 
     // 네트워크가 없는 씬의 Unity 물리 틱 이동
     private void FixedUpdate()
     {
+        if (!checkpointGameplayEnabled)
+            return;
+
         // Runner가 없을 때만 고정 시간으로 잠수함 이동 계산
         // 로컬 테스트 물리 실행
         if (!IsNetworkActive)
@@ -229,11 +323,84 @@ public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
     // 호스트 권위 Fusion 틱 이동
     public override void FixedUpdateNetwork()
     {
-        // StateAuthority만 합성 입력과 충돌과 이동 상태 변경
+        // State Authority 전용 합성 입력과 충돌 및 이동 상태 변경
         if (!Object.HasStateAuthority)
             return;
 
+        // 일반 이동 전 Checkpoint 자세 적용
+        // Teleport Tick의 복원 속도 이동 방지
+        if (hasPendingCheckpointTeleport)
+        {
+            ApplyPendingCheckpointTeleport();
+            return;
+        }
+
+        if (!checkpointGameplayEnabled)
+            return;
+
         SimulateMovement(Runner.DeltaTime);
+    }
+
+    // 네트워크 물리 틱에서 적용할 체크포인트 위치 예약
+    internal bool QueueCheckpointTeleport(Vector3 position, Quaternion rotation)
+    {
+        if (!IsNetworkActive
+            || networkBody == null
+            || !Object.HasStateAuthority
+            || !Object.IsInSimulation)
+        {
+            return false;
+        }
+
+        pendingCheckpointPosition = position;
+        pendingCheckpointRotation = rotation;
+        checkpointTeleportRequestSequence++;
+        hasPendingCheckpointTeleport = true;
+        return true;
+    }
+
+    internal bool HasCompletedCheckpointTeleport(ulong requestSequence)
+    {
+        return requestSequence == 0
+            || checkpointTeleportCompletedSequence >= requestSequence;
+    }
+
+    internal bool TryGetCurrentFusionTick(out int tickRaw)
+    {
+        if (!IsNetworkActive)
+        {
+            tickRaw = 0;
+            return false;
+        }
+
+        tickRaw = Runner.Tick.Raw;
+        return true;
+    }
+
+    internal void SetCheckpointGameplayEnabled(bool enabled)
+    {
+        if (checkpointGameplayEnabled == enabled)
+            return;
+
+        checkpointGameplayEnabled = enabled;
+        if (enabled)
+            return;
+
+        // 컴포넌트 비활성화 시 기존 정리 동작 유지
+        // 예약 Teleport용 FixedUpdateNetwork 실행 유지
+        lastDamageTimeByCollider.Clear();
+        if (!IsNetworkActive || Object.HasStateAuthority)
+            externalWorldVelocity = Vector3.zero;
+    }
+
+    private void ApplyPendingCheckpointTeleport()
+    {
+        if (!hasPendingCheckpointTeleport || networkBody == null || !Object.IsInSimulation)
+            return;
+
+        networkBody.Teleport(pendingCheckpointPosition, pendingCheckpointRotation);
+        hasPendingCheckpointTeleport = false;
+        checkpointTeleportCompletedSequence = checkpointTeleportRequestSequence;
     }
 
     // 입력 가속과 외력과 충돌을 합쳐 다음 잠수함 자세 계산
@@ -274,6 +441,14 @@ public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
             Mathf.Abs(SteeringInput) > 0.01f,
             dt);
 
+        // 벽 충돌 시 전진 속도의 월드 측면 접선 전환
+        // Tick 사이 접선 속도 유지
+        // 접촉과 입력 해제 시 일반 조종 속도와 동일한 감속
+        drivenSlideWorldVelocity = Vector3.MoveTowards(
+            drivenSlideWorldVelocity,
+            Vector3.zero,
+            forwardCoastDeceleration * dt);
+
         // 누적된 속도를 물리 프레임의 위치/회전 변화량으로 변환
         Vector3 drivenVelocityBeforeCollision = DrivenWorldVelocity; // 충돌 전 조종 속도
         Vector3 externalVelocityBeforeCollision = externalWorldVelocity; // 충돌 전 외부 속도
@@ -285,34 +460,72 @@ public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
             body.position,
             body.rotation,
             displacement,
-            out bool hitWall,
-            out RaycastHit wallHit);
+            out int contactCount);
 
-        if (hitWall)
+        if (contactCount > 0)
         {
-            // 벽 법선 방향 속도를 제거해 벽면을 따라 미끄러지게 처리
-            Vector3 drivenSlidingVelocity = Vector3.ProjectOnPlane(drivenVelocityBeforeCollision, wallHit.normal);
-            externalWorldVelocity = Vector3.ProjectOnPlane(externalVelocityBeforeCollision, wallHit.normal);
+            CollisionContact strongestImpact = default;
+            float strongestNormalSpeed = 0f;
+
+            for (int i = 0; i < contactCount; i++)
+            {
+                CollisionContact contact = collisionContacts[i];
+                Vector3 normal = contact.Normal.normalized;
+
+                // 표면 안쪽 속도만 충돌 피해 적용
+                float drivenNormalSpeed = Mathf.Max(
+                    0f,
+                    -Vector3.Dot(drivenVelocityBeforeCollision, normal));
+                float externalNormalSpeed = Mathf.Max(
+                    0f,
+                    -Vector3.Dot(externalVelocityBeforeCollision, normal));
+                float totalNormalSpeed = Mathf.Max(
+                    0f,
+                    -Vector3.Dot(worldVelocityBeforeCollision, normal));
+                float inwardContribution = drivenNormalSpeed + externalNormalSpeed;
+                float damageContribution = drivenNormalSpeed
+                    + externalNormalSpeed * externalCollisionDamageMultiplier;
+                float normalSpeed = inwardContribution > MovementEpsilon
+                    ? totalNormalSpeed * (damageContribution / inwardContribution)
+                    : 0f;
+
+                if (normalSpeed > strongestNormalSpeed)
+                {
+                    strongestImpact = contact;
+                    strongestNormalSpeed = normalSpeed;
+                }
+            }
+
+            // 모서리에서도 이동 Tick당 단일 충돌 피해 유지
+            // 모든 접촉면의 속도 Clipping 적용
+            if (strongestNormalSpeed > 0f)
+            {
+                ApplyCollisionDamage(
+                    strongestImpact.Collider,
+                    strongestImpact.Point,
+                    strongestImpact.Normal.normalized,
+                    strongestNormalSpeed,
+                    strongestImpact.HasImpactPoint);
+            }
+
+            Vector3 drivenSlidingVelocity = ClipVelocityAgainstContacts(
+                drivenVelocityBeforeCollision,
+                contactCount);
+            externalWorldVelocity = ClipVelocityAgainstContacts(
+                externalVelocityBeforeCollision,
+                contactCount);
             forwardVelocity = Vector3.Dot(drivenSlidingVelocity, transform.forward);
             verticalVelocity = Vector3.Dot(drivenSlidingVelocity, Vector3.up);
-
-            // 외부 속도 충돌 피해 감쇠
-            float drivenNormalSpeed = Mathf.Abs(Vector3.Dot(drivenVelocityBeforeCollision, wallHit.normal)); // 벽을 향한 조종 속도 크기
-            float externalNormalSpeed = Mathf.Abs(Vector3.Dot(externalVelocityBeforeCollision, wallHit.normal)); // 벽을 향한 외부 속도 크기
-            float normalSpeed = drivenNormalSpeed + externalNormalSpeed * externalCollisionDamageMultiplier; // 감쇠한 외부 속도를 합친 피해 기준 속도
-            ApplyCollisionDamage(
-                wallHit.collider,
-                wallHit.point,
-                wallHit.normal,
-                normalSpeed);
+            drivenSlideWorldVelocity = drivenSlidingVelocity
+                - transform.forward * forwardVelocity
+                - Vector3.up * verticalVelocity;
         }
 
         Vector3 nextPosition = body.position + resolvedDisplacement;
         Quaternion nextRotation = yawDelta * body.rotation;
 
-        if (WouldIntroduceRotationOverlap(nextPosition, body.rotation, nextRotation, out Collider rotationBlocker))
+        if (WouldIntroduceOrDeepenRotationOverlap(nextPosition, body.rotation, nextRotation))
         {
-            ApplyRotationCollisionDamage(rotationBlocker, nextPosition);
             nextRotation = body.rotation;
             yawVelocity = 0f;
         }
@@ -364,36 +577,56 @@ public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
         Vector3 startPosition,
         Quaternion rotation,
         Vector3 displacement,
-        out bool hitWall,
-        out RaycastHit firstHit)
+        out int contactCount)
     {
-        // 이동 캡슐 캐스트 결과로 충돌 없는 변위와 충돌 정보 계산
-        hitWall = false;
-        firstHit = default;
+        // 이동 캡슐 캐스트 결과로 충돌 없는 변위와 접촉면 계산
+        contactCount = 0;
 
         Vector3 resolved = Vector3.zero;
         Vector3 remaining = displacement;
         Vector3 castPosition = startPosition;
 
-        // 첫 충돌에서 벽 법선 성분을 제거하고 모서리에서 한 번 더 검사
-        for (int iteration = 0; iteration < 2; iteration++)
+        // 최대 세 접촉면의 안쪽 성분만 제거해 벽과 모서리를 따라 이동
+        for (int iteration = 0; iteration < MaxCollisionContacts; iteration++)
         {
             float distance = remaining.magnitude;
-            if (distance <= 0.0001f)
+            if (distance <= MovementEpsilon)
                 break;
 
             Vector3 direction = remaining / distance;
+            if (TryGetBlockingOverlap(
+                    castPosition,
+                    rotation,
+                    direction,
+                    out Collider overlapCollider,
+                    out Vector3 overlapNormal))
+            {
+                collisionContacts[contactCount++] = new CollisionContact
+                {
+                    Collider = overlapCollider,
+                    Point = Vector3.zero,
+                    Normal = overlapNormal,
+                    HasImpactPoint = false
+                };
+                remaining = ClipVelocityAgainstContacts(remaining, contactCount);
+                continue;
+            }
+
             if (!TryCapsuleCast(castPosition, rotation, direction, distance + collisionSkinWidth, out RaycastHit hit))
             {
                 resolved += remaining;
                 break;
             }
 
-            if (!hitWall)
+            collisionContacts[contactCount++] = new CollisionContact
             {
-                hitWall = true;
-                firstHit = hit;
-            }
+                Collider = hit.collider,
+                Point = hit.point,
+                Normal = hit.normal,
+                // 초기 겹침 Shape Cast 지점의 Decal 좌표 사용 제외
+                // Unity의 0이 아닌 Vector 반환도 신뢰 대상 제외
+                HasImpactPoint = HasReliableImpactPoint(hit.distance)
+            };
 
             float travelDistance = Mathf.Max(0f, hit.distance - collisionSkinWidth);
             Vector3 travel = direction * Mathf.Min(travelDistance, distance);
@@ -401,10 +634,123 @@ public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
             castPosition += travel;
 
             Vector3 unconsumed = remaining - travel;
-            remaining = Vector3.ProjectOnPlane(unconsumed, hit.normal);
+            remaining = ClipVelocityAgainstContacts(unconsumed, contactCount);
         }
 
         return resolved;
+    }
+
+    private Vector3 ClipVelocityAgainstContacts(Vector3 velocity, int contactCount)
+    {
+        Vector3 clipped = velocity;
+
+        // 후속 평면 처리로 이전 평면 안쪽 성분 재발 가능
+        // 모든 반공간 유지를 위한 소규모 접촉 목록 재검사
+        for (int pass = 0; pass < MaxCollisionContacts; pass++)
+        {
+            bool changed = false;
+            for (int i = 0; i < contactCount; i++)
+            {
+                Vector3 next = RemoveInwardComponent(
+                    clipped,
+                    collisionContacts[i].Normal);
+                bool removedInwardComponent = (next - clipped).sqrMagnitude > 0f;
+                clipped = next;
+                changed |= removedInwardComponent;
+            }
+
+            if (!changed)
+                break;
+        }
+
+        return clipped;
+    }
+
+    internal static Vector3 RemoveInwardComponent(
+        Vector3 velocity,
+        Vector3 outwardNormal)
+    {
+        float normalLengthSquared = outwardNormal.sqrMagnitude;
+        if (normalLengthSquared <= Mathf.Epsilon)
+            return velocity;
+
+        Vector3 normalizedNormal = outwardNormal / Mathf.Sqrt(normalLengthSquared);
+        float normalComponent = Vector3.Dot(velocity, normalizedNormal);
+        return normalComponent < 0f
+            ? velocity - normalizedNormal * normalComponent
+            : velocity;
+    }
+
+    internal static bool HasReliableImpactPoint(float hitDistance)
+    {
+        return !float.IsNaN(hitDistance) &&
+               !float.IsInfinity(hitDistance) &&
+               hitDistance > MovementEpsilon;
+    }
+
+    private bool TryGetBlockingOverlap(
+        Vector3 position,
+        Quaternion rotation,
+        Vector3 direction,
+        out Collider blocker,
+        out Vector3 normal)
+    {
+        blocker = null;
+        normal = Vector3.zero;
+
+        if (rotationProbeCollider == null)
+            return false;
+
+        GetWorldCapsule(position, rotation, out Vector3 pointA, out Vector3 pointB, out float radius);
+        int overlapCount = Physics.OverlapCapsuleNonAlloc(
+            pointA,
+            pointB,
+            radius,
+            currentOverlapHits,
+            collisionMask,
+            QueryTriggerInteraction.Ignore);
+
+        GetRotationProbePose(
+            position,
+            rotation,
+            out Vector3 probePosition,
+            out Quaternion probeRotation);
+
+        float strongestInwardComponent = -ContactDirectionEpsilon;
+        float selectedDepth = 0f;
+
+        for (int i = 0; i < overlapCount; i++)
+        {
+            Collider candidate = currentOverlapHits[i];
+            if (IsOwnCollider(candidate)
+                || !TryGetPenetration(
+                    candidate,
+                    probePosition,
+                    probeRotation,
+                    out Vector3 separationDirection,
+                    out float depth))
+            {
+                continue;
+            }
+
+            float inwardComponent = Vector3.Dot(direction, separationDirection);
+            if (inwardComponent >= -ContactDirectionEpsilon)
+                continue;
+
+            bool isStronger = inwardComponent < strongestInwardComponent;
+            bool isSameDirectionButDeeper = Mathf.Abs(inwardComponent - strongestInwardComponent)
+                <= ContactDirectionEpsilon
+                && depth > selectedDepth;
+            if (!isStronger && !isSameDirectionButDeeper)
+                continue;
+
+            strongestInwardComponent = inwardComponent;
+            selectedDepth = depth;
+            blocker = candidate;
+            normal = separationDirection;
+        }
+
+        return blocker != null;
     }
 
     /// <summary>
@@ -439,6 +785,36 @@ public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
             if (IsOwnCollider(candidate.collider) || candidate.distance >= closestDistance)
                 continue;
 
+            if (candidate.distance <= MovementEpsilon && rotationProbeCollider != null)
+            {
+                GetRotationProbePose(
+                    position,
+                    rotation,
+                    out Vector3 probePosition,
+                    out Quaternion probeRotation);
+
+                if (TryGetPenetration(
+                        candidate.collider,
+                        probePosition,
+                        probeRotation,
+                        out Vector3 separationDirection,
+                        out _))
+                {
+                    // 초기 겹침 Shape Cast의 반대 방향 Normal 보정
+                    // ComputePenetration 기반 실제 탈출 Normal 적용
+                    // 안쪽과 바깥쪽 이동 구분
+                    candidate.normal = separationDirection;
+                }
+            }
+
+            // 표면 시작 Cast의 평행 및 이탈 이동에서 거리 0 Hit 가능
+            // 거리 0 Hit로 인한 잠수함 고정 방지
+            if (candidate.distance <= collisionSkinWidth + MovementEpsilon
+                && Vector3.Dot(direction, candidate.normal) >= -ContactDirectionEpsilon)
+            {
+                continue;
+            }
+
             closestDistance = candidate.distance;
             closestHit = candidate;
         }
@@ -447,41 +823,62 @@ public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
     }
 
     /// <summary>
-    /// 제안된 회전이 현재는 없던 외부 Collider 겹침을 새로 만드는지 확인
+    /// 새 겹침 또는 침투 증가 시에만 Yaw 차단
+    /// 기존 겹침 유지 및 감소 회전을 탈출 방향으로 허용
     /// </summary>
-    private bool WouldIntroduceRotationOverlap(
+    private bool WouldIntroduceOrDeepenRotationOverlap(
         Vector3 position,
         Quaternion currentRotation,
-        Quaternion proposedRotation,
-        out Collider blocker)
+        Quaternion proposedRotation)
     {
-        // 다음 회전 자세에서 새 외부 겹침이 생기는지 검사
-        blocker = null;
-
         if (Quaternion.Angle(currentRotation, proposedRotation) <= 0.001f)
             return false;
 
-        // 이미 겹친 상태에서 회전을 모두 잠그지 않도록 새 회전에서 처음 생긴 겹침만 막는다.
-        bool currentlyOverlapping = TryFindExternalOverlap(position, currentRotation, out _);
-        bool proposedOverlapping = TryFindExternalOverlap(position, proposedRotation, out blocker);
-        return !currentlyOverlapping && proposedOverlapping;
-    }
-
-    /// <summary>
-    /// 지정한 위치와 회전에서 잠수함 캡슐과 겹치는 외부 Collider를 찾는다.
-    /// </summary>
-    private bool TryFindExternalOverlap(Vector3 position, Quaternion rotation, out Collider blocker)
-    {
-        // 지정 자세의 캡슐 겹침 중 잠수함 자체가 아닌 충돌체 검색
-        GetWorldCapsule(position, rotation, out Vector3 pointA, out Vector3 pointB, out float radius);
+        GetWorldCapsule(
+            position,
+            proposedRotation,
+            out Vector3 proposedPointA,
+            out Vector3 proposedPointB,
+            out float proposedRadius);
 
         int overlapCount = Physics.OverlapCapsuleNonAlloc(
-            pointA,
-            pointB,
-            radius,
+            proposedPointA,
+            proposedPointB,
+            proposedRadius,
             overlapHits,
             collisionMask,
             QueryTriggerInteraction.Ignore);
+
+        GetWorldCapsule(
+            position,
+            currentRotation,
+            out Vector3 currentPointA,
+            out Vector3 currentPointB,
+            out float currentRadius);
+
+        int currentOverlapCount = Physics.OverlapCapsuleNonAlloc(
+            currentPointA,
+            currentPointB,
+            currentRadius,
+            currentOverlapHits,
+            collisionMask,
+            QueryTriggerInteraction.Ignore);
+
+        if (rotationProbeCollider == null)
+        {
+            for (int i = 0; i < overlapCount; i++)
+            {
+                Collider candidate = overlapHits[i];
+                if (!IsOwnCollider(candidate)
+                    && !ContainsCollider(currentOverlapHits, currentOverlapCount, candidate))
+                    return true;
+            }
+
+            return false;
+        }
+
+        GetRotationProbePose(position, currentRotation, out Vector3 currentProbePosition, out Quaternion currentProbeRotation);
+        GetRotationProbePose(position, proposedRotation, out Vector3 proposedProbePosition, out Quaternion proposedProbeRotation);
 
         for (int i = 0; i < overlapCount; i++)
         {
@@ -489,16 +886,95 @@ public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
             if (IsOwnCollider(candidate))
                 continue;
 
-            blocker = candidate;
-            return true;
+            bool currentlyOverlapsCandidate = ContainsCollider(
+                currentOverlapHits,
+                currentOverlapCount,
+                candidate);
+            float currentDepth = GetPenetrationDepth(
+                candidate,
+                currentProbePosition,
+                currentProbeRotation);
+            float proposedDepth = GetPenetrationDepth(
+                candidate,
+                proposedProbePosition,
+                proposedProbeRotation);
+
+            if (proposedDepth <= 0f)
+            {
+                if (!currentlyOverlapsCandidate)
+                    return true;
+
+                continue;
+            }
+
+            if (proposedDepth > currentDepth + RotationDepthTolerance)
+                return true;
         }
 
-        blocker = null;
         return false;
     }
 
+    private static bool ContainsCollider(Collider[] colliders, int count, Collider target)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            if (colliders[i] == target)
+                return true;
+        }
+
+        return false;
+    }
+
+    private void GetRotationProbePose(
+        Vector3 rootPosition,
+        Quaternion rootRotation,
+        out Vector3 probePosition,
+        out Quaternion probeRotation)
+    {
+        probePosition = rootPosition + rootRotation * rotationProbeLocalPosition;
+        probeRotation = rootRotation * rotationProbeLocalRotation;
+    }
+
+    private float GetPenetrationDepth(
+        Collider other,
+        Vector3 probePosition,
+        Quaternion probeRotation)
+    {
+        return TryGetPenetration(
+            other,
+            probePosition,
+            probeRotation,
+            out _,
+            out float distance)
+            ? distance
+            : 0f;
+    }
+
+    private bool TryGetPenetration(
+        Collider other,
+        Vector3 probePosition,
+        Quaternion probeRotation,
+        out Vector3 direction,
+        out float distance)
+    {
+        direction = Vector3.zero;
+        distance = 0f;
+
+        return other != null
+            && rotationProbeCollider != null
+            && Physics.ComputePenetration(
+                rotationProbeCollider,
+                probePosition,
+                probeRotation,
+                other,
+                other.transform.position,
+                other.transform.rotation,
+                out direction,
+                out distance);
+    }
+
     /// <summary>
-    /// 잠수함의 위치, 회전, 스케일을 반영한 월드 공간 캡슐의 양 끝점과 반지름 계산
+    /// 잠수함 위치 회전 스케일 기반 월드 공간 Capsule 양 끝점과 반지름 계산
     /// </summary>
     private void GetWorldCapsule(
         Vector3 position,
@@ -533,34 +1009,14 @@ public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
     }
 
     /// <summary>
-    /// 회전을 막은 Collider와 접촉 지점의 회전 속도를 계산해 충돌 피해 처리
-    /// </summary>
-    private void ApplyRotationCollisionDamage(Collider blocker, Vector3 nextPosition)
-    {
-        // 회전이 막힌 지점과 속도로 충돌 피해 계산 경로 호출
-        if (blocker == null)
-            return;
-
-        Vector3 hitPoint = blocker.ClosestPoint(nextPosition);
-        Vector3 normal = nextPosition - hitPoint;
-        if (normal.sqrMagnitude <= 0.0001f)
-            normal = nextPosition - blocker.bounds.center;
-
-        Vector3 angularVelocity = Vector3.up * (yawVelocity * Mathf.Deg2Rad);
-        Vector3 pointVelocity = Vector3.Cross(angularVelocity, hitPoint - body.worldCenterOfMass);
-        float normalSpeed = Mathf.Abs(Vector3.Dot(pointVelocity, normal.normalized));
-
-        ApplyCollisionDamage(blocker, hitPoint, normal, normalSpeed);
-    }
-
-    /// <summary>
-    /// 충돌 속도, 피해 한도, Collider별 재사용 대기시간을 적용해 잠수함에 충돌 피해를 준다.
+    /// 충돌 속도 피해 한도 Collider별 재사용 대기 시간 기반 잠수함 피해 적용
     /// </summary>
     private void ApplyCollisionDamage(
         Collider sourceCollider,
         Vector3 hitPoint,
         Vector3 hitNormal,
-        float normalSpeed)
+        float normalSpeed,
+        bool hasImpactPoint)
     {
         // 체력과 충돌 속도와 Collider별 재사용 대기 조건 검증
         if (health == null || health.IsDead || sourceCollider == null || normalSpeed <= minimumDamageSpeed)
@@ -581,13 +1037,20 @@ public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
             return;
 
         lastDamageTimeByCollider[colliderId] = now;
-        health.ApplyDamage(new DamageInfo(
-            damage,
-            sourceCollider.gameObject,
-            hitPoint,
-            hitNormal,
-            DamageType.Collision,
-            false));
+        DamageInfo damageInfo = hasImpactPoint
+            ? new DamageInfo(
+                damage,
+                sourceCollider.gameObject,
+                hitPoint,
+                hitNormal,
+                DamageType.Collision,
+                false)
+            : DamageInfo.WithoutImpact(
+                damage,
+                sourceCollider.gameObject,
+                DamageType.Collision,
+                false);
+        health.ApplyDamage(damageInfo);
     }
 
     // 현재 속도를 목표 속도 쪽으로 일정한 비율로 이동

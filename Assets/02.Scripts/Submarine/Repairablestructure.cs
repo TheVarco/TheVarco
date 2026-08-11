@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
@@ -12,6 +13,8 @@ using UnityEngine.Rendering.Universal;
 [RequireComponent(typeof(Health))]
 public class RepairableStructure : NetworkBehaviour
 {
+    private static readonly int IsFixingHash = Animator.StringToHash("IsFixing");
+
     // 서영 추가
     // 잠수함의 손상 부위를 각각 관리하기 위해 넣음
     [Serializable]
@@ -62,6 +65,8 @@ public class RepairableStructure : NetworkBehaviour
     private Health health;
     // 네트워크 수리 점유 관리
     private int activeRepairSlot = -1;
+    // Player 코드 변경 없는 원격 수리 애니메이션 캐시
+    private readonly Dictionary<PlayerRef, Animator> repairAnimatorByPlayer = new();
 
     [Networked, Capacity(10)] private NetworkArray<float> NetworkedDamage => default;
     [Networked, Capacity(10)] private NetworkArray<float> NetworkedRepairProgress => default;
@@ -125,7 +130,7 @@ public class RepairableStructure : NetworkBehaviour
     // 체력 참조와 손상 슬롯 기본값 준비
     private void Awake()
     {
-        // Health를 찾고 각 슬롯의 누적 피해와 수리 진행 초기화
+        // Health 탐색 및 슬롯별 누적 피해와 수리 진행 초기화
         health = GetComponent<Health>();
 
         if (damageSlots == null)
@@ -136,7 +141,7 @@ public class RepairableStructure : NetworkBehaviour
             if (slot == null)
                 continue;
 
-            // TODO : 세이브포인트 넣으면 별도 저장 필요
+            // TODO 세이브포인트 추가 시 별도 저장 필요
             slot.accumulatedDamage = 0f;
             slot.repairProgressSeconds = 0f;
             UpdateSlotDamageVisual(slot);
@@ -146,7 +151,7 @@ public class RepairableStructure : NetworkBehaviour
     // 체력 피해 이벤트 연결
     private void OnEnable()
     {
-        // Health 참조를 보정하고 피해 적용 콜백 등록
+        // Health 참조 보정 및 피해 적용 Callback 등록
         if (health == null)
             health = GetComponent<Health>();
 
@@ -180,7 +185,7 @@ public class RepairableStructure : NetworkBehaviour
     // 호스트 틱에서 점유 중인 슬롯 수리 진행
     public override void FixedUpdateNetwork()
     {
-        // StateAuthority만 네트워크 수리 진행값 변경
+        // State Authority 전용 네트워크 수리 진행값 변경
         if (!Object.HasStateAuthority)
             return;
 
@@ -194,6 +199,8 @@ public class RepairableStructure : NetworkBehaviour
         // 네트워크 배열을 로컬 슬롯과 데칼 상태로 변환
         if (IsNetworkActive && !Object.HasStateAuthority)
             ApplyNetworkSlotsToVisuals();
+
+        ApplyNetworkRepairAnimations();
     }
 
     // 비활성화 시 이벤트와 수리 점유 정리
@@ -204,12 +211,13 @@ public class RepairableStructure : NetworkBehaviour
             health.OnDamageApplied -= HandleDamageApplied;
 
         activeRepairSlot = -1;
+        ClearNetworkRepairAnimations();
     }
 
     // 네트워크가 없는 씬의 수리 진행 감쇠 처리
     private void Update()
     {
-        // Runner가 없을 때만 프레임 시간으로 수리 진행 감소
+        // Runner 부재 시 Frame 시간 기준 수리 진행 감소
         if (IsNetworkActive)
             return;
 
@@ -277,9 +285,9 @@ public class RepairableStructure : NetworkBehaviour
         }
 
         // 가장 가까운 슬롯 선택
-        // requireDamage를 false 하는 이유 > Raycast가 맞은 위치에서 가장 가까운 슬롯을 선택하고
-        // 이후 CanRepairSlot()으로 해당 슬롯이 손상됐는지 확인하고 있는데
-        // 이걸 true로 하면 근처의 다른 슬롯이 수정되는 현상 발생함
+        // requireDamage 비활성으로 Raycast 최근접 슬롯 선택
+        // CanRepairSlot 기준 선택 슬롯 손상 여부 확인
+        // 활성화 시 인접 슬롯 오선택 가능
         if (!TryFindClosestSlot(impactPoint, false, out int slotIndex))
             return;
 
@@ -302,7 +310,7 @@ public class RepairableStructure : NetworkBehaviour
         WriteNetworkSlot(slotIndex, slot);
         UpdateSlotDamageVisual(slot);
 
-        // 유리랑 선체가 사용하는 Renderer가 달라서 나눠서 확인
+        // 유리와 선체의 Renderer 분리 확인
         string visualMaterialName = slot.glassOverlay != null
             ? slot.glassOverlay.CurrentMaterialName
             : slot.projector != null && slot.projector.material != null
@@ -312,7 +320,7 @@ public class RepairableStructure : NetworkBehaviour
             ? slot.glassOverlay.IsVisible
             : slot.projector != null && slot.projector.enabled;
 
-        // TODO : 디버그 확인용으로 주석처리할것
+        // TODO Debug 확인 후 제거
         Debug.Log(
             $"[SubmarineDamage] 피격 부위={resolvedSlotName}, " +
             $"슬롯 인덱스={slotIndex}, 피격 위치={impactPoint:F2}, " +
@@ -341,7 +349,7 @@ public class RepairableStructure : NetworkBehaviour
             if (slot == null || slot.anchor == null)
                 continue;
 
-            // requireDamage가 있다면 실제 손상이 있는 슬롯만 검사
+            // requireDamage 활성 시 실제 손상 슬롯만 검사
             if (requireDamage && slot.accumulatedDamage <= DamageEpsilon)
                 continue;
 
@@ -368,7 +376,7 @@ public class RepairableStructure : NetworkBehaviour
             && damageSlots[slotIndex].accumulatedDamage > DamageEpsilon;
     }
 
-    // HammerItem이 매 프레임 호출
+    // HammerItem의 매 Frame 호출
     // 진행 시간이 한 주기를 채운 프레임에만 실제 HP 회복과 해당 슬롯의 누적 손상을 함께 감소
     public float AdvanceRepair(
         int slotIndex,
@@ -389,7 +397,7 @@ public class RepairableStructure : NetworkBehaviour
             return 0f;
         }
 
-        // 이 슬롯은 Update()의 진행도 감소 대상에서 제외
+        // 현재 슬롯의 Update 진행도 감소 제외
         activeRepairSlot = slotIndex;
 
         // 수리 시간 누적
@@ -406,7 +414,7 @@ public class RepairableStructure : NetworkBehaviour
         completedCycle = true;
 
         // 슬롯에 남은 손상보다 많이 회복하지 않고
-        // Health가 실제로 회복한 양만 슬롯 손상에서도 차감해 HP와 데칼 상태를 항상 일치시킴
+        // Health 실제 회복량 기준 슬롯 손상 차감
         float allowedAmount = Mathf.Min(repairAmount, slot.accumulatedDamage);
         float repairedAmount = health.Heal(allowedAmount);
 
@@ -583,7 +591,70 @@ public class RepairableStructure : NetworkBehaviour
         }
     }
 
-    // 수리 UI가 필요로 하는 위치, 표면 방향, 진행률을 한 번에 전달
+    // 권위 승인 수리 점유 상태 기반 원격 Player 애니메이션 구동
+    // 로컬 Input Authority Player는 HammerItem 즉시 반응 유지
+    private void ApplyNetworkRepairAnimations()
+    {
+        if (!IsNetworkActive)
+            return;
+
+        foreach (PlayerRef player in Runner.ActivePlayers)
+        {
+            if (!Runner.TryGetPlayerObject(player, out NetworkObject playerObject)
+                || playerObject == null
+                || playerObject.HasInputAuthority)
+            {
+                continue;
+            }
+
+            Animator animator = GetRepairAnimator(player, playerObject);
+            if (animator != null)
+                animator.SetBool(IsFixingHash, IsNetworkRepairer(player));
+        }
+    }
+
+    private Animator GetRepairAnimator(PlayerRef player, NetworkObject playerObject)
+    {
+        if (repairAnimatorByPlayer.TryGetValue(player, out Animator cachedAnimator)
+            && cachedAnimator != null)
+        {
+            return cachedAnimator;
+        }
+
+        Animator animator = playerObject.GetComponent<Animator>();
+        if (animator == null)
+            animator = playerObject.GetComponentInChildren<Animator>(true);
+
+        if (animator != null)
+            repairAnimatorByPlayer[player] = animator;
+
+        return animator;
+    }
+
+    private bool IsNetworkRepairer(PlayerRef player)
+    {
+        int count = Mathf.Min(SlotCount, NetworkedRepairers.Length);
+        for (int i = 0; i < count; i++)
+        {
+            if (NetworkedRepairers.Get(i) == player)
+                return true;
+        }
+
+        return false;
+    }
+
+    private void ClearNetworkRepairAnimations()
+    {
+        foreach (Animator animator in repairAnimatorByPlayer.Values)
+        {
+            if (animator != null)
+                animator.SetBool(IsFixingHash, false);
+        }
+
+        repairAnimatorByPlayer.Clear();
+    }
+
+    // 수리 UI용 위치 표면 방향 진행률 전달
     // Anchor가 없으면 UI를 올바른 위치에 표시할 수 없으므로 실패로 처리
     public bool TryGetRepairUIData(
         int slotIndex,
@@ -632,7 +703,7 @@ public class RepairableStructure : NetworkBehaviour
         return Mathf.Clamp(stage, 1, stageCount);
     }
 
-    // 유리는 이미지 개수, 선체는 머티리얼 개수로 단계 계산
+    // 유리는 이미지 개수 기준 선체는 Material 개수 기준 단계 계산
     private int GetStageCount(DamageDecalSlot slot)
     {
         // 데칼과 유리 오버레이 중 더 많은 단계 수를 사용

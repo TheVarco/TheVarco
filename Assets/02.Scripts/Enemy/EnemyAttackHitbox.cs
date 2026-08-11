@@ -24,8 +24,6 @@ public class EnemyAttackHitbox : MonoBehaviour
     // 공격 시작
     public void BeginBite(int damage, GameObject owner)
     {
-        // Debug.Log($"BeginBite at {Time.time}");
-            
         this.damage = damage;
         this.owner = owner;
         hasHit = false;
@@ -62,22 +60,24 @@ public class EnemyAttackHitbox : MonoBehaviour
         if (target == null || target.IsDead)
             return;
 
-        // target.TakeDamage(damage, owner);
         Health targetHealth = other.GetComponentInParent<Health>();
         if (targetHealth != null)
         {
-            Vector3 sourcePosition = owner != null
-                ? owner.transform.position
+            // 입 히트박스 중심 기준 표면 탐색
+            Vector3 sourcePosition = hitboxCollider != null
+                ? hitboxCollider.bounds.center
                 : transform.position;
-            Collider damageSurface = FindClosestDamageSurface(targetHealth, sourcePosition);
-            Collider pointSource = damageSurface != null ? damageSurface : other;
-            Vector3 hitPoint = pointSource.ClosestPoint(sourcePosition);
-            Vector3 hitNormal = sourcePosition - hitPoint;
 
-            if (hitNormal.sqrMagnitude <= 0.0001f)
-                hitNormal = sourcePosition - pointSource.bounds.center;
+            DamageInfo damageInfo = TryFindDamageImpact(
+                targetHealth,
+                other,
+                sourcePosition,
+                out Vector3 hitPoint,
+                out Vector3 hitNormal)
+                ? new DamageInfo(damage, owner, hitPoint, hitNormal, DamageType.Bite)
+                : DamageInfo.WithoutImpact(damage, owner, DamageType.Bite);
 
-            targetHealth.ApplyDamage(new DamageInfo(damage, owner, hitPoint, hitNormal, DamageType.Bite));
+            targetHealth.ApplyDamage(damageInfo);
         }
         else
         {
@@ -87,15 +87,23 @@ public class EnemyAttackHitbox : MonoBehaviour
         hasHit = true;
     }
 
-    // 상어는 먼저 Shark Target Volume(Trigger)과 충돌 > 안 그러면 잠수함에 붙은 메쉬 콜라이더가 너무 많아서 계속 공격 & 데칼 안입혀짐..
-    // Health를 사용하는 실제 MeshCollider들 중 상어와 가장 가까운 표면을 찾아 피격 위치로 사용
-    private static Collider FindClosestDamageSurface(Health targetHealth, Vector3 sourcePosition)
+    // Health 소유 선체에 입 중심 Raycast
+    // 검사 실패 시 전용 primitive Trigger를 근사 표면으로 사용
+    private static bool TryFindDamageImpact(
+        Health targetHealth,
+        Collider contactedCollider,
+        Vector3 sourcePosition,
+        out Vector3 hitPoint,
+        out Vector3 hitNormal)
     {
-        Collider closestCollider = null;
-        float closestSqrDistance = float.PositiveInfinity;
+        hitPoint = default;
+        hitNormal = default;
+
+        float closestDistance = float.PositiveInfinity;
+        bool foundSurface = false;
         Collider[] candidates = targetHealth.GetComponentsInChildren<Collider>(true);
 
-        // 실제 데칼이 붙을 수 있는 MeshCollider만 검사
+        // 데칼용 실제 선체 우선 검사
         foreach (Collider candidate in candidates)
         {
             if (candidate == null || !candidate.enabled || candidate.isTrigger)
@@ -105,19 +113,86 @@ public class EnemyAttackHitbox : MonoBehaviour
             if (owningHealth != targetHealth)
                 continue;
 
-            // 선택된 실제 선체 Collider의 표면 좌표를 구한다.
-            // 이 위치가 DamageInfo의 피격 위치가 되며
-            // RepairableStructure는 이 좌표를 기준으로 가장 가까운 손상 슬롯을 선택한다.
-            Vector3 surfacePoint = candidate.ClosestPoint(sourcePosition);
-            float sqrDistance = (surfacePoint - sourcePosition).sqrMagnitude;
-
-            if (sqrDistance >= closestSqrDistance)
+            if (!PhysicsSurfaceQuery.TryRaycastTowards(
+                    candidate,
+                    sourcePosition,
+                    candidate.bounds.center,
+                    out RaycastHit surfaceHit) ||
+                surfaceHit.distance >= closestDistance)
+            {
                 continue;
+            }
 
-            closestSqrDistance = sqrDistance;
-            closestCollider = candidate;
+            closestDistance = surfaceHit.distance;
+            hitPoint = surfaceHit.point;
+            hitNormal = surfaceHit.normal;
+            foundSurface = true;
         }
 
-        return closestCollider;
+        if (foundSurface)
+            return true;
+
+        bool isSubmarine = targetHealth.GetComponentInParent<SubmarineController>() != null;
+
+        // 플레이어 접촉 캡슐을 유효한 근사 표면으로 사용
+        // 잠수함은 전용 대상 영역만 근사 표면으로 사용
+        // 무관한 감지 영역의 데칼 좌표 사용 방지
+        if (TryGetCapsuleFallback(
+                contactedCollider,
+                targetHealth,
+                isSubmarine,
+                sourcePosition,
+                out hitPoint,
+                out hitNormal))
+        {
+            return true;
+        }
+
+        if (isSubmarine)
+        {
+            foreach (Collider candidate in candidates)
+            {
+                if (candidate == contactedCollider ||
+                    !TryGetCapsuleFallback(
+                    candidate,
+                    targetHealth,
+                    true,
+                    sourcePosition,
+                    out hitPoint,
+                    out hitNormal))
+                {
+                    continue;
+                }
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryGetCapsuleFallback(
+        Collider candidate,
+        Health targetHealth,
+        bool requireSubmarineTargetVolume,
+        Vector3 sourcePosition,
+        out Vector3 hitPoint,
+        out Vector3 hitNormal)
+    {
+        hitPoint = default;
+        hitNormal = default;
+
+        return candidate != null &&
+               candidate.enabled &&
+               candidate.gameObject.activeInHierarchy &&
+               candidate is CapsuleCollider &&
+               (!requireSubmarineTargetVolume || candidate.name == "Shark Target Volume") &&
+               candidate.GetComponentInParent<Health>() == targetHealth &&
+               PhysicsSurfaceQuery.TryDirectionalClosestPoint(
+                   candidate,
+                   sourcePosition,
+                   candidate.bounds.center,
+                   out hitPoint,
+                   out hitNormal);
     }
 }

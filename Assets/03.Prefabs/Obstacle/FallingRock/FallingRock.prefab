@@ -14,6 +14,8 @@ GameObject:
   - component: {fileID: 3010034739758569290}
   - component: {fileID: 3995102990133889815}
   - component: {fileID: 3668448069759490786}
+  - component: {fileID: 3668448069759490980}
+  - component: {fileID: 3668448069759490981}
   m_Layer: 0
   m_Name: FallingRock
   m_TagString: Untagged
@@ -156,6 +158,44 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FallingRock
   smokeObject: {fileID: 8980892950859898259}
   smokeParticle: {fileID: 9108202348990826995}
+--- !u!114 &3668448069759490980
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6531421936433740319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 1383295444
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 3668448069759490786}
+  - {fileID: 3668448069759490981}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &3668448069759490981
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6531421936433740319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkTransform
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 0
+  _interpolationTarget: {fileID: 0}
+  _autoAOIOverride: 1
+  DisableSharedModeInterpolation: 0
 --- !u!1001 &2462506619407541863
 PrefabInstance:
   m_ObjectHideFlags: 0

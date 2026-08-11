@@ -1,10 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
+using Fusion;
 using UnityEngine;
 
 [DisallowMultipleComponent]
 // 경고등과 낙석 생성 및 전용 오브젝트 풀을 관리하는 생성기
-public sealed class RockSpawner : MonoBehaviour, IPatternTarget
+public sealed class RockSpawner : NetworkBehaviour, IPatternTarget
 {
     [Header("Rock")]
     [SerializeField] private FallingRock fallingRockPrefab; // 풀에서 반복 사용할 낙석 프리팹
@@ -28,17 +29,24 @@ public sealed class RockSpawner : MonoBehaviour, IPatternTarget
 
     private readonly List<FallingRock> pooledRocks = new List<FallingRock>(); // 이 Spawner가 생성한 전체 바위 목록
     private readonly HashSet<FallingRock> activeRocks = new HashSet<FallingRock>(); // 현재 낙하 중인 바위의 빠른 검색 집합
+    // 호스트가 생성한 활성 낙석
+    private readonly HashSet<FallingRock> activeNetworkRocks = new HashSet<FallingRock>();
     private ObstaclePatternBase patternOwner; // 현재 낙석 생성기를 제어하는 외부 패턴
     private Transform poolRoot; // 대기 중인 바위를 정리할 런타임 부모
     private Coroutine aloneRoutine; // 패턴 미등록 상태의 자동 Alone 코루틴
     private bool hasStarted; // Start 호출 완료 여부
     private bool missingPrefabWarningLogged; // 누락 프리팹 경고의 반복 출력 방지값
 
+    // 호스트 기준 경고등 상태
+    [Networked] private NetworkBool NetworkedWarningVisible { get; set; }
+
     public bool IsPatternControlled => patternOwner != null; // 외부 패턴 제어 여부
     public int PoolCount => CountExistingPooledRocks(); // 파괴되지 않고 풀에 남은 전체 바위 개수
     public int ActiveRockCount => CountExistingActiveRocks(); // 현재 낙하 중인 바위 개수
 
     Object IPatternTarget.PatternTargetObject => this; // 공용 패턴의 Unity 생명주기 검사 대상
+    public bool HasPatternAuthority =>
+        Object == null || !Object.IsValid || Object.HasStateAuthority;
 
     // 공용 패턴에서 낙석 생성기 제어권을 요청
     bool IPatternTarget.ClaimPatternControl(ObstaclePatternBase owner)
@@ -90,15 +98,42 @@ public sealed class RockSpawner : MonoBehaviour, IPatternTarget
         if (spawnPoint == null)
             spawnPoint = transform;
 
-        EnsurePoolRoot();
-        SetWarningVisible(false);
-        PrewarmPool();
+        ApplyWarningVisible(false);
+    }
+
+    // 권위 경고 상태 초기화
+    // 프록시 로컬 패턴 정지
+    public override void Spawned()
+    {
+        // 권위자는 경고등 초기값 게시
+        if (Object.HasStateAuthority)
+            NetworkedWarningVisible = false;
+        else
+        {
+            // 프록시에서 먼저 시작된 Alone 패턴 정지
+            StopAlonePattern();
+            // 프록시에서 먼저 확보한 외부 패턴 정지
+            patternOwner?.StopAndReset();
+        }
+        // 현재 복제 상태로 경고등 초기화
+        ApplyWarningVisible(NetworkedWarningVisible);
+    }
+
+    // 프록시 경고등 갱신
+    public override void Render()
+    {
+        // 프록시만 복제 경고등 적용
+        if (!Object.HasStateAuthority)
+            ApplyWarningVisible(NetworkedWarningVisible);
     }
 
     // 모든 Awake 이후 외부 패턴 미등록 여부를 확인해 자동 Alone 시작
     private void Start()
     {
         hasStarted = true;
+        // Runner 없는 로컬 실행만 기존 풀 준비
+        if (!IsNetworkActive)
+            PrewarmPool();
         TryStartAlonePattern();
     }
 
@@ -112,7 +147,8 @@ public sealed class RockSpawner : MonoBehaviour, IPatternTarget
     // 외부 패턴에 제어권을 넘기고 자체 Alone과 기존 낙석 정리
     internal bool ClaimPatternControl(ObstaclePatternBase owner)
     {
-        if (owner == null)
+        // 권위 없는 프록시의 패턴 제어 차단
+        if (owner == null || !HasPatternAuthority)
             return false;
 
         // 다른 패턴이 먼저 확보한 생성기의 중복 제어 차단
@@ -142,7 +178,8 @@ public sealed class RockSpawner : MonoBehaviour, IPatternTarget
     // 실행 가능 조건을 만족할 때만 자동 Alone 코루틴 생성
     private void TryStartAlonePattern()
     {
-        if (!hasStarted || !isActiveAndEnabled || patternOwner != null || aloneRoutine != null)
+        // 권위자만 자체 패턴 시작
+        if (!HasPatternAuthority || !hasStarted || !isActiveAndEnabled || patternOwner != null || aloneRoutine != null)
             return;
 
         aloneRoutine = StartCoroutine(RunAlonePattern());
@@ -189,6 +226,42 @@ public sealed class RockSpawner : MonoBehaviour, IPatternTarget
     // 풀에서 바위 하나를 대여해 생성 기준점에서 낙하 시작
     public bool SpawnRock()
     {
+        if (IsNetworkActive)
+        {
+            // 네트워크 낙석 생성은 권위자만 실행
+            if (!Object.HasStateAuthority || fallingRockPrefab == null)
+                return false;
+
+            NetworkObject rockPrefabObject = fallingRockPrefab.GetComponent<NetworkObject>();
+            if (rockPrefabObject == null)
+            {
+                // 잘못 구성된 낙석 프리팹 보고
+                Debug.LogError($"{fallingRockPrefab.name} requires a NetworkObject", fallingRockPrefab);
+                return false;
+            }
+
+            // 낙석 생성 위치와 회전 확보
+            Transform networkPoint = spawnPoint != null ? spawnPoint : transform;
+            // Fusion을 통한 네트워크 낙석 생성
+            NetworkObject spawned = Runner.Spawn(
+                rockPrefabObject,
+                networkPoint.position,
+                networkPoint.rotation,
+                null,
+                (runner, networkObject) =>
+                {
+                    // Spawned 이전 권위 초기값 주입
+                    FallingRock networkRock = networkObject.GetComponent<FallingRock>();
+                    networkRock?.InitializeNetwork(this, impactDamage, maxLifetime);
+                });
+
+            FallingRock spawnedRock = spawned != null ? spawned.GetComponent<FallingRock>() : null;
+            if (spawnedRock != null)
+                // 체크포인트 정리용 활성 목록 등록
+                activeNetworkRocks.Add(spawnedRock);
+            return spawnedRock != null;
+        }
+
         FallingRock rock = GetAvailableRock(); // 비활성 바위를 우선 재사용하고 부족할 때만 새로 생성
         if (rock == null)
             return false;
@@ -211,6 +284,13 @@ public sealed class RockSpawner : MonoBehaviour, IPatternTarget
         rock.PrepareForPool(poolRoot);
     }
 
+    internal void NotifyNetworkRockDespawned(FallingRock rock)
+    {
+        // 제거된 바위를 활성 목록에서 해제
+        if (rock != null)
+            activeNetworkRocks.Remove(rock);
+    }
+
     // 충돌 지점의 표면 방향에 맞춰 일회성 먼지 파티클 생성
     internal void PlayImpactDust(Vector3 point, Vector3 normal)
     {
@@ -229,6 +309,22 @@ public sealed class RockSpawner : MonoBehaviour, IPatternTarget
     // 경고용 Light의 활성 상태를 한 곳에서 변경
     public void SetWarningVisible(bool visible)
     {
+        if (IsNetworkActive)
+        {
+            // 프록시의 독립 경고 상태 변경 차단
+            if (!Object.HasStateAuthority)
+                return;
+            // 호스트 기준 경고 상태 게시
+            NetworkedWarningVisible = visible;
+        }
+
+        // 로컬 Light 표시 적용
+        ApplyWarningVisible(visible);
+    }
+
+    // 경고등 로컬 표시 적용
+    private void ApplyWarningVisible(bool visible)
+    {
         if (warningLight != null)
             warningLight.enabled = visible;
     }
@@ -236,8 +332,34 @@ public sealed class RockSpawner : MonoBehaviour, IPatternTarget
     // 경고등을 끄고 현재 낙하 중인 바위를 전부 풀로 회수
     public void ResetRockSpawner()
     {
+        if (IsNetworkActive && !Object.HasStateAuthority)
+        {
+            // 프록시는 로컬 경고 표시만 정리
+            ApplyWarningVisible(false);
+            return;
+        }
+
+        // 권위 경고 상태와 활성 낙석 정리
         SetWarningVisible(false);
+        DespawnAllNetworkRocks();
         ReturnAllActiveRocks();
+    }
+
+    private void DespawnAllNetworkRocks()
+    {
+        // 유효한 권위자와 활성 목록만 처리
+        if (!IsNetworkActive || !Object.HasStateAuthority || activeNetworkRocks.Count == 0)
+            return;
+
+        // 순회 중 목록 변경을 막는 복사본 생성
+        List<FallingRock> rocks = new List<FallingRock>(activeNetworkRocks);
+        foreach (FallingRock rock in rocks)
+        {
+            if (rock != null && rock.Object != null && rock.Object.IsValid)
+                // 활성 네트워크 낙석 제거
+                Runner.Despawn(rock.Object);
+        }
+        activeNetworkRocks.Clear();
     }
 
     // 설정된 사전 생성 수만큼 비활성 바위를 풀에 준비
@@ -356,9 +478,19 @@ public sealed class RockSpawner : MonoBehaviour, IPatternTarget
     // 파괴되지 않고 실제 활성 상태인 낙석 수 계산
     private int CountExistingActiveRocks()
     {
+        if (IsNetworkActive)
+        {
+            // 이미 제거된 네트워크 참조 정리
+            activeNetworkRocks.RemoveWhere(rock => rock == null || rock.Object == null || !rock.Object.IsValid);
+            return activeNetworkRocks.Count;
+        }
+
         activeRocks.RemoveWhere(rock => rock == null || !rock.gameObject.activeSelf);
         return activeRocks.Count;
     }
+
+    // 활성 Fusion 오브젝트 여부
+    private bool IsNetworkActive => Object != null && Object.IsValid;
 
     // 비활성화 시 코루틴과 경고등 및 활성 낙석 정리
     private void OnDisable()

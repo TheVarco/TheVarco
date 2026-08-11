@@ -1,17 +1,18 @@
 using System.Collections;
 using System.Collections.Generic;
+using Fusion;
 using UnityEngine;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Rigidbody))]
 // 풀에서 재사용되며 첫 유효 충돌에 고정 피해를 주는 낙하 바위
-public sealed class FallingRock : MonoBehaviour
+public sealed class FallingRock : NetworkBehaviour
 {
     [Header("Smoke Effect")]
     [SerializeField] private GameObject smokeObject; // 연기 이펙트 루트 게임오브젝트
     [SerializeField] private ParticleSystem smokeParticle; // 충돌 시 재생할 연기 파티클 컴포넌트
 
-    private RockSpawner owner; // 이 바위를 생성하고 다시 회수할 Spawner
+    private RockSpawner owner; // 바위 생성 및 회수 Spawner
     private Rigidbody body; // 낙하와 충돌을 담당하는 물리 본체
     private Collider[] rockColliders; // 풀 반환 시 함께 끌 바위 충돌 판정
     private MeshRenderer[] rockMeshRenderers; // 바위 본체 렌더러 (연기 파티클 렌더러와 분리)
@@ -20,6 +21,22 @@ public sealed class FallingRock : MonoBehaviour
     private float despawnTime; // 충돌하지 않은 바위를 자동 회수할 절대시간
     private bool isLaunched; // 현재 풀 밖에서 낙하 중인지 나타내는 값
     private bool hasImpacted; // 같은 낙하 차례의 중복 충돌 처리를 막는 값
+    private int renderedImpactSequence; // 마지막으로 재생한 충돌 번호
+
+    // 생성한 스포너 식별자
+    [Networked] private NetworkId OwnerId { get; set; }
+    // 호스트 기준 충돌 상태
+    [Networked] private NetworkBool NetworkedImpacted { get; set; }
+    // 호스트 기준 충돌 위치
+    [Networked] private Vector3 NetworkedImpactPoint { get; set; }
+    // 호스트 기준 충돌 방향
+    [Networked] private Vector3 NetworkedImpactNormal { get; set; }
+    // 충돌 연출 번호
+    [Networked] private int ImpactSequence { get; set; }
+    // 최대 생존 타이머
+    [Networked] private TickTimer LifetimeTimer { get; set; }
+    // 충돌 연출 종료 타이머
+    [Networked] private TickTimer DespawnTimer { get; set; }
 
     public bool IsLaunched => isLaunched; // 현재 낙하 중인지 확인하는 읽기 전용 상태
     public bool HasImpacted => hasImpacted; // 현재 차례에 유효 충돌이 발생했는지 확인하는 상태
@@ -33,7 +50,7 @@ public sealed class FallingRock : MonoBehaviour
         DeactivateSmoke();
     }
 
-    // 풀 생성 시 소유 Spawner를 연결하고 컴포넌트 참조 보강
+    // 풀 생성 시 소유 Spawner 연결 및 컴포넌트 참조 보강
     internal void Initialize(RockSpawner rockOwner)
     {
         owner = rockOwner;
@@ -41,6 +58,115 @@ public sealed class FallingRock : MonoBehaviour
         ConfigureRigidbody();
         ConfigureColliders();
         DeactivateSmoke();
+    }
+
+    // 네트워크 생성 초기값 기록
+    internal void InitializeNetwork(RockSpawner rockOwner, float damage, float maxLifetime)
+    {
+        // 생성 스포너와 피해량 저장
+        owner = rockOwner;
+        impactDamage = Mathf.Max(0f, damage);
+        // 프록시에서 찾을 스포너 식별자 저장
+        OwnerId = rockOwner != null && rockOwner.Object != null && rockOwner.Object.IsValid
+            ? rockOwner.Object.Id
+            : default;
+        // 새 낙하의 충돌 기록 초기화
+        NetworkedImpacted = false;
+        NetworkedImpactPoint = default;
+        NetworkedImpactNormal = Vector3.up;
+        ImpactSequence = 0;
+        // 미충돌 상태의 최대 생존시간 설정
+        LifetimeTimer = TickTimer.CreateFromSeconds(Runner, Mathf.Max(0.1f, maxLifetime));
+        DespawnTimer = TickTimer.None;
+    }
+
+    // 권위 물리와 프록시 표시 초기화
+    public override void Spawned()
+    {
+        // 풀 사용 이력을 제거한 표시 상태 준비
+        CacheComponents();
+        ConfigureRigidbody();
+        ConfigureColliders();
+        StopSmokeRoutine();
+        DeactivateSmoke();
+
+        // 복제된 충돌 기록을 로컬 상태에 반영
+        isLaunched = true;
+        hasImpacted = NetworkedImpacted;
+        renderedImpactSequence = ImpactSequence;
+        SetMeshRenderersEnabled(!NetworkedImpacted);
+
+        if (Object.HasStateAuthority)
+        {
+            // 권위자만 동적 물리와 충돌 활성화
+            SetCollidersEnabled(!NetworkedImpacted);
+            if (!NetworkedImpacted)
+            {
+                body.isKinematic = false;
+                body.useGravity = true;
+                body.detectCollisions = true;
+                body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+                body.linearVelocity = Vector3.zero;
+                body.angularVelocity = Vector3.zero;
+                body.WakeUp();
+            }
+        }
+        else
+        {
+            // 프록시의 독립 물리와 충돌 차단
+            SetCollidersEnabled(false);
+            body.isKinematic = true;
+            body.useGravity = false;
+            body.detectCollisions = false;
+            body.interpolation = RigidbodyInterpolation.None;
+            if (NetworkedImpacted)
+                // 늦은 참가자의 충돌 연출 복원
+                PlayReplicatedImpact();
+        }
+    }
+
+    // 권위 수명과 연출 종료 판정
+    public override void FixedUpdateNetwork()
+    {
+        // 프록시의 수명 판정 차단
+        if (!Object.HasStateAuthority)
+            return;
+
+        if (!NetworkedImpacted && LifetimeTimer.Expired(Runner))
+        {
+            // 충돌하지 않은 바위의 수명 종료
+            Runner.Despawn(Object);
+            return;
+        }
+
+        if (NetworkedImpacted && DespawnTimer.Expired(Runner))
+            // 충돌 연출이 끝난 바위 제거
+            Runner.Despawn(Object);
+    }
+
+    // 프록시 충돌 연출 갱신
+    public override void Render()
+    {
+        // 권위자와 이미 적용한 충돌 번호 제외
+        if (Object.HasStateAuthority || renderedImpactSequence == ImpactSequence)
+            return;
+
+        // 새 충돌 번호 저장
+        renderedImpactSequence = ImpactSequence;
+        if (NetworkedImpacted)
+            PlayReplicatedImpact();
+    }
+
+    // 네트워크 제거 상태 정리
+    public override void Despawned(NetworkRunner runner, bool hasState)
+    {
+        // 생성 스포너의 활성 목록에서 제거
+        owner?.NotifyNetworkRockDespawned(this);
+        // 남은 파티클과 로컬 상태 정리
+        StopSmokeRoutine();
+        DeactivateSmoke();
+        isLaunched = false;
+        hasImpacted = false;
     }
 
     // 풀에서 대여된 바위의 위치와 물리 및 충돌 기록을 초기화해 낙하 시작
@@ -81,7 +207,7 @@ public sealed class FallingRock : MonoBehaviour
         hasImpacted = false;
         despawnTime = 0f;
 
-        // 충돌 처리에서 이미 Kinematic으로 전환된 본체에는 속도를 다시 쓰지 않음
+        // 충돌 처리 후 Kinematic 본체의 속도 쓰기 제외
         if (!body.isKinematic)
         {
             body.linearVelocity = Vector3.zero;
@@ -102,6 +228,10 @@ public sealed class FallingRock : MonoBehaviour
     // 최대 생존시간이 지나도 충돌하지 않은 바위를 효과 없이 풀로 반환
     private void Update()
     {
+        // 네트워크 낙석은 TickTimer 사용
+        if (Object != null && Object.IsValid)
+            return;
+
         if (isLaunched && !hasImpacted && Time.time >= despawnTime)
             ReturnToPool();
     }
@@ -109,6 +239,10 @@ public sealed class FallingRock : MonoBehaviour
     // 첫 유효 충돌의 피해와 먼지 효과를 처리하고 연기 파티클 재생 후 풀로 반환
     private void OnCollisionEnter(Collision collision)
     {
+        // 프록시의 독립 충돌 처리 차단
+        if (Object != null && Object.IsValid && !Object.HasStateAuthority)
+            return;
+
         if (!isLaunched || hasImpacted || collision == null || collision.collider == null)
             return;
 
@@ -129,7 +263,7 @@ public sealed class FallingRock : MonoBehaviour
         HandleImpact(collision.collider, point, normal);
     }
 
-    // 유효 충돌을 한 번만 잠그고 Health 피해, 물리 정지, 연기 파티클 재생 처리
+    // 단일 유효 충돌의 Health 피해 물리 정지 연기 Particle 재생
     private void HandleImpact(Collider hitCollider, Vector3 point, Vector3 normal)
     {
         if (!isLaunched || hasImpacted || hitCollider == null)
@@ -141,10 +275,20 @@ public sealed class FallingRock : MonoBehaviour
 
         hasImpacted = true;
 
-        Health health = hitCollider.GetComponentInParent<Health>(); // 다중 콜라이더를 부모 Health 하나로 통합
+        if (Object != null && Object.IsValid)
+        {
+            // 권위 충돌 결과 게시
+            NetworkedImpacted = true;
+            NetworkedImpactPoint = point;
+            NetworkedImpactNormal = normal.sqrMagnitude > 0.0001f ? normal.normalized : Vector3.up;
+            // 같은 상태의 새 충돌 연출 구분
+            ImpactSequence++;
+        }
+
+        Health health = hitCollider.GetComponentInParent<Health>(); // 다중 Collider를 부모 Health 하나로 통합
         if (health != null && !health.IsDead && impactDamage > 0f)
         {
-            GameObject source = owner != null ? owner.gameObject : gameObject; // 풀 반환 후에도 유지되는 Spawner를 우선 피해 출처로 사용
+            GameObject source = owner != null ? owner.gameObject : gameObject; // 풀 반환 후 유지되는 Spawner 우선 피해 출처
             health.ApplyDamage(new DamageInfo(
                 impactDamage,
                 source,
@@ -168,7 +312,20 @@ public sealed class FallingRock : MonoBehaviour
         SetCollidersEnabled(false);
         SetMeshRenderersEnabled(false);
 
-        // 연기 파티클 재생 후 완료되면 풀로 반환
+        // 네트워크 낙석은 Particle 시간 대기 후 State Authority가 Despawn
+        if (Object != null && Object.IsValid)
+        {
+            // 모든 피어에서 동일한 연기 연출 재생
+            PlaySmokeVisualOnly();
+            // 연기 종료 시점을 네트워크 틱으로 저장
+            float effectLifetime = smokeParticle != null
+                ? CalculateParticleLifetime(smokeParticle)
+                : 0.1f;
+            DespawnTimer = TickTimer.CreateFromSeconds(Runner, Mathf.Max(0.1f, effectLifetime));
+            return;
+        }
+
+        // 로컬 낙석은 연기 파티클 재생 후 풀로 반환
         if (smokeParticle != null || smokeObject != null)
         {
             StopSmokeRoutine();
@@ -180,10 +337,10 @@ public sealed class FallingRock : MonoBehaviour
         }
     }
 
-    // Smoke 객체를 활성화하고 파티클 컴포넌트를 재생한 뒤, 완료되면 비활성화하고 풀로 반환
+    // Smoke 활성화 및 Particle 재생 후 풀 반환
     private IEnumerator PlaySmokeAndReturn()
     {
-        // 1. Smoke 게임오브젝트 활성화
+        // Smoke GameObject 활성화
         if (smokeObject != null)
         {
             smokeObject.SetActive(true);
@@ -193,7 +350,7 @@ public sealed class FallingRock : MonoBehaviour
             smokeParticle.gameObject.SetActive(true);
         }
 
-        // 2. Smoke 파티클 컴포넌트 재생
+        // Smoke Particle 컴포넌트 재생
         if (smokeParticle != null)
         {
             smokeParticle.Clear(true);
@@ -215,21 +372,29 @@ public sealed class FallingRock : MonoBehaviour
             }
         }
 
-        // 3. 파티클 종료 시 비활성화
+        // Particle 종료 시 비활성화
         DeactivateSmoke();
         smokeRoutine = null;
 
-        // 4. 풀로 반환
+        // 풀 반환
         ReturnToPool();
     }
 
-    // 소유 Spawner가 남아 있으면 전용 풀로 반환하고 없으면 자체 비활성화
+    // 소유 Spawner 존재 시 전용 풀 반환 및 부재 시 자체 비활성화
     private void ReturnToPool()
     {
         if (!isLaunched)
             return;
 
         isLaunched = false;
+
+        if (Object != null && Object.IsValid)
+        {
+            // 네트워크 바위는 풀 대신 Despawn 사용
+            if (Object.HasStateAuthority)
+                Runner.Despawn(Object);
+            return;
+        }
 
         if (owner != null)
         {
@@ -240,7 +405,70 @@ public sealed class FallingRock : MonoBehaviour
         PrepareForPool(null);
     }
 
-    // Rigidbody, 자식 Collider, MeshRenderer 및 Smoke ParticleSystem/GameObject 참조 확보
+    // 복제 충돌 연출 적용
+    private void PlayReplicatedImpact()
+    {
+        // 중복 충돌 처리를 막는 로컬 상태 설정
+        hasImpacted = true;
+        // 복제 위치에서 물리와 메쉬 정지
+        StopBodyAfterImpact();
+        // 먼지 생성을 위한 스포너 복원
+        ResolveNetworkOwner();
+        owner?.PlayImpactDust(NetworkedImpactPoint, NetworkedImpactNormal);
+        PlaySmokeVisualOnly();
+    }
+
+    // 생성 스포너 복원
+    private void ResolveNetworkOwner()
+    {
+        // 이미 찾은 스포너와 잘못된 식별자 제외
+        if (owner != null || !OwnerId.IsValid || Runner == null)
+            return;
+
+        if (Runner.TryFindObject(OwnerId, out NetworkObject ownerObject))
+            owner = ownerObject.GetComponent<RockSpawner>();
+    }
+
+    // 프록시 바위 물리 정지
+    private void StopBodyAfterImpact()
+    {
+        // Rigidbody 누락 상태 보호
+        if (body == null)
+            return;
+
+        if (!body.isKinematic)
+        {
+            body.linearVelocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
+        }
+        // 프록시 물리와 충돌 완전 정지
+        body.detectCollisions = false;
+        body.useGravity = false;
+        body.collisionDetectionMode = CollisionDetectionMode.Discrete;
+        body.isKinematic = true;
+        body.Sleep();
+        SetCollidersEnabled(false);
+        SetMeshRenderersEnabled(false);
+    }
+
+    // 충돌 연기 연출 재생
+    private void PlaySmokeVisualOnly()
+    {
+        // 비활성 연기 오브젝트 활성화
+        if (smokeObject != null)
+            smokeObject.SetActive(true);
+        else if (smokeParticle != null)
+            smokeParticle.gameObject.SetActive(true);
+
+        if (smokeParticle == null)
+            return;
+
+        // 이전 입자를 제거한 뒤 새 연기 재생
+        smokeParticle.Clear(true);
+        smokeParticle.Play(true);
+    }
+
+    // Rigidbody 자식 Collider MeshRenderer Smoke ParticleSystem 및 GameObject 참조 확보
     private void CacheComponents()
     {
         if (body == null)
@@ -325,7 +553,7 @@ public sealed class FallingRock : MonoBehaviour
         }
     }
 
-    // 모든 바위 Collider를 상태에 맞춰 전환 (Smoke 객체의 Collider는 제외)
+    // 모든 바위 Collider 상태 전환 및 Smoke Collider 제외
     private void SetCollidersEnabled(bool enabled)
     {
         if (rockColliders == null)
@@ -338,7 +566,7 @@ public sealed class FallingRock : MonoBehaviour
         }
     }
 
-    // 모든 바위 MeshRenderer를 상태에 맞춰 전환 (연기 파티클 렌더러는 영향받지 않음)
+    // 모든 바위 MeshRenderer 상태 전환 및 연기 Particle Renderer 제외
     private void SetMeshRenderersEnabled(bool enabled)
     {
         if (rockMeshRenderers == null)
@@ -351,7 +579,7 @@ public sealed class FallingRock : MonoBehaviour
         }
     }
 
-    // Smoke 파티클 컴포넌트 및 오브젝트 정지 및 비활성화
+    // Smoke Particle 컴포넌트와 오브젝트 정지 및 비활성화
     private void DeactivateSmoke()
     {
         if (smokeParticle != null)
@@ -411,7 +639,7 @@ public sealed class FallingRock : MonoBehaviour
         return longestLifetime;
     }
 
-    // ParticleSystem.MinMaxCurve에서 모드별 최댓값 추출
+    // ParticleSystem MinMaxCurve 모드별 최댓값 추출
     private static float GetMaxFromMinMaxCurve(ParticleSystem.MinMaxCurve minMaxCurve)
     {
         switch (minMaxCurve.mode)

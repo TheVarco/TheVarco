@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
+using Fusion;
 using UnityEngine;
 
 /// <summary>
-/// 위험 생물의 부착, 수집, 음식 전환 관리
+/// 위험 생물의 부착 수집 음식 전환 관리
 /// </summary>
 [RequireComponent(typeof(Health))]
 public class HarvestableCreature : CarryableItem
@@ -26,7 +27,13 @@ public class HarvestableCreature : CarryableItem
     private Health health;                                      // 생물 체력
     private AttachmentSlot _attachedSlot;                // 현재 부착된 플레이어 슬롯
     private RigidbodyInterpolation detachedInterpolation;       // 분리 상태 Rigidbody 보간값
-    private readonly List<Collider> ignoredHostColliders = new List<Collider>(); // 충돌을 끈 숙주 Collider 목록
+    private readonly List<Collider> ignoredHostColliders = new List<Collider>(); // 충돌 비활성 숙주 Collider 목록
+    private NetworkTransform networkTransform;            // 분리 상태 월드 위치 복제
+
+    // 호스트 기준 생물 단계
+    [Networked] private int NetworkedPhase { get; set; }
+    // 호스트 기준 부착 대상
+    [Networked] private NetworkId NetworkedAttachedPlayer { get; set; }
 
     public CreaturePhase Phase => phase;
     public AttachmentSlotType AttachmentSlot => attachmentSlot;
@@ -41,9 +48,30 @@ public class HarvestableCreature : CarryableItem
     {
         base.Awake();
         health = GetComponent<Health>();
+        networkTransform = GetComponent<NetworkTransform>();
 
         if (rb != null)
             detachedInterpolation = rb.interpolation;
+    }
+
+    // 권위 상태 게시
+    // 프록시 상태 초기화
+    public override void Spawned()
+    {
+        // 권위자는 현재 로컬 단계 게시
+        if (Object.HasStateAuthority)
+            PublishCreatureState();
+        // 프록시는 수신한 단계 즉시 적용
+        else
+            ApplyReplicatedCreatureState();
+    }
+
+    // 프록시 단계와 부착 갱신
+    public override void Render()
+    {
+        // 프록시만 복제 상태를 화면에 반영
+        if (!Object.HasStateAuthority)
+            ApplyReplicatedCreatureState();
     }
 
     /// <summary>
@@ -88,6 +116,10 @@ public class HarvestableCreature : CarryableItem
     /// </summary>
     public bool TryAttach(AttachmentSlot slot)
     {
+        // 프록시의 독립 부착 판정 차단
+        if (Object != null && Object.IsValid && !Object.HasStateAuthority)
+            return false;
+
         if (phase != CreaturePhase.Hazard || slot == null || health == null || health.IsDead)
             return false;
 
@@ -117,12 +149,15 @@ public class HarvestableCreature : CarryableItem
 
         IgnoreHostCollisions(slot);
 
+        SetTransformReplicationEnabled(false);
         transform.SetParent(anchor, false);
         transform.localPosition = Vector3.zero;
         transform.localRotation = Quaternion.identity;
         SetLayerRecursively(gameObject, LayerMask.NameToLayer("Interaction"));
 
         OnAttached?.Invoke(slot);
+        // 확정된 슬롯과 단계 게시
+        PublishCreatureState();
         return true;
     }
 
@@ -166,6 +201,16 @@ public class HarvestableCreature : CarryableItem
         if (phase != CreaturePhase.Attached || !CanInteract(interactor))
             return;
 
+        if (Object != null && Object.IsValid && !Object.HasStateAuthority)
+        {
+            // 상호작용 플레이어의 네트워크 식별자 확보
+            NetworkObject interactorObject = interactor.GetComponentInParent<NetworkObject>();
+            if (interactorObject != null && interactorObject.IsValid)
+                // 권위자에게 떼어내기와 획득 요청
+                RPC_RequestDetachAndPickup(interactorObject.Id);
+            return;
+        }
+
         PlayerHotbar hotbar = interactor.GetComponent<PlayerHotbar>();
         if (hotbar == null || !hotbar.HasFreeSlot())
             return;
@@ -179,13 +224,20 @@ public class HarvestableCreature : CarryableItem
     /// </summary>
     public override void OnPickedUp(Transform handSocket)
     {
-        if (phase == CreaturePhase.Collectible)
+        if (phase != CreaturePhase.Collectible)
         {
-            base.OnPickedUp(handSocket);
-
-            if (rb != null)
-                rb.interpolation = RigidbodyInterpolation.None;
+            // 복제 순서 차이로 남은 부착 상태 보정
+            if (Object == null || !Object.IsValid)
+                return;
+            MakeCollectibleLocal(false);
         }
+
+        // 공용 아이템 손 부착 처리 실행
+        SetTransformReplicationEnabled(false);
+        base.OnPickedUp(handSocket);
+
+        if (rb != null)
+            rb.interpolation = RigidbodyInterpolation.None;
     }
 
     /// <summary>
@@ -195,11 +247,25 @@ public class HarvestableCreature : CarryableItem
     {
         phase = CreaturePhase.Collectible;
         base.OnDropped(dropPosition);
+        SetTransformReplicationEnabled(true);
 
         if (rb != null)
-            rb.interpolation = detachedInterpolation;
+        {
+            bool isNetworkProxy = Object != null && Object.IsValid && !Object.HasStateAuthority;
+            if (isNetworkProxy && !rb.isKinematic)
+            {
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
+
+            rb.isKinematic = isNetworkProxy;
+            rb.useGravity = !isNetworkProxy;
+            rb.interpolation = GetDetachedInterpolation();
+        }
 
         SetLayerRecursively(gameObject, LayerMask.NameToLayer("Interaction"));
+        // 드롭 이후 수집 단계 게시
+        PublishCreatureState();
     }
 
     public override bool OnPrimaryAction(GameObject user, Transform aimReference)
@@ -248,8 +314,24 @@ public class HarvestableCreature : CarryableItem
     /// </summary>
     public void MakeCollectible()
     {
-        if (phase == CreaturePhase.Collectible)
+        // 프록시의 독립 단계 변경 차단
+        if (Object != null && Object.IsValid && !Object.HasStateAuthority)
             return;
+
+        // 권위 변경과 게시를 함께 수행
+        MakeCollectibleLocal(true);
+    }
+
+    // 로컬 수집 단계 전환
+    // 게시 여부 선택 지원
+    private void MakeCollectibleLocal(bool publish)
+    {
+        if (phase == CreaturePhase.Collectible)
+        {
+            if (publish)
+                PublishCreatureState();
+            return;
+        }
 
         Vector3 worldPosition = transform.position;
         AttachmentSlot previousSlot = _attachedSlot;
@@ -263,29 +345,43 @@ public class HarvestableCreature : CarryableItem
         phase = CreaturePhase.Collectible;
         transform.SetParent(null, true);
         transform.position = worldPosition;
+        SetTransformReplicationEnabled(true);
 
         if (col != null)
             col.enabled = true;
 
         if (rb != null)
         {
-            rb.isKinematic = false;
-            rb.useGravity = true;
-            rb.interpolation = detachedInterpolation;
-            rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
+            // 프록시는 복제 위치만 사용
+            bool isNetworkProxy = Object != null && Object.IsValid && !Object.HasStateAuthority;
+            rb.isKinematic = isNetworkProxy;
+            rb.useGravity = !isNetworkProxy;
+            rb.interpolation = GetDetachedInterpolation();
+            if (!rb.isKinematic)
+            {
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
         }
 
         SetLayerRecursively(gameObject, LayerMask.NameToLayer("Interaction"));
 
         if (previousSlot != null)
             OnDetached?.Invoke(previousSlot);
+
+        if (publish)
+            // 권위 변경 결과 게시
+            PublishCreatureState();
     }
 
     // 체크포인트 당시 채집 단계와 부착 슬롯 복원
     // 기존 부착 관계를 먼저 해제한 뒤 목표 단계 적용
     public void RestoreCheckpointPhase(CreaturePhase targetPhase, AttachmentSlot targetSlot)
     {
+        // 체크포인트 복원은 권위자만 실행
+        if (Object != null && Object.IsValid && !Object.HasStateAuthority)
+            return;
+
         if (IsAttached)
             MakeCollectible();
 
@@ -302,16 +398,18 @@ public class HarvestableCreature : CarryableItem
             _attachedSlot = null;
             phase = CreaturePhase.Hazard;
             transform.SetParent(null, true);
+            SetTransformReplicationEnabled(true);
             if (col != null)
                 col.enabled = true;
             if (rb != null)
             {
                 rb.isKinematic = false;
                 rb.useGravity = false;
-                rb.interpolation = detachedInterpolation;
+                rb.interpolation = GetDetachedInterpolation();
                 rb.linearVelocity = Vector3.zero;
                 rb.angularVelocity = Vector3.zero;
             }
+            PublishCreatureState();
             return;
         }
 
@@ -320,7 +418,173 @@ public class HarvestableCreature : CarryableItem
 
     private void HandleDeath()
     {
-        MakeCollectible();
+        // 사망 단계 변경은 권위자만 실행
+        if (Object == null || !Object.IsValid || Object.HasStateAuthority)
+            MakeCollectible();
+    }
+
+    // 비호스트 떼어내기 요청
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestDetachAndPickup(NetworkId requesterId)
+    {
+        // 부착 상태와 요청자 유효성 검증
+        if (phase != CreaturePhase.Attached
+            || !requesterId.IsValid
+            || !Runner.TryFindObject(requesterId, out NetworkObject requester))
+        {
+            return;
+        }
+
+        if (_attachedSlot != null && requester.transform.root == _attachedSlot.transform.root)
+            return;
+
+        // 부착 해제와 소유자 확정을 같은 권위 처리로 실행
+        MakeCollectibleLocal(true);
+        TryAssignHolderFromStateAuthority(requesterId);
+    }
+
+    // 권위 생물 상태 게시
+    private void PublishCreatureState()
+    {
+        // 유효한 권위 오브젝트만 게시 허용
+        if (Object == null || !Object.IsValid || !Object.HasStateAuthority)
+            return;
+
+        // 현재 단계 저장
+        NetworkedPhase = (int)phase;
+        // 부착 슬롯의 플레이어 식별자 탐색
+        NetworkObject attachedObject = _attachedSlot != null
+            ? _attachedSlot.GetComponentInParent<NetworkObject>()
+            : null;
+        NetworkedAttachedPlayer = attachedObject != null && attachedObject.IsValid
+            ? attachedObject.Id
+            : default;
+    }
+
+    // 복제 단계 분기 적용
+    private void ApplyReplicatedCreatureState()
+    {
+        CreaturePhase replicatedPhase = (CreaturePhase)NetworkedPhase;
+
+        if (replicatedPhase == CreaturePhase.Attached)
+        {
+            // 부착 대상이 아직 없으면 다음 프레임 재시도
+            if (!NetworkedAttachedPlayer.IsValid
+                || !Runner.TryFindObject(NetworkedAttachedPlayer, out NetworkObject playerObject))
+            {
+                return;
+            }
+
+            AttachmentSlot targetSlot = playerObject.GetComponent<AttachmentSlot>();
+            // 슬롯이나 단계가 다를 때만 재부착
+            if (targetSlot != null && (_attachedSlot != targetSlot || phase != CreaturePhase.Attached))
+                ApplyAttachedLocal(targetSlot);
+            return;
+        }
+
+        if (replicatedPhase == CreaturePhase.Collectible)
+        {
+            // 게시 없이 로컬 수집 단계 적용
+            MakeCollectibleLocal(false);
+            return;
+        }
+
+        ApplyHazardLocal();
+    }
+
+    // 복제 부착 상태 적용
+    private void ApplyAttachedLocal(AttachmentSlot slot)
+    {
+        // 기존의 다른 슬롯 점유 해제
+        if (_attachedSlot != null && _attachedSlot != slot)
+            _attachedSlot.Release(attachmentSlot, this);
+
+        if (!slot.TryOccupy(attachmentSlot, this, out Transform anchor)
+            && slot.GetOccupant(attachmentSlot) != this)
+        {
+            // 다른 생물이 점유한 슬롯 제외
+            return;
+        }
+
+        // 슬롯 종류에 맞는 부착 기준점 확보
+        anchor ??= slot.GetAnchor(attachmentSlot);
+        if (anchor == null)
+            return;
+
+        _attachedSlot = slot;
+        phase = CreaturePhase.Attached;
+        if (rb != null)
+        {
+            // 부착 전에 남은 속도 제거
+            if (!rb.isKinematic)
+            {
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
+            rb.isKinematic = true;
+            rb.useGravity = false;
+            rb.interpolation = RigidbodyInterpolation.None;
+        }
+
+        if (col != null)
+            col.enabled = true;
+        // 숙주와 생물 사이 물리 충돌 제외
+        IgnoreHostCollisions(slot);
+        // 각 피어의 로컬 앵커에 부착
+        SetTransformReplicationEnabled(false);
+        transform.SetParent(anchor, false);
+        transform.localPosition = Vector3.zero;
+        transform.localRotation = Quaternion.identity;
+        SetLayerRecursively(gameObject, LayerMask.NameToLayer("Interaction"));
+        OnAttached?.Invoke(slot);
+    }
+
+    // 복제 위험 상태 적용
+    private void ApplyHazardLocal()
+    {
+        // 이전 슬롯 점유 해제 대상 저장
+        AttachmentSlot previousSlot = _attachedSlot;
+        if (previousSlot != null)
+            previousSlot.Release(attachmentSlot, this);
+
+        RestoreHostCollisions();
+        // 부착 관계와 부모 제거
+        _attachedSlot = null;
+        phase = CreaturePhase.Hazard;
+        transform.SetParent(null, true);
+        SetTransformReplicationEnabled(true);
+        if (col != null)
+            col.enabled = true;
+        if (rb != null)
+        {
+            // 프록시 물리 시뮬레이션 차단
+            rb.isKinematic = Object != null && Object.IsValid && !Object.HasStateAuthority;
+            rb.useGravity = false;
+            rb.interpolation = GetDetachedInterpolation();
+            if (!rb.isKinematic)
+            {
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
+        }
+
+        if (previousSlot != null)
+            OnDetached?.Invoke(previousSlot);
+    }
+
+    // 각 피어의 로컬 플레이어 기준점에 부착 생물 배치
+    // 부착 중 NetworkTransform Render 덮어쓰기 방지
+    // 월드 공간 복귀 시 위치 동기화 재개
+    private void SetTransformReplicationEnabled(bool enabled)
+    {
+        if (networkTransform != null)
+            networkTransform.enabled = enabled;
+    }
+
+    private RigidbodyInterpolation GetDetachedInterpolation()
+    {
+        bool isNetworkProxy = Object != null && Object.IsValid && !Object.HasStateAuthority;
+        return isNetworkProxy ? RigidbodyInterpolation.None : detachedInterpolation;
     }
 
     /// <summary>

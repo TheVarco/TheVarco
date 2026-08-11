@@ -1,3 +1,4 @@
+using Fusion;
 using UnityEngine;
 
 /// <summary>
@@ -13,6 +14,7 @@ public class UrchinController : MonoBehaviour
     private HarvestableCreature harvestable; // 공통 부착 생물 상태
     private Health attachedPlayerHealth;      // 부착된 플레이어 체력
     private float damageTimer;                // 다음 피해까지 경과 시간
+    private NetworkObject networkObject; // 권위 확인 대상
 
     public float DamageAmount => damageAmount;
     public float DamageInterval => damageInterval;
@@ -20,6 +22,7 @@ public class UrchinController : MonoBehaviour
     private void Awake()
     {
         harvestable = GetComponent<HarvestableCreature>();
+        networkObject = GetComponent<NetworkObject>(); // 같은 성게의 네트워크 오브젝트
     }
 
     private void OnEnable()
@@ -39,6 +42,10 @@ public class UrchinController : MonoBehaviour
     /// </summary>
     private void Update()
     {
+        // 부착 피해 타이머는 권위자만 실행
+        if (!HasSimulationAuthority)
+            return;
+
         if (!harvestable.IsAttached || attachedPlayerHealth == null)
             return;
 
@@ -61,6 +68,10 @@ public class UrchinController : MonoBehaviour
     /// </summary>
     private void OnTriggerEnter(Collider other)
     {
+        // 최초 접촉 피해는 권위자만 실행
+        if (!HasSimulationAuthority)
+            return;
+
         if (harvestable.Phase != HarvestableCreature.CreaturePhase.Hazard)
             return;
 
@@ -92,4 +103,8 @@ public class UrchinController : MonoBehaviour
         attachedPlayerHealth = null;
         damageTimer = 0f;
     }
+
+    // 로컬 실행 또는 State Authority 여부
+    private bool HasSimulationAuthority =>
+        networkObject == null || !networkObject.IsValid || networkObject.HasStateAuthority;
 }

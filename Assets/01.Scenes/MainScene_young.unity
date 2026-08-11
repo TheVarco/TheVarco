@@ -658,6 +658,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   activeColor: {r: 1, g: 1, b: 1, a: 0.9}
   inactiveColor: {r: 1, g: 1, b: 1, a: 0.4}
+  iconPaddingRatio: 0.15
 --- !u!114 &86812065
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1102,6 +1103,10 @@ PrefabInstance:
     - target: {fileID: 2377124843084840481, guid: 91d318d14c5f3f348854bc00a17088cb, type: 3}
       propertyPath: m_Name
       value: Vent (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 2656999159294405465, guid: 91d318d14c5f3f348854bc00a17088cb, type: 3}
+      propertyPath: SortKey
+      value: 2719945201
       objectReference: {fileID: 0}
     - target: {fileID: 6811519267582802178, guid: 91d318d14c5f3f348854bc00a17088cb, type: 3}
       propertyPath: m_LocalScale.x
@@ -1595,6 +1600,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StatBarUI
   slider: {fileID: 0}
+  fillImage: {fileID: 0}
+  fishImage: {fileID: 0}
+  hungerStat: {fileID: 0}
+  oxygenStat: {fileID: 0}
 --- !u!224 &436404337
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1632,6 +1641,7 @@ MonoBehaviour:
   stat: {fileID: 0}
   fillImage: {fileID: 1251394073}
   lockedOverlay: {fileID: 2097878480}
+  fishImage: {fileID: 0}
 --- !u!1 &487411195
 GameObject:
   m_ObjectHideFlags: 0
@@ -1664,9 +1674,8 @@ MonoBehaviour:
   outerRadius: 5
   innerRadius: 2
   maxPullForce: 20
-  playerLayer:
-    serializedVersion: 2
-    m_Bits: 8
+  falloffExponent: 2
+  pullDamping: 5
 --- !u!4 &487411197
 Transform:
   m_ObjectHideFlags: 0
@@ -1857,6 +1866,10 @@ PrefabInstance:
     - target: {fileID: 100001, guid: 2fb0f8f37a90486c8eebf0c36913fd53, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 100011, guid: 2fb0f8f37a90486c8eebf0c36913fd53, type: 3}
+      propertyPath: SortKey
+      value: 2539959279
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2820,6 +2833,10 @@ PrefabInstance:
     - target: {fileID: 296658955846715488, guid: d8eed16b175549b43a94a7607885d285, type: 3}
       propertyPath: m_IsActive
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1189382458990435140, guid: d8eed16b175549b43a94a7607885d285, type: 3}
+      propertyPath: SortKey
+      value: 355622847
       objectReference: {fileID: 0}
     - target: {fileID: 4685988856572476576, guid: d8eed16b175549b43a94a7607885d285, type: 3}
       propertyPath: m_LocalPosition.x
@@ -4089,6 +4106,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   activeColor: {r: 1, g: 1, b: 1, a: 0.9}
   inactiveColor: {r: 1, g: 1, b: 1, a: 0.4}
+  iconPaddingRatio: 0.15
 --- !u!114 &1013517733
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4286,6 +4304,10 @@ PrefabInstance:
     - target: {fileID: 2377124843084840481, guid: 91d318d14c5f3f348854bc00a17088cb, type: 3}
       propertyPath: m_Name
       value: Vent (4)
+      objectReference: {fileID: 0}
+    - target: {fileID: 2656999159294405465, guid: 91d318d14c5f3f348854bc00a17088cb, type: 3}
+      propertyPath: SortKey
+      value: 2373777047
       objectReference: {fileID: 0}
     - target: {fileID: 6811519267582802178, guid: 91d318d14c5f3f348854bc00a17088cb, type: 3}
       propertyPath: m_LocalPosition.x
@@ -5425,11 +5447,14 @@ MonoBehaviour:
   - {fileID: 1418858119}
   - {fileID: 1013517732}
   - {fileID: 86812064}
+  bareHandsIcon: {fileID: 0}
   gunIcon: {fileID: 0}
   hammerIcon: {fileID: 0}
   ropeIcon: {fileID: 0}
   oxygenIcon: {fileID: 0}
   foodIcon: {fileID: 0}
+  octopusIcon: {fileID: 0}
+  urchinIcon: {fileID: 0}
   customIconMappings: []
 --- !u!1 &1342328507
 GameObject:
@@ -5587,6 +5612,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StatBarUI
   slider: {fileID: 1407479627}
+  fillImage: {fileID: 0}
+  fishImage: {fileID: 0}
+  hungerStat: {fileID: 0}
+  oxygenStat: {fileID: 0}
 --- !u!114 &1407479627
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5746,6 +5775,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   activeColor: {r: 1, g: 1, b: 1, a: 0.9}
   inactiveColor: {r: 1, g: 1, b: 1, a: 0.4}
+  iconPaddingRatio: 0.15
 --- !u!114 &1418858120
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6175,6 +6205,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1711499214}
     m_Modifications:
+    - target: {fileID: 1189382458990435140, guid: d8eed16b175549b43a94a7607885d285, type: 3}
+      propertyPath: SortKey
+      value: 2657897596
+      objectReference: {fileID: 0}
     - target: {fileID: 4685988856572476576, guid: d8eed16b175549b43a94a7607885d285, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.9699998
@@ -6572,6 +6606,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1711499214}
     m_Modifications:
+    - target: {fileID: 1189382458990435140, guid: d8eed16b175549b43a94a7607885d285, type: 3}
+      propertyPath: SortKey
+      value: 1627626468
+      objectReference: {fileID: 0}
     - target: {fileID: 4685988856572476576, guid: d8eed16b175549b43a94a7607885d285, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.9699998
@@ -7581,6 +7619,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 200009, guid: 41ce3e6eac4f4139a0fa4a7a67b9cce7, type: 3}
+      propertyPath: SortKey
+      value: 3439613378
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -7747,6 +7789,10 @@ PrefabInstance:
     - target: {fileID: 2377124843084840481, guid: 91d318d14c5f3f348854bc00a17088cb, type: 3}
       propertyPath: m_Name
       value: Vent
+      objectReference: {fileID: 0}
+    - target: {fileID: 2656999159294405465, guid: 91d318d14c5f3f348854bc00a17088cb, type: 3}
+      propertyPath: SortKey
+      value: 1577906954
       objectReference: {fileID: 0}
     - target: {fileID: 6811519267582802178, guid: 91d318d14c5f3f348854bc00a17088cb, type: 3}
       propertyPath: m_LocalScale.x
@@ -7940,6 +7986,10 @@ PrefabInstance:
     - target: {fileID: 2377124843084840481, guid: 91d318d14c5f3f348854bc00a17088cb, type: 3}
       propertyPath: m_Name
       value: Vent (2)
+      objectReference: {fileID: 0}
+    - target: {fileID: 2656999159294405465, guid: 91d318d14c5f3f348854bc00a17088cb, type: 3}
+      propertyPath: SortKey
+      value: 755550588
       objectReference: {fileID: 0}
     - target: {fileID: 6811519267582802178, guid: 91d318d14c5f3f348854bc00a17088cb, type: 3}
       propertyPath: m_LocalPosition.x
@@ -8182,6 +8232,10 @@ PrefabInstance:
     - target: {fileID: 2377124843084840481, guid: 91d318d14c5f3f348854bc00a17088cb, type: 3}
       propertyPath: m_Name
       value: Vent (3)
+      objectReference: {fileID: 0}
+    - target: {fileID: 2656999159294405465, guid: 91d318d14c5f3f348854bc00a17088cb, type: 3}
+      propertyPath: SortKey
+      value: 3888059006
       objectReference: {fileID: 0}
     - target: {fileID: 6811519267582802178, guid: 91d318d14c5f3f348854bc00a17088cb, type: 3}
       propertyPath: m_LocalPosition.x
@@ -13903,6 +13957,10 @@ PrefabInstance:
       propertyPath: obstacleLayer.m_Bits
       value: 64
       objectReference: {fileID: 0}
+    - target: {fileID: 912000000000000001, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
+      propertyPath: SortKey
+      value: 1316823655
+      objectReference: {fileID: 0}
     - target: {fileID: 3136500912921972039, guid: 6eabd9d789d2b2447b3ea9a150cd2550, type: 3}
       propertyPath: m_LocalScale.z
       value: 2.3879714
@@ -14065,6 +14123,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1255691820}
     m_Modifications:
+    - target: {fileID: 1189382458990435140, guid: d8eed16b175549b43a94a7607885d285, type: 3}
+      propertyPath: SortKey
+      value: 173297207
+      objectReference: {fileID: 0}
     - target: {fileID: 4685988856572476576, guid: d8eed16b175549b43a94a7607885d285, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

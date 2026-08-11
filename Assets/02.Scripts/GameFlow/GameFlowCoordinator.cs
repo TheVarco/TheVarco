@@ -13,6 +13,8 @@ namespace Varco.GameFlow
     [DisallowMultipleComponent]
     public sealed class GameFlowCoordinator : MonoBehaviour
     {
+        private const float FusionRestoreWaitTimeoutSeconds = 5f;
+
         // 세션 메모리 스냅샷 관리자
         private readonly CheckpointSnapshotService checkpointService = new();
         // 내부 스폰 배정에 사용할 정렬된 플레이어 목록
@@ -51,7 +53,7 @@ namespace Varco.GameFlow
         // 판정 대상 잠수함
         public SubmarineController Submarine => submarine;
 
-        // UI와 외부 시스템에 전달하는 상태 변경 이벤트
+        // UI와 외부 시스템용 상태 변경 이벤트
         public event Action<GameFlowReplicatedState> FlowStateChanged;
         // 체크포인트 전진 알림 이벤트
         public event Action<int> CheckpointChanged;
@@ -295,6 +297,7 @@ namespace Varco.GameFlow
     {
         // 입력 차단과 상태 복원과 물리 반영과 입력 재개 순서로 실행
             // 모든 참가자 입력과 시뮬레이션 차단
+            GameFailureReason restoreFailureReason = FailureReason;
             TransitionTo(GameFlowState.Restoring, GameFailureReason.None);
             IReadOnlyList<IPlayerCheckpointParticipant> players = bridge.Players;
             checkpointService.SetGameplayEnabled(false, players);
@@ -302,11 +305,81 @@ namespace Varco.GameFlow
 
             // 저장하지 않는 일시 오브젝트 제거
             GameFlowTransientCleanup.Clear(bridge);
+            ulong submarineTeleportSequenceBeforeRestore = submarine != null
+                ? submarine.CheckpointTeleportRequestSequence
+                : 0;
             // 저장된 참가자 상태 적용
             checkpointService.Restore(players);
+            // 잠수함 NetworkRigidbody Teleport 완료 State Authority Fusion Tick 대기
+            // 비네트워크 복원은 요청 없음
+            ulong submarineTeleportSequence = submarine != null
+                ? submarine.CheckpointTeleportRequestSequence
+                : 0;
+            bool queuedSubmarineTeleport = submarineTeleportSequence
+                > submarineTeleportSequenceBeforeRestore;
+            float submarineTeleportDeadline = Time.realtimeSinceStartup
+                + FusionRestoreWaitTimeoutSeconds;
+            while (queuedSubmarineTeleport
+                && submarine != null
+                && submarine.IsNetworkActive
+                && submarine.IsCheckpointTeleportPending
+                && Time.realtimeSinceStartup < submarineTeleportDeadline
+                && !submarine.HasCompletedCheckpointTeleport(submarineTeleportSequence))
+            {
+                yield return null;
+            }
+
+            if (queuedSubmarineTeleport
+                && (submarine == null
+                    || !submarine.HasCompletedCheckpointTeleport(submarineTeleportSequence)))
+            {
+                Debug.LogError(
+                    "[GameFlow] Fusion submarine teleport did not complete. " +
+                    "Checkpoint restore was cancelled without resuming gameplay.",
+                    this);
+                TransitionTo(GameFlowState.Failed, restoreFailureReason);
+                yield break;
+            }
+
+            // 잠수함 Teleport 이후 자식 Spawn 자세 사용
+            // Unity Transform과 Physics 동기화 이후 조회
+            Physics.SyncTransforms();
+            int playerTeleportQueuedTick = 0;
+            bool waitForPlayerTeleportTick = submarine != null
+                && submarine.TryGetCurrentFusionTick(out playerTeleportQueuedTick);
             // 좌석에 앉지 않은 플레이어를 잠수함 내부에 순서대로 배치
             PlacePlayersAtSubmarineSpawnPoints(players);
-            yield return new WaitForFixedUpdate();
+            // 다음 Fusion Tick에서 Player 예약 자세 적용
+            // 로컬 및 비네트워크 배치는 즉시 적용
+            if (waitForPlayerTeleportTick)
+            {
+                float playerTeleportDeadline = Time.realtimeSinceStartup
+                    + FusionRestoreWaitTimeoutSeconds;
+                while (submarine != null
+                    && submarine.TryGetCurrentFusionTick(out int currentTick)
+                    && Time.realtimeSinceStartup < playerTeleportDeadline
+                    && currentTick == playerTeleportQueuedTick)
+                {
+                    yield return null;
+                }
+
+                bool playerTeleportTickCompleted = submarine != null
+                    && submarine.TryGetCurrentFusionTick(out int completedTick)
+                    && completedTick != playerTeleportQueuedTick;
+                if (!playerTeleportTickCompleted)
+                {
+                    Debug.LogError(
+                        "[GameFlow] Fusion tick did not advance after player checkpoint poses were queued. " +
+                        "Checkpoint restore was cancelled without resuming gameplay.",
+                        this);
+                    TransitionTo(GameFlowState.Failed, restoreFailureReason);
+                    yield break;
+                }
+            }
+            else
+            {
+                yield return null;
+            }
 
             // 물리 반영 이후 입력과 시뮬레이션 재개
             checkpointService.SetGameplayEnabled(true, bridge.Players);
@@ -371,7 +444,7 @@ namespace Varco.GameFlow
             }
         }
 
-        // 숫자형 PlayerKey를 우선 사용하고 문자열 키를 보조 기준으로 사용
+        // 숫자형 PlayerKey 우선 및 문자열 키 보조 사용
     private static int ComparePlayersByKey(
         IPlayerCheckpointParticipant left,
         IPlayerCheckpointParticipant right)
