@@ -12,30 +12,20 @@ public class PlayerStatUIBinder : NetworkBehaviour
     [Tooltip("씬에서 찾을 산소바 오브젝트 이름")]
     public string oxygenBarObjectName = "OxygenBar";
 
+    void Start()
+    {
+        // Fusion 러너가 없는 단독 씬(로컬 테스트)에서도 체력바/산소바가 바로 바인딩되도록 지원
+        if (Object == null)
+        {
+            BindStats();
+        }
+    }
+
     public override void Spawned()
     {
         if (!Object.HasInputAuthority) return;
 
-        Health health = GetComponent<Health>();
-        if (health != null)
-        {
-            StatBarUI healthBar = FindStatBar(healthBarObjectName);
-            if (healthBar != null)
-            {
-                health.OnHealthChanged.AddListener(healthBar.UpdateBar);
-                healthBar.UpdateBar(health.CurrentHealth, health.maxHealth); // 초기값 즉시 반영
-            }
-        }
-
-        // 산소바는 SegmentedStatBarUI라서 이벤트가 아니라 stat 참조를 직접 꽂아주면 됨 (매 프레임 알아서 읽어감)
-        OxygenStat oxygen = GetComponentInChildren<OxygenStat>(); // Stats 자식 오브젝트에 있음
-        if (oxygen != null)
-        {
-            GameObject oxygenBarObj = GameObject.Find(oxygenBarObjectName);
-            SegmentedStatBarUI oxygenBar = oxygenBarObj != null ? oxygenBarObj.GetComponent<SegmentedStatBarUI>() : null;
-            if (oxygenBar != null)
-                oxygenBar.stat = oxygen;
-        }
+        BindStats();
 
         // 상호작용 프롬프트 UI: 내 PlayerInteractor의 신호를 받도록 등록
         PlayerInteractor myInteractor = GetComponent<PlayerInteractor>();
@@ -54,6 +44,45 @@ public class PlayerStatUIBinder : NetworkBehaviour
         PlayerCameraRig aimRig = FindFirstObjectByType<PlayerCameraRig>();
         if (myHotbar != null && aimRig != null)
             myHotbar.aimReference = aimRig.transform;
+    }
+
+    private void BindStats()
+    {
+        // 1. 체력바 연결 (Health.OnHealthChanged -> StatBarUI.UpdateBar)
+        Health health = GetComponent<Health>();
+        if (health != null)
+        {
+            StatBarUI healthBar = FindStatBar(healthBarObjectName);
+            if (healthBar != null)
+            {
+                health.OnHealthChanged.RemoveListener(healthBar.UpdateBar);
+                health.OnHealthChanged.AddListener(healthBar.UpdateBar);
+                healthBar.UpdateBar(health.CurrentHealth, health.maxHealth); // 초기값 즉시 반영
+            }
+        }
+
+        // 2. 산소바 연결 (체력바와 동일한 방식: OxygenStat.OnValueChanged -> StatBarUI.UpdateBar)
+        OxygenStat oxygen = GetComponentInChildren<OxygenStat>(); // Stats 자식 오브젝트에 있음
+        HungerStat hunger = GetComponentInChildren<HungerStat>();
+
+        if (oxygen != null)
+        {
+            StatBarUI oxygenBar = FindStatBar(oxygenBarObjectName);
+            if (oxygenBar != null)
+            {
+                oxygenBar.oxygenStat = oxygen;
+                oxygenBar.hungerStat = hunger;
+                oxygen.OnValueChanged.RemoveListener(oxygenBar.UpdateBar);
+                oxygen.OnValueChanged.AddListener(oxygenBar.UpdateBar);
+                oxygenBar.UpdateBar(oxygen.CurrentValue, oxygen.maxValue); // 초기값 즉시 반영
+            }
+
+            // SegmentedStatBarUI도 함께 붙어있다면 호환성을 위해 stat 참조 전달
+            GameObject oxygenBarObj = GameObject.Find(oxygenBarObjectName);
+            SegmentedStatBarUI segmentedBar = oxygenBarObj != null ? oxygenBarObj.GetComponent<SegmentedStatBarUI>() : null;
+            if (segmentedBar != null)
+                segmentedBar.stat = oxygen;
+        }
     }
 
     private StatBarUI FindStatBar(string objectName)

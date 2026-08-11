@@ -20,6 +20,8 @@ public class HotbarUI : MonoBehaviour
     public HotbarSlotUI[] slotUIs = new HotbarSlotUI[3];
 
     [Header("인스펙터 아이콘 직접 등록")]
+    [Tooltip("맨손 / 빈 손 아이콘 스프라이트 (1번 슬롯용)")]
+    public Sprite bareHandsIcon;
     [Tooltip("총 아이콘 스프라이트")]
     public Sprite gunIcon;
     [Tooltip("해머/망치 아이콘 스프라이트")]
@@ -30,6 +32,10 @@ public class HotbarUI : MonoBehaviour
     public Sprite oxygenIcon;
     [Tooltip("식량 아이콘 스프라이트")]
     public Sprite foodIcon;
+    [Tooltip("문어/오징어 아이콘 스프라이트")]
+    public Sprite octopusIcon;
+    [Tooltip("성게 아이콘 스프라이트")]
+    public Sprite urchinIcon;
 
     [Header("커스텀 아이템 아이콘 매핑 목록")]
     [Tooltip("아이템 이름별 아이콘 스프라이트 수동 매핑")]
@@ -72,33 +78,114 @@ public class HotbarUI : MonoBehaviour
             CarryableItem item = slotNumber == 1 ? null : hotbar.GetItemAtSlot(slotNumber);
 
             string labelText = GetEnglishItemName(item, slotNumber);
-            Sprite iconSprite = item != null ? GetItemIcon(item) : null;
+            Sprite iconSprite = null;
+
+            if (slotNumber == 1)
+            {
+                iconSprite = GetBareHandsIcon();
+            }
+            else if (item != null)
+            {
+                iconSprite = GetItemIcon(item);
+            }
 
             slotUIs[i].SetState(isActive, labelText, iconSprite);
         }
     }
 
+    private Sprite GetBareHandsIcon()
+    {
+        // 1. 인스펙터에 직접 등록된 맨손 아이콘이 있으면 최우선 사용
+        if (bareHandsIcon != null) return bareHandsIcon;
+
+        // 2. 캐시 확인
+        if (iconCache.TryGetValue("BareHands", out Sprite cached) && cached != null)
+        {
+            return cached;
+        }
+
+        Sprite loaded = null;
+
+        // 3. 커스텀 매핑 목록에서 맨손/빈손/Hand 매핑 확인
+        if (customIconMappings != null)
+        {
+            foreach (var mapping in customIconMappings)
+            {
+                if (!string.IsNullOrEmpty(mapping.itemName) && mapping.iconSprite != null)
+                {
+                    string name = mapping.itemName.ToLower();
+                    if (name.Contains("손") || name.Contains("hand") || name.Contains("bare") || name.Contains("empty"))
+                    {
+                        loaded = mapping.iconSprite;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 4. Resources/Icon 폴더에서 탐색
+        if (loaded == null)
+        {
+            loaded = Resources.Load<Sprite>("Icon/BareHandsIcon");
+            if (loaded == null) loaded = Resources.Load<Sprite>("Icon/HandIcon");
+            if (loaded == null) loaded = Resources.Load<Sprite>("Icon/BareHands");
+            if (loaded == null) loaded = Resources.Load<Sprite>("Icon/Hand");
+            if (loaded == null) loaded = Resources.Load<Sprite>("Icon/foot");
+        }
+
+        if (loaded != null)
+        {
+            iconCache["BareHands"] = loaded;
+        }
+
+        return loaded;
+    }
+
     private string GetEnglishItemName(CarryableItem item, int slotNumber)
     {
-        if (slotNumber == 1) return "Bare Hands";
-        if (item == null) return "Empty";
+        string name = "Empty";
 
-        string rawName = item.itemName;
-        if (string.IsNullOrEmpty(rawName)) return "Empty";
+        if (slotNumber == 1)
+        {
+            name = "Bare";
+        }
+        else if (item != null)
+        {
+            // 컴포넌트 타입으로 직접 생물 판별
+            if (item is HarvestableCreature creature)
+            {
+                if (creature.GetComponent<OctopusController>() != null || creature.itemName.ToLower().Contains("squid") || creature.itemName.ToLower().Contains("octopus"))
+                    name = "Octopus";
+                else if (creature.GetComponent<UrchinController>() != null || creature.itemName.ToLower().Contains("urchin"))
+                    name = "Sea Urchin";
+            }
+            else
+            {
+                string rawName = item.itemName;
+                if (!string.IsNullOrEmpty(rawName))
+                {
+                    string lower = rawName.ToLower();
+                    if (rawName.Contains("해머") || rawName.Contains("망치") || lower.Contains("hammer"))
+                        name = "Hammer";
+                    else if (rawName.Contains("총") || lower.Contains("gun"))
+                        name = "Gun";
+                    else if (rawName.Contains("산소") || lower.Contains("oxygen"))
+                        name = "Oxygen Tank";
+                    else if (rawName.Contains("밧줄") || rawName.Contains("로프") || lower.Contains("rope"))
+                        name = "Rope";
+                    else if (rawName.Contains("문어") || rawName.Contains("오징어") || lower.Contains("octopus") || lower.Contains("squid"))
+                        name = "Octopus";
+                    else if (rawName.Contains("성게") || lower.Contains("urchin"))
+                        name = "Sea Urchin";
+                    else if (rawName.Contains("식량") || rawName.Contains("음식") || lower.Contains("food") || lower.Contains("fish"))
+                        name = "Food";
+                    else
+                        name = rawName;
+                }
+            }
+        }
 
-        string lower = rawName.ToLower();
-        if (rawName.Contains("해머") || rawName.Contains("망치") || lower.Contains("hammer"))
-            return "Hammer";
-        if (rawName.Contains("총") || lower.Contains("gun"))
-            return "Gun";
-        if (rawName.Contains("산소") || lower.Contains("oxygen"))
-            return "Oxygen Tank";
-        if (rawName.Contains("밧줄") || rawName.Contains("로프") || lower.Contains("rope"))
-            return "Rope";
-        if (rawName.Contains("식량") || rawName.Contains("음식") || lower.Contains("food"))
-            return "Food";
-
-        return rawName;
+        return name;
     }
 
     private Sprite GetItemIcon(CarryableItem item)
@@ -150,6 +237,10 @@ public class HotbarUI : MonoBehaviour
                 loaded = oxygenIcon;
             else if ((itemName.Contains("식량") || itemName.Contains("음식") || lower.Contains("food")) && foodIcon != null)
                 loaded = foodIcon;
+            else if ((itemName.Contains("문어") || itemName.Contains("오징어") || lower.Contains("octopus") || lower.Contains("squid") || item.GetComponent<OctopusController>() != null) && octopusIcon != null)
+                loaded = octopusIcon;
+            else if ((itemName.Contains("성게") || lower.Contains("urchin") || item.GetComponent<UrchinController>() != null) && urchinIcon != null)
+                loaded = urchinIcon;
         }
 
         // 5. Resources/Icon/ 폴더에서 자동 스프라이트 찾기
@@ -160,12 +251,19 @@ public class HotbarUI : MonoBehaviour
 
             if (loaded == null)
             {
+                string lower = itemName.ToLower();
                 if (itemName.Contains("총") || itemName.Contains("Gun"))
                     loaded = Resources.Load<Sprite>("Icon/GunIcon");
                 else if (itemName.Contains("해머") || itemName.Contains("망치") || itemName.Contains("Hammer"))
                     loaded = Resources.Load<Sprite>("Icon/HammerIcon2");
                 else if (itemName.Contains("밧줄") || itemName.Contains("로프") || itemName.Contains("Rope"))
                     loaded = Resources.Load<Sprite>("Icon/RopeIcon");
+                else if (itemName.Contains("산소") || itemName.Contains("Oxygen"))
+                    loaded = Resources.Load<Sprite>("Icon/Oxygen");
+                else if (itemName.Contains("문어") || itemName.Contains("오징어") || lower.Contains("octopus") || lower.Contains("squid"))
+                    loaded = Resources.Load<Sprite>("Icon/Octopus") ?? Resources.Load<Sprite>("Icon/Squid") ?? Resources.Load<Sprite>("Icon/SquidIcon");
+                else if (itemName.Contains("성게") || lower.Contains("urchin"))
+                    loaded = Resources.Load<Sprite>("Icon/Urchin") ?? Resources.Load<Sprite>("Icon/SeaUrchin") ?? Resources.Load<Sprite>("Icon/UrchinIcon");
             }
         }
 
@@ -176,9 +274,15 @@ public class HotbarUI : MonoBehaviour
             if (tex == null) tex = Resources.Load<Texture2D>($"Icon/{itemName}");
             if (tex == null)
             {
+                string lower = itemName.ToLower();
                 if (itemName.Contains("총") || itemName.Contains("Gun")) tex = Resources.Load<Texture2D>("Icon/GunIcon");
                 else if (itemName.Contains("해머") || itemName.Contains("망치") || itemName.Contains("Hammer")) tex = Resources.Load<Texture2D>("Icon/HammerIcon2");
                 else if (itemName.Contains("밧줄") || itemName.Contains("로프") || itemName.Contains("Rope")) tex = Resources.Load<Texture2D>("Icon/RopeIcon");
+                else if (itemName.Contains("산소") || itemName.Contains("Oxygen")) tex = Resources.Load<Texture2D>("Icon/Oxygen");
+                else if (itemName.Contains("문어") || itemName.Contains("오징어") || lower.Contains("octopus") || lower.Contains("squid"))
+                    tex = Resources.Load<Texture2D>("Icon/Octopus") ?? Resources.Load<Texture2D>("Icon/Squid");
+                else if (itemName.Contains("성게") || lower.Contains("urchin"))
+                    tex = Resources.Load<Texture2D>("Icon/Urchin") ?? Resources.Load<Texture2D>("Icon/SeaUrchin");
             }
 
             if (tex != null)

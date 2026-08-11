@@ -172,7 +172,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 140d6bdbbbc54b0aa84adf00b71bd918, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RockSpawner
-  fallingRockPrefab: {fileID: 7121581237954372408, guid: 603660e8245e8c5489b60f21a1fda249, type: 3}
+  fallingRockPrefab: {fileID: 3668448069759490786, guid: 603660e8245e8c5489b60f21a1fda249, type: 3}
   spawnPoint: {fileID: 4685988856572476576}
   impactDamage: 10
   maxLifetime: 10

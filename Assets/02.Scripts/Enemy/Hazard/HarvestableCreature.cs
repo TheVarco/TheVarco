@@ -202,11 +202,21 @@ public class HarvestableCreature : CarryableItem
         SetLayerRecursively(gameObject, LayerMask.NameToLayer("Interaction"));
     }
 
+    public override bool OnPrimaryAction(GameObject user, Transform aimReference)
+    {
+        TriggerEatAnimation(user);
+        OnUse(user, user);
+        return isConsumable;
+    }
+
     /// <summary>
     /// 대상 체력 및 배고픔 회복
     /// </summary>
     public override void OnUse(GameObject user, GameObject target)
     {
+        TriggerEatAnimation(user);
+        if (target != user) TriggerEatAnimation(target);
+
         if (target == null)
             return;
 
@@ -218,6 +228,19 @@ public class HarvestableCreature : CarryableItem
 
         if (hunger != null)
             hunger.Refill(hungerRestoreAmount);
+    }
+
+    private void TriggerEatAnimation(GameObject character)
+    {
+        if (character == null) return;
+        Animator anim = character.GetComponentInChildren<Animator>();
+        if (anim == null) anim = character.GetComponentInParent<Animator>();
+        if (anim == null) anim = character.GetComponent<Animator>();
+
+        if (anim != null)
+        {
+            anim.SetTrigger("Eat");
+        }
     }
 
     /// <summary>

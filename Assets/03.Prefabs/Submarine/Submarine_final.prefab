@@ -1217,6 +1217,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CockpitSeat
   seatType: 2
   seatPoint: {fileID: 6070584349290085504}
+  maxEnterDistance: 3
   maxExitSpeed: 0.5
   maxExitYawSpeed: 5
   exitBlockerMask:
@@ -1322,6 +1323,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CockpitSeat
   seatType: 0
   seatPoint: {fileID: 5702414927832358333}
+  maxEnterDistance: 3
   maxExitSpeed: 0.5
   maxExitYawSpeed: 5
   exitBlockerMask:
@@ -1562,6 +1564,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CockpitSeat
   seatType: 1
   seatPoint: {fileID: 1440327883404694278}
+  maxEnterDistance: 3
   maxExitSpeed: 0.5
   maxExitYawSpeed: 5
   exitBlockerMask:
@@ -1975,6 +1978,15 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 8771091787928289351, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 903412007100000006}
+    - targetCorrespondingSourceObject: {fileID: 8771091787928289351, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 700000000000000001}
+    - targetCorrespondingSourceObject: {fileID: 8771091787928289351, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 700000000000000002}
+    - targetCorrespondingSourceObject: {fileID: 8771091787928289351, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 700000000000000003}
     - targetCorrespondingSourceObject: {fileID: 2590690027949864799, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2892950543118468774}
@@ -2247,6 +2259,11 @@ MonoBehaviour:
     glassOverlay: {fileID: 0}
   repairCycleDuration: 5
   repairDecaySecondsPerSecond: 1
+  networkRepairAmount: 10
+  networkRepairRange: 2
+  networkRepairObstructionMask:
+    serializedVersion: 2
+    m_Bits: 0
 --- !u!114 &903412007100000006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2278,6 +2295,66 @@ MonoBehaviour:
   onPing:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &700000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1874707628903329205}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 3928041125
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 2160588077901054289}
+  - {fileID: 7459410224522069435}
+  - {fileID: 2709867754773682312}
+  - {fileID: 903412007100000006}
+  - {fileID: 700000000000000002}
+  - {fileID: 700000000000000003}
+  - {fileID: 3612470029738488945}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &700000000000000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1874707628903329205}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a591d221a634417e9827eb58e17de84, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Fusion.Addons.Physics::Fusion.Addons.Physics.NetworkRigidbody3D
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 0
+  _interpolationTarget: {fileID: 0}
+  UsePreciseRotation: 0
+  UseRenderSleepThresholds: 1
+  RenderThresholds:
+    UseEnergy: 1
+    Position: 0.01
+    Rotation: 0.01
+    Scale: 0.01
+--- !u!114 &700000000000000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1874707628903329205}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d8a3d77be214d82a89f4dfedbb6e9a1, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::SubmarineHealthNetworkSync
 --- !u!1 &2240314211601929266 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -240290832761325120, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
@@ -2340,7 +2417,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SubmarineDoor
   doorOpen: IsOpen
+  openAnimationState: DoorOpen
+  closeAnimationState: DoorClose
+  transitionDuration: 1.5
   autoCloseDelay: 5
+  blockedRetryDelay: 0.5
+  obstructionCenter: {fileID: 0}
+  obstructionHalfExtents: {x: 0.75, y: 1, z: 0.5}
 --- !u!1 &2396046688747812925 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4827039534013273551, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}

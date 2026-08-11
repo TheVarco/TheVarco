@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 // 마우스로 상하좌우를 자유롭게 둘러보는 카메라 리그.
 // 핵심 아이디어: 1인칭이든 3인칭이든 "같은 시선 방향"을 공유하고,
@@ -53,7 +54,10 @@ public class PlayerCameraRig : MonoBehaviour
 
     void Start()
     {
-        Cursor.lockState = CursorLockMode.Locked;
+        if (target != null)
+            Cursor.lockState = CursorLockMode.Locked;
+        else
+            Cursor.lockState = CursorLockMode.None;
     }
 
     // PlayerController가 스폰 시(입력 권한이 있을 때만) 직접 호출해서 타겟을 등록함.
@@ -62,14 +66,38 @@ public class PlayerCameraRig : MonoBehaviour
     public void SetTarget(Transform t)
     {
         target = t;
+        if (target != null)
+            Cursor.lockState = CursorLockMode.Locked;
     }
 
     void Update()
     {
-        yaw += Input.GetAxis("Mouse X") * mouseSensitivity;
-        pitch -= Input.GetAxis("Mouse Y") * mouseSensitivity;
-        if (clampPitch)
-            pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
+        // ESC 키로 마우스 커서 잠금/해제 토글 (UI 조작 및 테스트 편의)
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            Cursor.lockState = Cursor.lockState == CursorLockMode.Locked ? CursorLockMode.None : CursorLockMode.Locked;
+        }
+
+        // 플레이어가 연결된 상태에서 게임 화면을 좌클릭하면 다시 마우스 잠금
+        // UI 위의 클릭은 버튼 입력이 끝날 수 있도록 잠금 대상에서 제외
+        bool isPointerOverUi = EventSystem.current != null
+            && EventSystem.current.IsPointerOverGameObject();
+        if (target != null
+            && Cursor.lockState != CursorLockMode.Locked
+            && Input.GetMouseButtonDown(0)
+            && !isPointerOverUi)
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+        }
+
+        // 마우스가 잠겨있을 때만 시점 회전
+        if (Cursor.lockState == CursorLockMode.Locked)
+        {
+            yaw += Input.GetAxis("Mouse X") * mouseSensitivity;
+            pitch -= Input.GetAxis("Mouse Y") * mouseSensitivity;
+            if (clampPitch)
+                pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
+        }
 
         // 테스트용 임시 전환 키 (나중에 설정 메뉴 UI로 교체)
         if (Input.GetKeyDown(KeyCode.V))

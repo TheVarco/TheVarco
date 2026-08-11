@@ -1,10 +1,26 @@
 using System.Collections.Generic;
+using Fusion;
 using UnityEngine;
+
+// 잠수함 이동 상태 동기화
+// 호스트가 합성 조종 입력으로 이동과 회전 계산
+// 전진과 수직과 회전 속도를 네트워크 상태로 유지
+// 충돌 외력과 피해 판정을 호스트 물리 틱에서 처리
+// 네트워크가 없는 씬은 기존 로컬 물리 흐름 유지
+
+[System.Serializable]
+public struct SubmarineMotionState
+{
+    public float ForwardVelocity;
+    public float VerticalVelocity;
+    public float YawVelocity;
+    public Vector3 ExternalWorldVelocity;
+}
 
 [RequireComponent(typeof(Rigidbody))]
 // 운전자의 입력을 받아 잠수함의 전진/후진, 상승/하강, 좌우 회전 처리
 // 속도를 즉시 바꾸지 않고 누적·감속하여 무거운 관성 적용
-public class SubmarineController : MonoBehaviour, IExternalMotionReceiver
+public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
 {
     [Header("Forward / Reverse")]
     // 선체의 로컬 forward 방향으로 움직이는 속도와 가속/자연 감속 설정
@@ -81,14 +97,43 @@ public class SubmarineController : MonoBehaviour, IExternalMotionReceiver
     /// </summary>
     public void ResetMotionState()
     {
-        forwardVelocity = 0f;
-        verticalVelocity = 0f;
-        yawVelocity = 0f;
-        externalWorldVelocity = Vector3.zero;
+        // 기본 구조체를 복원 경로에 전달해 모든 이동값 초기화
+        RestoreMotionState(default);
+    }
+
+    // 현재 잠수함 이동 결과를 체크포인트용 값으로 복사
+    public SubmarineMotionState CaptureMotionState()
+    {
+        // 조종 속도 세 축과 외부 힘 속도를 하나의 구조체로 묶어 반환
+        return new SubmarineMotionState
+        {
+            ForwardVelocity = forwardVelocity,
+            VerticalVelocity = verticalVelocity,
+            YawVelocity = yawVelocity,
+            ExternalWorldVelocity = externalWorldVelocity
+        };
+    }
+
+    // 저장된 이동 상태를 권위 잠수함에 안전한 범위로 복원
+    public void RestoreMotionState(SubmarineMotionState state)
+    {
+        // 네트워크 세션에서는 호스트만 이동 상태 변경 가능
+        if (IsNetworkActive && !Object.HasStateAuthority)
+            return;
+
+        // 저장값을 현재 잠수함 설정의 최대 속도 범위로 제한
+        forwardVelocity = Mathf.Clamp(state.ForwardVelocity, -maxReverseSpeed, maxForwardSpeed);
+        verticalVelocity = Mathf.Clamp(state.VerticalVelocity, -maxVerticalSpeed, maxVerticalSpeed);
+        yawVelocity = Mathf.Clamp(state.YawVelocity, -maxYawSpeed, maxYawSpeed);
+        externalWorldVelocity = Vector3.ClampMagnitude(state.ExternalWorldVelocity, maximumExternalSpeed);
+        // 복원 전 충돌 피해 재사용 대기 기록 제거
         lastDamageTimeByCollider.Clear();
 
-        if (body != null)
+        // 키네마틱 잠수함 이동
+        // 동적 바디 속도 초기화
+        if (body != null && !body.isKinematic)
         {
+            // 동적 Rigidbody에 남은 Unity 물리 속도도 함께 제거
             body.linearVelocity = Vector3.zero;
             body.angularVelocity = Vector3.zero;
         }
@@ -102,13 +147,63 @@ public class SubmarineController : MonoBehaviour, IExternalMotionReceiver
     private readonly Dictionary<int, float> lastDamageTimeByCollider = new Dictionary<int, float>();
     
     // 매 FixedUpdate마다 가속/감속되는 실제 내부 속도값들
-    private float forwardVelocity;
-    private float verticalVelocity;
-    private float yawVelocity;
-    private Vector3 externalWorldVelocity; // 감쇠 전 현재 외부 속도
+    [Networked] private float NetworkedForwardVelocity { get; set; }
+    [Networked] private float NetworkedVerticalVelocity { get; set; }
+    [Networked] private float NetworkedYawVelocity { get; set; }
+    [Networked] private Vector3 NetworkedExternalWorldVelocity { get; set; }
 
+    // 네트워크 스폰 전 로컬 테스트 씬에서 사용하는 동일 상태 저장소
+    private float localForwardVelocity;
+    private float localVerticalVelocity;
+    private float localYawVelocity;
+    private Vector3 localExternalWorldVelocity;
+
+    public bool IsNetworkActive => Object != null && Object.IsValid && Runner != null && Runner.IsRunning;
+
+    private float forwardVelocity
+    {
+        get => IsNetworkActive ? NetworkedForwardVelocity : localForwardVelocity;
+        set
+        {
+            if (IsNetworkActive) NetworkedForwardVelocity = value;
+            else localForwardVelocity = value;
+        }
+    }
+
+    private float verticalVelocity
+    {
+        get => IsNetworkActive ? NetworkedVerticalVelocity : localVerticalVelocity;
+        set
+        {
+            if (IsNetworkActive) NetworkedVerticalVelocity = value;
+            else localVerticalVelocity = value;
+        }
+    }
+
+    private float yawVelocity
+    {
+        get => IsNetworkActive ? NetworkedYawVelocity : localYawVelocity;
+        set
+        {
+            if (IsNetworkActive) NetworkedYawVelocity = value;
+            else localYawVelocity = value;
+        }
+    }
+
+    private Vector3 externalWorldVelocity
+    {
+        get => IsNetworkActive ? NetworkedExternalWorldVelocity : localExternalWorldVelocity;
+        set
+        {
+            if (IsNetworkActive) NetworkedExternalWorldVelocity = value;
+            else localExternalWorldVelocity = value;
+        }
+    }
+
+    // Rigidbody와 체력과 좌석 관리자와 충돌체 준비
     private void Awake()
     {
+        // 필수 컴포넌트를 수집하고 네트워크와 로컬 이동 상태 초기화
         body = GetComponent<Rigidbody>();
         health = GetComponent<Health>();
         if (seatManager == null)
@@ -122,9 +217,29 @@ public class SubmarineController : MonoBehaviour, IExternalMotionReceiver
         body.interpolation = RigidbodyInterpolation.Interpolate;
     }
 
+    // 네트워크가 없는 씬의 Unity 물리 틱 이동
     private void FixedUpdate()
     {
-        float dt = Time.fixedDeltaTime;
+        // Runner가 없을 때만 고정 시간으로 잠수함 이동 계산
+        // 로컬 테스트 물리 실행
+        if (!IsNetworkActive)
+            SimulateMovement(Time.fixedDeltaTime);
+    }
+
+    // 호스트 권위 Fusion 틱 이동
+    public override void FixedUpdateNetwork()
+    {
+        // StateAuthority만 합성 입력과 충돌과 이동 상태 변경
+        if (!Object.HasStateAuthority)
+            return;
+
+        SimulateMovement(Runner.DeltaTime);
+    }
+
+    // 입력 가속과 외력과 충돌을 합쳐 다음 잠수함 자세 계산
+    private void SimulateMovement(float dt)
+    {
+        // 좌석 입력으로 목표 속도를 만들고 가감속 제한 적용
 
         // 전진과 후진은 서로 다른 최대 속도를 사용할 수 있음
         float targetForwardSpeed = ThrottleInput >= 0f
@@ -216,13 +331,18 @@ public class SubmarineController : MonoBehaviour, IExternalMotionReceiver
     // 외부 순간 속도에 잠수함 반영 비율을 곱해 누적
     public void ApplyExternalImpulse(Vector3 velocityChange)
     {
+        // 즉시 속도 변화량을 외부 월드 속도에 추가
+        if (IsNetworkActive && !Object.HasStateAuthority)
+            return;
+
         AddExternalVelocity(velocityChange * externalMotionMultiplier);
     }
 
     // 외부 가속도에 시간과 잠수함 반영 비율을 곱해 속도로 누적
     public void ApplyExternalAcceleration(Vector3 acceleration, float deltaTime)
     {
-        if (deltaTime <= 0f)
+        // 가속도와 시간을 곱한 속도 변화량을 외력에 추가
+        if (deltaTime <= 0f || (IsNetworkActive && !Object.HasStateAuthority))
             return;
 
         AddExternalVelocity(acceleration * externalMotionMultiplier * deltaTime);
@@ -231,6 +351,7 @@ public class SubmarineController : MonoBehaviour, IExternalMotionReceiver
     // 외부 속도 합산 후 최대 속도 제한
     private void AddExternalVelocity(Vector3 velocityDelta)
     {
+        // 유효한 벡터만 받아 최대 외부 속도 범위로 제한
         externalWorldVelocity = Vector3.ClampMagnitude(
             externalWorldVelocity + velocityDelta,
             maximumExternalSpeed);
@@ -246,6 +367,7 @@ public class SubmarineController : MonoBehaviour, IExternalMotionReceiver
         out bool hitWall,
         out RaycastHit firstHit)
     {
+        // 이동 캡슐 캐스트 결과로 충돌 없는 변위와 충돌 정보 계산
         hitWall = false;
         firstHit = default;
 
@@ -295,6 +417,7 @@ public class SubmarineController : MonoBehaviour, IExternalMotionReceiver
         float distance,
         out RaycastHit closestHit)
     {
+        // 잠수함 캡슐을 이동 방향으로 투사해 가장 가까운 외부 충돌 선택
         GetWorldCapsule(position, rotation, out Vector3 pointA, out Vector3 pointB, out float radius);
 
         int hitCount = Physics.CapsuleCastNonAlloc(
@@ -332,6 +455,7 @@ public class SubmarineController : MonoBehaviour, IExternalMotionReceiver
         Quaternion proposedRotation,
         out Collider blocker)
     {
+        // 다음 회전 자세에서 새 외부 겹침이 생기는지 검사
         blocker = null;
 
         if (Quaternion.Angle(currentRotation, proposedRotation) <= 0.001f)
@@ -348,6 +472,7 @@ public class SubmarineController : MonoBehaviour, IExternalMotionReceiver
     /// </summary>
     private bool TryFindExternalOverlap(Vector3 position, Quaternion rotation, out Collider blocker)
     {
+        // 지정 자세의 캡슐 겹침 중 잠수함 자체가 아닌 충돌체 검색
         GetWorldCapsule(position, rotation, out Vector3 pointA, out Vector3 pointB, out float radius);
 
         int overlapCount = Physics.OverlapCapsuleNonAlloc(
@@ -382,6 +507,7 @@ public class SubmarineController : MonoBehaviour, IExternalMotionReceiver
         out Vector3 pointB,
         out float radius)
     {
+        // Transform 스케일과 회전을 반영해 월드 캡슐 치수 계산
         Vector3 scale = transform.lossyScale;
         float radialScale = Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y));
         float lengthScale = Mathf.Abs(scale.z);
@@ -400,6 +526,7 @@ public class SubmarineController : MonoBehaviour, IExternalMotionReceiver
     /// </summary>
     private bool IsOwnCollider(Collider candidate)
     {
+        // 후보 충돌체가 잠수함 루트 자식인지 확인
         return candidate == null
             || candidate.attachedRigidbody == body
             || candidate.transform.IsChildOf(transform);
@@ -410,6 +537,7 @@ public class SubmarineController : MonoBehaviour, IExternalMotionReceiver
     /// </summary>
     private void ApplyRotationCollisionDamage(Collider blocker, Vector3 nextPosition)
     {
+        // 회전이 막힌 지점과 속도로 충돌 피해 계산 경로 호출
         if (blocker == null)
             return;
 
@@ -434,12 +562,14 @@ public class SubmarineController : MonoBehaviour, IExternalMotionReceiver
         Vector3 hitNormal,
         float normalSpeed)
     {
+        // 체력과 충돌 속도와 Collider별 재사용 대기 조건 검증
         if (health == null || health.IsDead || sourceCollider == null || normalSpeed <= minimumDamageSpeed)
             return;
 
         int colliderId = sourceCollider.GetInstanceID();
+        float now = IsNetworkActive ? (float)Runner.SimulationTime : Time.time;
         if (lastDamageTimeByCollider.TryGetValue(colliderId, out float lastDamageTime)
-            && Time.time - lastDamageTime < collisionDamageCooldown)
+            && now - lastDamageTime < collisionDamageCooldown)
         {
             return;
         }
@@ -450,7 +580,7 @@ public class SubmarineController : MonoBehaviour, IExternalMotionReceiver
         if (damage <= 0f)
             return;
 
-        lastDamageTimeByCollider[colliderId] = Time.time;
+        lastDamageTimeByCollider[colliderId] = now;
         health.ApplyDamage(new DamageInfo(
             damage,
             sourceCollider.gameObject,
@@ -470,6 +600,7 @@ public class SubmarineController : MonoBehaviour, IExternalMotionReceiver
         bool hasInput,
         float deltaTime)
     {
+        // 입력 유무에 따라 가속률을 선택해 목표 속도로 보간
         float rate = hasInput ? acceleration : coastDeceleration;
         return Mathf.MoveTowards(current, target, rate * deltaTime);
     }
@@ -477,12 +608,16 @@ public class SubmarineController : MonoBehaviour, IExternalMotionReceiver
     // 잠수함이 비활성화될 때 충돌 피해 재사용 대기 기록 제거
     private void OnDisable()
     {
+        // 로컬 테스트 이동 상태와 충돌 피해 기록 초기화
         lastDamageTimeByCollider.Clear();
-        externalWorldVelocity = Vector3.zero;
+        if (!IsNetworkActive || Object.HasStateAuthority)
+            externalWorldVelocity = Vector3.zero;
     }
 
+    // 에디터에서 잠수함 충돌 캡슐 표시
     private void OnDrawGizmosSelected()
     {
+        // 현재 CapsuleCollider를 월드 좌표로 변환해 와이어 구체와 선 그리기
         Vector3 position = Application.isPlaying && body != null ? body.position : transform.position;
         Quaternion rotation = Application.isPlaying && body != null ? body.rotation : transform.rotation;
         GetWorldCapsule(position, rotation, out Vector3 pointA, out Vector3 pointB, out float radius);

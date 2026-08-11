@@ -83,8 +83,9 @@ namespace Varco.GameFlow
                 return;
 
             transform.SetPositionAndRotation(enemyState.Position, enemyState.Rotation);
-            // AI 속도는 저장하지 않고 초기화
-            if (body != null)
+            // AI 속도는 저장하지 않고 동적 Rigidbody에서만 초기화
+            // Kinematic 성게와 부착 생물에는 지원되지 않는 속도 값을 쓰지 않음
+            if (body != null && !body.isKinematic)
             {
                 body.linearVelocity = Vector3.zero;
                 body.angularVelocity = Vector3.zero;

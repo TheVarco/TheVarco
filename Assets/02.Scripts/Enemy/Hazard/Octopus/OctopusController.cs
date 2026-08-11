@@ -14,6 +14,12 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
     [Min(0f)] [SerializeField] private float attachDistance = 0.75f;   // 얼굴 부착 거리
     [Min(0f)] [SerializeField] private float chaseSpeedBonus = 3f;     // 추격 추가 속도
 
+    [SerializeField] private Animator animator;                         // 문어/오징어 Animator
+    private static readonly int IsAttachedHash = Animator.StringToHash("IsAttached");
+    private static readonly int StickHash = Animator.StringToHash("Stick");
+    private static readonly int StickStateHash = Animator.StringToHash("stick");
+    private static readonly int Take001StateHash = Animator.StringToHash("Take 001");
+
     private Health health;                                      // 문어 체력
     private HarvestableCreature harvestable;                    // 공통 부착 생물 상태
     private Dictionary<OctopusStateType, IOctopusState> states; // 상태별 실행 객체
@@ -40,6 +46,9 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
         Targeting = GetComponent<EnemyTargeting>();
         Navigator = GetComponent<EnemyNavigator>();
 
+        if (animator == null)
+            animator = GetComponentInChildren<Animator>();
+
         states = new Dictionary<OctopusStateType, IOctopusState>
         {
             { OctopusStateType.Idle, new OctopusIdleState(this) },
@@ -54,21 +63,32 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
     {
         health.OnDamaged += HandleDamaged;
         health.OnDeath.AddListener(HandleDeath);
-        harvestable.OnDetached += HandleDetached;
+        if (harvestable != null)
+        {
+            harvestable.OnAttached += HandleAttached;
+            harvestable.OnDetached += HandleDetached;
+        }
     }
 
     private void OnDisable()
     {
         health.OnDamaged -= HandleDamaged;
         health.OnDeath.RemoveListener(HandleDeath);
-        harvestable.OnDetached -= HandleDetached;
+        if (harvestable != null)
+        {
+            harvestable.OnAttached -= HandleAttached;
+            harvestable.OnDetached -= HandleDetached;
+        }
         Navigator?.StopMovement();
     }
 
     private void Start()
     {
+        bool isAttached = harvestable != null && harvestable.Phase == HarvestableCreature.CreaturePhase.Attached;
+        UpdateAnimation(isAttached);
+
         ChangeState(
-            harvestable.Phase == HarvestableCreature.CreaturePhase.Hazard
+            harvestable != null && harvestable.Phase == HarvestableCreature.CreaturePhase.Hazard
                 ? OctopusStateType.Idle
                 : OctopusStateType.Dead);
     }
@@ -91,6 +111,25 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
         currentStateType = newStateType;
         currentState = states[newStateType];
         currentState.Enter();
+
+        UpdateAnimation(newStateType == OctopusStateType.Attached);
+    }
+
+    private void UpdateAnimation(bool isAttached)
+    {
+        if (animator == null)
+            animator = GetComponentInChildren<Animator>();
+
+        if (animator == null) return;
+
+        animator.SetBool(IsAttachedHash, isAttached);
+        animator.SetBool(StickHash, isAttached);
+
+        int targetStateHash = isAttached ? StickStateHash : Take001StateHash;
+        if (animator.HasState(0, targetStateHash))
+        {
+            animator.CrossFade(targetStateHash, 0.1f);
+        }
     }
 
     /// <summary>
@@ -126,8 +165,14 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
         ChangeState(OctopusStateType.Dead);
     }
 
+    private void HandleAttached(AttachmentSlot slot)
+    {
+        UpdateAnimation(true);
+    }
+
     private void HandleDetached(AttachmentSlot previousSlot)
     {
+        UpdateAnimation(false);
         Targeting.ClearTarget();
         ChangeState(OctopusStateType.Dead);
     }
@@ -136,6 +181,7 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
     // 생존 위험 단계면 Idle 상태에서 재시작
     public void RestoreCheckpointAI()
     {
+        UpdateAnimation(false);
         Targeting?.ClearTarget();
         ChangeState(
             !health.IsDead && harvestable.Phase == HarvestableCreature.CreaturePhase.Hazard

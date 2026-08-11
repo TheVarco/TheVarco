@@ -3,6 +3,12 @@ using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
 
+// 플레이어 착석 상태 동기화
+// 현재 좌석과 좌석 종류와 잠수함 참조 관리
+// 착석 중 이동과 충돌과 상호작용 입력 차단
+// 네트워크 틱과 렌더 단계에서 좌석 앵커 자세 적용
+// 하차 시 기존 물리 상태와 플레이어 제어 상태 복원
+
 [RequireComponent(typeof(Rigidbody))]
 // 플레이어의 착석 상태를 관리
 // 착석할 때는 플레이어 이동/행동과 충돌을 잠그고 조종석에 고정
@@ -41,6 +47,7 @@ public class PlayerSeatController : NetworkBehaviour
     private Health health;
     private PlayerDownedState downedState;
     private CockpitSeat currentSeat;
+    private Transform currentSeatAnchor;
     private Transform originalParent;
     private Vector3 originalLocalScale;
     private bool originalIsKinematic;
@@ -49,8 +56,10 @@ public class PlayerSeatController : NetworkBehaviour
     private int enteredFrame = -1;
     private Coroutine promptRoutine;
 
+    // 착석에 필요한 플레이어 컴포넌트와 원래 물리 상태 준비
     private void Awake()
     {
+        // Rigidbody와 상호작용기와 애니메이터와 다운 상태 참조 수집
         body = GetComponent<Rigidbody>();
         health = GetComponent<Health>();
         downedState = GetComponent<PlayerDownedState>();
@@ -70,8 +79,10 @@ public class PlayerSeatController : NetworkBehaviour
         }
     }
 
+    // 입력 권한 플레이어의 하차와 분할 조종 입력 처리
     private void Update()
     {
+        // 로컬 소유자와 착석 상태를 확인한 뒤 좌석 종류별 입력 생성
         // 내 캐릭터가 아니면(원격 플레이어) 로컬 입력을 읽지 않음. 비네트워크 씬에선 Object가 null이라 그대로 동작
         if (Object != null && !Object.HasInputAuthority) return;
 
@@ -109,13 +120,56 @@ public class PlayerSeatController : NetworkBehaviour
     }
 
     // 지정된 조종석에 플레이어를 착석.
+    public override void FixedUpdateNetwork()
+    {
+        // 호스트 권위 플레이어만 네트워크 틱 자세를 좌석에 고정
+        if (IsSeated && Object.HasStateAuthority)
+            SnapToSeatPose();
+    }
+
+    // 렌더 프레임 마지막에 좌석 자세 오차 보정
+    private void LateUpdate()
+    {
+        // 모든 피어에서 착석 표현을 좌석 앵커에 다시 맞춤
+        if (IsSeated)
+            SnapToSeatPose();
+    }
+
+    // 착석 플레이어를 현재 좌석 앵커 자세에 고정
+    private void SnapToSeatPose()
+    {
+        // 좌석과 앵커와 잠수함 참조가 모두 있어야 고정 가능
+        if (currentSeat == null || currentSeatAnchor == null || currentSeat.Controller == null)
+            return;
+
+        // 잠수함 이동을 함께 받도록 플레이어 부모를 잠수함 루트로 변경
+        Transform submarineRoot = currentSeat.Controller.transform;
+        if (transform.parent != submarineRoot)
+            transform.SetParent(submarineRoot, true);
+
+        // 좌석 앵커의 월드 위치와 회전을 플레이어 Transform에 적용
+        Vector3 seatPosition = currentSeatAnchor.position;
+        Quaternion seatRotation = currentSeatAnchor.rotation;
+        transform.SetPositionAndRotation(seatPosition, seatRotation);
+
+        // 물리 바디 자세도 같은 값으로 맞춰 다음 물리 갱신의 되돌림 방지
+        if (body != null)
+        {
+            body.position = seatPosition;
+            body.rotation = seatRotation;
+        }
+    }
+
+    // 좌석 진입 전 상태를 저장하고 플레이어 제어를 착석 상태로 전환
     public bool EnterSeat(CockpitSeat seat, Transform seatAnchor)
     {
+        // 좌석 참조와 중복 착석을 검사한 뒤 원래 부모와 물리 상태 저장
         if (seat == null || seatAnchor == null || IsSeated || seat.Controller == null)
             return false;
 
         // 하차할 때 원래 계층과 크기로 돌아가기 위한 값을 저장
         currentSeat = seat;
+        currentSeatAnchor = seatAnchor;
         enteredFrame = Time.frameCount;
         originalParent = transform.parent;
         originalLocalScale = transform.localScale;
@@ -135,8 +189,7 @@ public class PlayerSeatController : NetworkBehaviour
         body.useGravity = false;
 
         // 조종석의 자식으로 만들어 잠수함이 이동할 때 플레이어도 함께 이동되도록 처리
-        transform.SetParent(seat.Controller.transform, true);
-        transform.SetPositionAndRotation(seatAnchor.position, seatAnchor.rotation);
+        SnapToSeatPose();
 
         // 앉기 애니메이션을 켜고 일반 하차 문구 고정 표시
         SetSittingAnimation(true);
@@ -147,6 +200,7 @@ public class PlayerSeatController : NetworkBehaviour
     // 조종석에서 플레이어를 내리고 착석 전 상태를 복원
     public void ExitSeat(Transform exitAnchor, Vector3 inheritedVelocity)
     {
+        // 저장한 부모와 물리와 입력 상태를 복원하고 하차 위치로 이동
         if (!IsSeated)
             return;
 
@@ -158,6 +212,7 @@ public class PlayerSeatController : NetworkBehaviour
         }
 
         currentSeat = null;
+        currentSeatAnchor = null;
 
         // 잠수함 계층에서 분리하고 착석 전 부모와 로컬 크기를 복원
         transform.SetParent(originalParent, true);
@@ -184,12 +239,14 @@ public class PlayerSeatController : NetworkBehaviour
     // 정상 하차 조건을 검사하지 않고 현재 조종석에 강제 하차를 요청한다.
     private void ForceExitFromSeat()
     {
+        // 현재 좌석에 강제 하차를 요청해 사망과 복원 상태 처리
         currentSeat?.ForceExit(this);
     }
 
     // 하차가 거부된 이유 등을 잠시 상호작용 UI에 표시
     public void ShowSeatMessage(string message)
     {
+        // 기존 안내 복원 코루틴을 교체하고 임시 메시지 표시
         if (!IsSeated || interactor == null)
             return;
 
@@ -206,6 +263,7 @@ public class PlayerSeatController : NetworkBehaviour
         out Vector3 pointB,
         out float radius)
     {
+        // 플레이어 Collider 형태를 하차 검사에 사용할 월드 캡슐로 변환
         if (playerCollider == null)
         {
             // CapsuleCollider 참조가 없을 때 사용할 안전한 기본 캡슐
@@ -256,6 +314,7 @@ public class PlayerSeatController : NetworkBehaviour
     // 착석 중 막아야 하는 행동 컴포넌트의 활성 상태를 저장하고 비활성화
     private void CacheAndDisableInputBehaviours()
     {
+        // 착석 중 꺼야 할 플레이어 행동 컴포넌트와 활성 상태 저장
         behaviourStates.Clear();
         HashSet<MonoBehaviour> targets = new HashSet<MonoBehaviour>();
 
@@ -287,6 +346,7 @@ public class PlayerSeatController : NetworkBehaviour
     // 착석 중 비활성화해야 하는 플레이어 행동인지 판별
     private static bool ShouldDisableWhileSeated(MonoBehaviour behaviour)
     {
+        // 좌석 제어기 자체를 제외하고 이동과 상호작용 행동만 선택
         if (behaviour == null)
             return false;
 
@@ -299,8 +359,10 @@ public class PlayerSeatController : NetworkBehaviour
             || behaviour.GetType().Name == "CaveSwimController";
     }
 
+    // 착석 전에 활성화되어 있던 입력 컴포넌트 복원
     private void RestoreInputBehaviours()
     {
+        // 저장된 배열을 순회하며 유효한 컴포넌트 상태 복구
         // 기절 또는 사망 상태라면 이동 컴포넌트를 다시 켜면 안됨
         bool isDowned = (downedState != null && downedState.IsDowned)
             || (health != null && health.IsDead);
@@ -318,6 +380,7 @@ public class PlayerSeatController : NetworkBehaviour
     // 착석 중 플레이어가 잠수함 내부와 충돌하지 않도록 Collider 상태를 저장하고 끔
     private void CacheAndDisableColliders()
     {
+        // 플레이어 Collider 목록과 활성 상태를 저장한 뒤 충돌 차단
         colliderStates.Clear();
         foreach (Collider col in GetComponents<Collider>())
         {
@@ -329,6 +392,7 @@ public class PlayerSeatController : NetworkBehaviour
     // 하차할 때 각 Collider를 착석 전 활성 상태로 되돌림
     private void RestoreColliders()
     {
+        // 착석 전에 켜져 있던 Collider 상태 복원
         foreach (KeyValuePair<Collider, bool> state in colliderStates)
         {
             if (state.Key != null)
@@ -340,6 +404,7 @@ public class PlayerSeatController : NetworkBehaviour
     // 착석 여부를 Animator에 전달하고 이동/밀기 관련 파라미터를 초기화
     private void SetSittingAnimation(bool sitting)
     {
+        // 애니메이터에 착석 불 값을 적용해 자세 전환
         if (animator == null)
             return;
 
@@ -352,6 +417,7 @@ public class PlayerSeatController : NetworkBehaviour
     // 상태 메시지를 일정 시간 보여준 다음 기본 하차 문구로 되돌리기
     private IEnumerator RestoreExitPromptAfterDelay(string message)
     {
+        // 임시 안내를 표시한 뒤 정해진 시간이 지나면 하차 문구 복원
         interactor.SetInteractionLock(true, message);
         yield return new WaitForSeconds(statusMessageDuration);
 
@@ -363,18 +429,23 @@ public class PlayerSeatController : NetworkBehaviour
     // 부활했고 조종석에 앉아 있지 않다면 저장해 둔 행동 상태를 복원
     private void HandleRevived()
     {
+        // 부활 시 좌석 점유가 남아 있으면 강제 하차 요청
         if (!IsSeated)
             RestoreInputBehaviours();
     }
 
+    // 비활성화 시 좌석 점유와 안내 코루틴 정리
     private void OnDisable()
     {
+        // 현재 좌석과 실행 중 안내를 안전하게 해제
         if (Application.isPlaying)
             ForceExitFromSeat();
     }
 
+    // 파괴 시 다운 상태 이벤트 구독 해제
     private void OnDestroy()
     {
+        // 연결된 부활 이벤트가 남지 않도록 리스너 제거
         // 플레이어가 파괴될 때 Health 이벤트 구독 해제
         if (health != null)
         {
