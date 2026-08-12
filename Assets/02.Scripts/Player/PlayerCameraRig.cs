@@ -32,6 +32,16 @@ public class PlayerCameraRig : MonoBehaviour
     public float thirdPersonHeightOffset = 0.3f;
     public float followSmoothing = 10f;
 
+    [Header("3인칭 카메라 충돌")]
+    [Tooltip("이 레이어에 막히면 카메라를 앞으로 당겨서 벽/천장을 뚫지 않게 함. 플레이어 레이어는 자동 제외")]
+    public LayerMask cameraObstacleMask = ~0;
+    [Tooltip("판정 굵기. 0이면 모서리에서 살짝 뚫림")]
+    public float cameraCollisionRadius = 0.2f;
+    [Tooltip("벽에서 이만큼 떨어뜨림. 카메라 근접 평면에서 계산한 최소치보다 작으면 그쪽이 우선됨")]
+    public float cameraCollisionPadding = 0.25f;
+    [Tooltip("이 거리보다 가까워지면 아예 눈 위치로 붙인다. 벽 코앞에서 캐릭터 등짝만 보이는 것 방지")]
+    public float minThirdPersonDistance = 0.8f;
+
     [Header("조준 줌 (무기 아이템이 SetAiming으로 켜고 끔)")]
     public Camera cam;
     public float normalFOV = 60f;
@@ -133,7 +143,39 @@ public class PlayerCameraRig : MonoBehaviour
                 - lookRotation * Vector3.forward * thirdPersonDistance
                 + Vector3.up * thirdPersonHeightOffset;
 
-            transform.position = Vector3.Lerp(transform.position, desiredPosition, followSmoothing * Time.deltaTime);
+            // 눈에서 카메라 자리까지 훑어서 막히면 앞으로 당긴다.
+            // 기절하면 몸이 위로 떠올라 천장에 붙는데, 그때 카메라만 지형 안으로 들어가 화면이 깨짐
+            Vector3 toCamera = desiredPosition - eyePosition;
+            float distance = toCamera.magnitude;
+
+            // 플레이어 레이어는 뺀다. 안 그러면 자기 몸에 막혀 카메라가 얼굴에 붙음
+            int mask = cameraObstacleMask & ~(1 << target.gameObject.layer);
+
+            if (distance > 0.001f
+                && Physics.SphereCast(eyePosition, cameraCollisionRadius, toCamera / distance,
+                                      out RaycastHit hit, distance, mask, QueryTriggerInteraction.Ignore))
+            {
+                // 근접 평면 안쪽에 벽이 들어오면 벽이 잘려서 너머가 비쳐 보인다.
+                // 화면 모서리까지 고려한 실제 필요 거리를 카메라 설정에서 직접 뽑는다
+                float safePadding = cameraCollisionPadding;
+                if (cam != null)
+                {
+                    float t = Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
+                    safePadding = Mathf.Max(safePadding,
+                        cam.nearClipPlane * Mathf.Sqrt(1f + t * t * (1f + cam.aspect * cam.aspect)));
+                }
+
+                // 막혔을 때 부드럽게 따라가면 그동안 이미 벽 안에 들어가 있으므로 즉시 붙인다.
+                // 벗어날 때는 아래 Lerp를 타서 부드럽게 돌아옴
+                float allowed = hit.distance - safePadding;
+                transform.position = allowed <= minThirdPersonDistance
+                    ? eyePosition // 너무 가까우면 등짝만 보이므로 차라리 1인칭처럼
+                    : eyePosition + toCamera / distance * allowed;
+            }
+            else
+            {
+                transform.position = Vector3.Lerp(transform.position, desiredPosition, followSmoothing * Time.deltaTime);
+            }
         }
     }
 }

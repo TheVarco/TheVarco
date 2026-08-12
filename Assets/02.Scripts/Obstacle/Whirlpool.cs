@@ -35,7 +35,13 @@ public class Whirlpool : MonoBehaviour
     {
         if (distance <= innerRadius) return maxPullForce;
 
-        float t = Mathf.Clamp01((outerRadius - distance) / (outerRadius - innerRadius));
+        // 두 반경이 같거나 뒤집히면 0으로 나눠 NaN이 나온다. Mathf.Clamp01은 NaN 비교가 전부
+        // false라 그대로 통과시키고, 그 값이 AddForce로 들어가면 Rigidbody 위치가 NaN이 되어
+        // 플레이어가 월드에서 사라진다 (세션 중 복구 불가). 인스펙터 실수 한 번으로 나는 사고
+        float range = outerRadius - innerRadius;
+        if (range <= 0.001f) return maxPullForce;
+
+        float t = Mathf.Clamp01((outerRadius - distance) / range);
         return maxPullForce * Mathf.Pow(t, falloffExponent);
     }
 

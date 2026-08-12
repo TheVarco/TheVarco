@@ -69,6 +69,7 @@ public class PlayerWhirlpoolState : NetworkBehaviour
         bool rescued = IsRescuedFromOutside();
         bool insideTrapLine = false;    // 들어가는 선 (innerRadius)
         bool insideReleaseLine = false; // 나오는 선 (innerRadius × releaseRadiusMultiplier)
+        float strongestDamping = 0f;
 
         foreach (Whirlpool whirlpool in Whirlpool.Active)
         {
@@ -86,13 +87,17 @@ public class PlayerWhirlpoolState : NetworkBehaviour
                 rb.AddForce(toCenter.normalized * pull, ForceMode.Acceleration);
             }
 
-            // 감쇠가 없으면 중심을 관통해 진동한다. 갇힌 사람이 튕겨다니면서
-            // 판정선을 계속 넘나들어 "갇힘!" 문구가 깜빡임
-            rb.AddForce(-rb.linearVelocity * whirlpool.pullDamping, ForceMode.Acceleration);
+            // 루프 안에서 걸면 겹친 회오리 수만큼 중복 적용된다. 가장 센 값만 기억해뒀다가 밖에서 한 번
+            strongestDamping = Mathf.Max(strongestDamping, whirlpool.pullDamping);
 
             if (dist <= whirlpool.innerRadius) insideTrapLine = true;
             if (dist <= whirlpool.innerRadius * releaseRadiusMultiplier) insideReleaseLine = true;
         }
+
+        // 감쇠가 없으면 중심을 관통해 진동한다. 갇힌 사람이 튕겨다니면서
+        // 판정선을 계속 넘나들어 "갇힘!" 문구가 깜빡임
+        if (strongestDamping > 0f)
+            rb.AddForce(-rb.linearVelocity * strongestDamping, ForceMode.Acceleration);
 
         // 힘까지는 예측을 위해 본인 클라이언트도 걸지만,
         // 갇힘 표시는 [Networked] 값이라 State Authority만 쓸 수 있다

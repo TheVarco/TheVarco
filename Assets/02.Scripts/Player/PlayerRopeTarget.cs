@@ -70,7 +70,7 @@ public class PlayerRopeTarget : NetworkBehaviour
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
         Active.Remove(this);
-        ClearLocalRope();
+        ClearLocalRope(true); // 끝점 Transform이 이미 파괴돼서, 지연 파괴하면 그동안 예외가 남
     }
 
     // 거리 초과로 끊는 판정은 호스트만. 각자 판단하면 머신마다 다른 시점에 끊긴다
@@ -124,9 +124,10 @@ public class PlayerRopeTarget : NetworkBehaviour
         ropePuller = puller.transform;
         visualRope = SpawnVisualRope(ropeVisualPrefab, puller.transform, transform);
 
-        // 프록시는 Physics Addon이 강제 kinematic이라 조인트가 아무 일도 안 한다.
-        // 호스트(모두 시뮬레이션)와 본인 클라이언트(예측)에만 걸면 됨
-        if (Object.IsProxy) return;
+        // 조인트를 kinematic 프록시에 붙여도 connectedBody 쪽에는 힘이 전달된다.
+        // 당기는 사람이 내 캐릭터면 조인트가 있어야 반작용을 느껴 호스트와 예측이 맞는다
+        // (없으면 줄이 팽팽할 때 구조자 화면이 떨림). 양쪽 다 프록시일 때만 건너뛴다
+        if (Object.IsProxy && puller.IsProxy) return;
 
         Rigidbody pullerRb = puller.GetComponent<Rigidbody>();
         if (pullerRb == null) return;
@@ -171,13 +172,15 @@ public class PlayerRopeTarget : NetworkBehaviour
         return rope;
     }
 
-    private void ClearLocalRope()
+    // immediate = despawn 경로. 끝점 Transform이 이미 파괴된 상태라 지연 파괴하면
+    // 그 시간 동안 로프가 매 프레임 파괴된 참조를 읽어서 예외가 쏟아진다
+    private void ClearLocalRope(bool immediate = false)
     {
         if (joint != null) Destroy(joint);
         joint = null;
 
         if (visualRope != null)
-            Destroy(visualRope.gameObject, ropeLingerDuration); // 즉시 안 지우고 잠깐 남았다가 사라짐
+            Destroy(visualRope.gameObject, immediate ? 0f : ropeLingerDuration); // 평소엔 잠깐 남았다가 사라짐
         visualRope = null;
 
         ropePuller = null;

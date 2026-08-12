@@ -269,7 +269,7 @@ MonoBehaviour:
   leashLength: 2
   ropeSpring: 40
   ropeDamper: 8
-  ropeMaxDistance: 15
+  ropeBreakStretch: 6
   ropeVisualPrefab: {fileID: 5811950906510464521, guid: cb8acdc333f11fd4ea6500cf985f9dbd, type: 3}
   ropeLingerDuration: 0.5
 --- !u!114 &709331647815549706
@@ -461,7 +461,7 @@ MonoBehaviour:
   - {fileID: 9000136554262916702}
   - {fileID: 6979411412585706810}
   - {fileID: 5961030891790580359}
-  - {fileID: 0}
+  - {fileID: -7861617683994697948}
   floatUpForce: 2
   reviveHealthRatio: 0.3
   reviveOxygenRatio: 0.5
