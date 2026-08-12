@@ -17,6 +17,7 @@ public class EnemyTargeting : MonoBehaviour
     private float damageTargetLockUntil;        // 최초 공격자 우선 종료 시각.
     private float nextRetargetTime;             // 다음 재탐색 시각.
     private IEnemyTargetFilter targetFilter;    // 적별 타깃 허용 조건.
+    private bool damageTargetIgnoresRange;
 
     public Transform Target => target;
     public event System.Action<Transform> OnTargetDetected;
@@ -77,6 +78,7 @@ public class EnemyTargeting : MonoBehaviour
         if (Time.time >= damageTargetLockUntil)
         {
             SetTarget(attacker);
+            damageTargetIgnoresRange = true;
             damageTargetLockUntil = Time.time + DamageTargetLockDuration;
             nextRetargetTime = damageTargetLockUntil;
         }
@@ -203,6 +205,7 @@ public class EnemyTargeting : MonoBehaviour
     private void SetTarget(Transform newTarget)
     {
         bool discoveredNewTarget = target == null && newTarget != null;
+        damageTargetIgnoresRange = false;
         target = newTarget;
 
         if (discoveredNewTarget)
@@ -215,6 +218,7 @@ public class EnemyTargeting : MonoBehaviour
     public void ClearTarget()
     {
         target = null;
+        damageTargetIgnoresRange = false;
     }
 
     /// <summary>
@@ -288,7 +292,9 @@ public class EnemyTargeting : MonoBehaviour
         Vector3 offsetToTarget = targetPoint - transform.position;
         float distanceToTarget = offsetToTarget.magnitude;
 
-        if (distanceToTarget > LoseTargetRadius)
+        if (distanceToTarget <= LoseTargetRadius)
+            damageTargetIgnoresRange = false;
+        else if (!damageTargetIgnoresRange)
             return false;
 
         if (distanceToTarget <= Mathf.Epsilon)

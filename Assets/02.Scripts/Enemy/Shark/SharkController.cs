@@ -32,6 +32,8 @@ public class SharkController : MonoBehaviour
     private ISharkState currentState;                        // 현재 실행 상태
     private SharkStateType currentStateType;                 // 현재 상태 종류
     private Coroutine delayedDestroyRoutine;
+    private SharkDetectionIndicator detectionIndicator;
+    private bool isSuspicious;
     private NetworkObject networkObject; // 권위 확인 대상
     private NetworkTransform networkTransform; // 순간이동을 복제할 위치 동기화 대상
     private EnemyHealthNetworkSync networkSync; // 상태와 공격 게시 대상
@@ -57,6 +59,7 @@ public class SharkController : MonoBehaviour
     #endregion
 
     public bool IsDead => health != null && health.IsDead;
+    public bool IsSuspicious => isSuspicious;
 
     private void Awake()
     {
@@ -69,6 +72,7 @@ public class SharkController : MonoBehaviour
 
         spawnPosition = transform.position;
         spawnRotation = transform.rotation;
+        detectionIndicator = GetComponent<SharkDetectionIndicator>();
 
         states = new Dictionary<SharkStateType, ISharkState>
         {
@@ -266,6 +270,28 @@ public class SharkController : MonoBehaviour
     {
         if (animator != null)
             animator.SetTrigger(AttackHash);
+    }
+
+    // Applies the local question indicator and publishes it for proxies.
+    public void SetSuspicious(bool suspicious)
+    {
+        if (isSuspicious == suspicious)
+            return;
+
+        isSuspicious = suspicious;
+        detectionIndicator?.SetQuestionVisible(suspicious);
+        networkSync?.PublishSharkSuspicion(suspicious);
+    }
+
+    public void ApplyReplicatedSuspicion(bool suspicious)
+    {
+        isSuspicious = suspicious;
+        detectionIndicator?.SetQuestionVisible(suspicious);
+    }
+
+    public void PlayReplicatedDetectionIndicator()
+    {
+        detectionIndicator?.ShowReplicatedDetection();
     }
 
     public void PlayIdleAnimation()

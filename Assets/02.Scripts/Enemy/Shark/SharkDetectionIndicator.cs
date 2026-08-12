@@ -2,23 +2,29 @@ using System.Collections;
 using UnityEngine;
 
 /// <summary>
-/// 상어의 최초 타깃 탐지 표시.
+/// Shows the shark's target detection and target loss indicators.
 /// </summary>
 [RequireComponent(typeof(EnemyTargeting))]
 public class SharkDetectionIndicator : MonoBehaviour
 {
-    [SerializeField] private GameObject detectObject;                 // 감지 표시 오브젝트.
-    [SerializeField, Min(0f)] private float visibleDuration = 3f;    // 표시 유지 시간.
+    [SerializeField] private GameObject detectObject;
+    [SerializeField] private GameObject questionObject;
+    [SerializeField, Min(0f)] private float visibleDuration = 3f;
 
-    private EnemyTargeting targeting; // 공통 타겟팅 컴포넌트.
-    private Coroutine hideCoroutine;  // 표시 종료 코루틴.
+    private EnemyTargeting targeting;
+    private EnemyHealthNetworkSync networkSync;
+    private Coroutine hideCoroutine;
 
     private void Awake()
     {
         targeting = GetComponent<EnemyTargeting>();
+        networkSync = GetComponent<EnemyHealthNetworkSync>();
 
         if (detectObject != null)
             detectObject.SetActive(false);
+
+        if (questionObject != null)
+            questionObject.SetActive(false);
     }
 
     private void OnEnable()
@@ -32,13 +38,9 @@ public class SharkDetectionIndicator : MonoBehaviour
     private void OnDisable()
     {
         targeting.OnTargetDetected -= Show;
-
         HideImmediately();
     }
 
-    /// <summary>
-    /// 감지 표시 즉시 숨김.
-    /// </summary>
     public void HideImmediately()
     {
         if (hideCoroutine != null)
@@ -49,12 +51,32 @@ public class SharkDetectionIndicator : MonoBehaviour
 
         if (detectObject != null)
             detectObject.SetActive(false);
+
+        if (questionObject != null)
+            questionObject.SetActive(false);
     }
 
-    /// <summary>
-    /// 감지 표시 활성화 및 종료 타이머 시작.
-    /// </summary>
+    public void SetQuestionVisible(bool visible)
+    {
+        if (visible)
+            HideDetectionImmediately();
+
+        if (questionObject != null)
+            questionObject.SetActive(visible);
+    }
+
+    public void ShowReplicatedDetection()
+    {
+        ShowDetection();
+    }
+
     private void Show(Transform detectedTarget)
+    {
+        ShowDetection();
+        networkSync?.PublishSharkDetection();
+    }
+
+    private void ShowDetection()
     {
         if (detectObject == null)
             return;
@@ -64,6 +86,18 @@ public class SharkDetectionIndicator : MonoBehaviour
 
         detectObject.SetActive(true);
         hideCoroutine = StartCoroutine(HideAfterDelay());
+    }
+
+    private void HideDetectionImmediately()
+    {
+        if (hideCoroutine != null)
+        {
+            StopCoroutine(hideCoroutine);
+            hideCoroutine = null;
+        }
+
+        if (detectObject != null)
+            detectObject.SetActive(false);
     }
 
     private IEnumerator HideAfterDelay()

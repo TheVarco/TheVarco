@@ -17,6 +17,8 @@ public sealed class EnemyHealthNetworkSync : NetworkBehaviour, IDamageRouter
     [Networked] private int AttackSequence { get; set; }
     // 호스트 기준 AI 상태
     [Networked] private int NetworkedAiState { get; set; }
+    [Networked] private NetworkBool NetworkedIsSuspicious { get; set; }
+    [Networked] private int DetectionSequence { get; set; }
 
     private Health health; // 같은 오브젝트의 로컬 체력
     private SharkController shark; // 상어 전용 연출 대상
@@ -27,6 +29,9 @@ public sealed class EnemyHealthNetworkSync : NetworkBehaviour, IDamageRouter
     private Rigidbody body; // 프록시 물리 실행 차단 대상
 
     // 같은 적의 로컬 컴포넌트 확보
+    private int renderedDetectionSequence;
+    private bool renderedIsSuspicious;
+
     private void Awake()
     {
         health = GetComponent<Health>();
@@ -48,16 +53,22 @@ public sealed class EnemyHealthNetworkSync : NetworkBehaviour, IDamageRouter
             NetworkedHealth = health.CurrentHealth;
             NetworkedIsDead = health.IsDead;
             NetworkedAiState = GetCurrentAiState();
+            NetworkedIsSuspicious = shark != null && shark.IsSuspicious;
             renderedAttackSequence = AttackSequence;
             renderedAiState = NetworkedAiState;
+            renderedDetectionSequence = DetectionSequence;
+            renderedIsSuspicious = NetworkedIsSuspicious;
         }
         else
         {
             // 스폰 시점의 Host 값 즉시 적용
             ApplyReplicatedState();
             ApplyReplicatedAiState();
+            ApplyReplicatedSuspicion();
             renderedAttackSequence = AttackSequence;
             renderedAiState = NetworkedAiState;
+            renderedDetectionSequence = DetectionSequence;
+            renderedIsSuspicious = NetworkedIsSuspicious;
         }
     }
 
@@ -94,6 +105,18 @@ public sealed class EnemyHealthNetworkSync : NetworkBehaviour, IDamageRouter
             // 변경된 AI 상태만 한 번 적용
             renderedAiState = NetworkedAiState;
             ApplyReplicatedAiState();
+        }
+
+        if (renderedIsSuspicious != NetworkedIsSuspicious)
+        {
+            renderedIsSuspicious = NetworkedIsSuspicious;
+            ApplyReplicatedSuspicion();
+        }
+
+        if (renderedDetectionSequence != DetectionSequence)
+        {
+            renderedDetectionSequence = DetectionSequence;
+            shark?.PlayReplicatedDetectionIndicator();
         }
 
         if (renderedAttackSequence == AttackSequence)
@@ -164,6 +187,19 @@ public sealed class EnemyHealthNetworkSync : NetworkBehaviour, IDamageRouter
             AttackSequence++;
     }
 
+    // Replicates one-shot detection indicator playback.
+    public void PublishSharkDetection()
+    {
+        if (Object != null && Object.IsValid && Object.HasStateAuthority)
+            DetectionSequence++;
+    }
+
+    public void PublishSharkSuspicion(bool suspicious)
+    {
+        if (Object != null && Object.IsValid && Object.HasStateAuthority)
+            NetworkedIsSuspicious = suspicious;
+    }
+
     // 호스트 AI 상태 기록
     public void PublishAiState(int state)
     {
@@ -230,6 +266,11 @@ public sealed class EnemyHealthNetworkSync : NetworkBehaviour, IDamageRouter
     }
 
     // 프록시 AI 상태 반영
+    private void ApplyReplicatedSuspicion()
+    {
+        shark?.ApplyReplicatedSuspicion(NetworkedIsSuspicious);
+    }
+
     private void ApplyReplicatedAiState()
     {
         if (shark != null)
