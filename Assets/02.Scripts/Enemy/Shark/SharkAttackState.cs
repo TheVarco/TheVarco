@@ -23,7 +23,7 @@ public class SharkAttackState : ISharkState
         // 타겟을 놓치면 순찰로 복귀
         if (!shark.Targeting.TryFindTarget())
         {
-            shark.ChangeState(SharkStateType.Patrol);
+            shark.ChangeState(SharkStateType.Chase);
             return;
         }
 

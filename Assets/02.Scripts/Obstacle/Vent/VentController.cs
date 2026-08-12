@@ -44,6 +44,7 @@ public sealed class VentController : NetworkBehaviour, IPatternTarget
     private Coroutine aloneRoutine; // 자동 Alone 반복 코루틴
     private bool hasStarted; // Start 호출 완료 여부
     private VentState renderedNetworkState = (VentState)(-1); // 마지막으로 적용한 복제 상태
+    private NetworkObject networkObject; // Runner 시작 전 로컬 권위 오판 방지용
 
     // 호스트 기준 분출 상태
     [Networked] private int NetworkedState { get; set; }
@@ -55,8 +56,23 @@ public sealed class VentController : NetworkBehaviour, IPatternTarget
 
     Object IPatternTarget.PatternTargetObject => this; // 공용 패턴의 Unity 생명주기 검사 대상
     // 로컬 실행 또는 State Authority 여부
-    public bool HasPatternAuthority =>
-        Object == null || !Object.IsValid || Object.HasStateAuthority;
+    public bool HasPatternAuthority
+    {
+        get
+        {
+            NetworkObject attachedObject = GetAttachedNetworkObject();
+            return attachedObject == null
+                || (attachedObject.IsValid && attachedObject.HasStateAuthority);
+        }
+    }
+
+    private NetworkObject GetAttachedNetworkObject()
+    {
+        if (networkObject == null)
+            networkObject = GetComponent<NetworkObject>();
+
+        return networkObject;
+    }
 
     // 공용 패턴에서 분출구 제어권을 요청
     bool IPatternTarget.ClaimPatternControl(ObstaclePatternBase owner)
@@ -104,6 +120,8 @@ public sealed class VentController : NetworkBehaviour, IPatternTarget
     // 실행 시 참조 복구와 초기 상태 설정
     private void Awake()
     {
+        networkObject = GetComponent<NetworkObject>();
+
         if (effectCollider == null)
             effectCollider = GetComponent<Collider>();
 
@@ -131,6 +149,9 @@ public sealed class VentController : NetworkBehaviour, IPatternTarget
             ApplyState((VentState)NetworkedState, false, true);
             renderedNetworkState = (VentState)NetworkedState;
         }
+
+        if (Object.HasStateAuthority)
+            TryStartAlonePattern();
     }
 
     // 프록시 분출 연출 갱신

@@ -4,9 +4,12 @@ public class SharkChaseState : ISharkState
 {
     // TODO : 나중에 밸런싱을 자주 해야되는 상황이 오면 SO로 분리해서 인스펙터에서 관리하도록 바꾸기
     // 추격 시 이속 증가
-    private const float ChaseSpeedBonus = 3f;
+    private const float ChaseSpeedBonus = 2f;
+    private const float SuspiciousDuration = 3f;
 
     private SharkController shark;
+    private bool isSuspicious;
+    private float suspiciousTimer;
 
     public SharkChaseState(SharkController shark)
     {
@@ -16,13 +19,24 @@ public class SharkChaseState : ISharkState
     public void Enter()
     {
         // Debug.Log("Shark Chase");
+        isSuspicious = false;
+        suspiciousTimer = 0f;
+
+        if (shark.Targeting.Target == null)
+            BeginSuspiciousWait();
     }
 
     public void Update()
     {
+        if (isSuspicious)
+        {
+            UpdateSuspiciousWait();
+            return;
+        }
+
         if (!shark.Targeting.TryUpdateChaseTarget())
         {
-            shark.ChangeState(SharkStateType.Patrol);
+            BeginSuspiciousWait();
             return;
         }
 
@@ -48,6 +62,43 @@ public class SharkChaseState : ISharkState
 
     public void Exit()
     {
+        EndSuspiciousWait();
+    }
 
+    private void BeginSuspiciousWait()
+    {
+        if (isSuspicious)
+            return;
+
+        isSuspicious = true;
+        suspiciousTimer = SuspiciousDuration;
+        shark.Navigator.StopMovement();
+        shark.SetSuspicious(true);
+    }
+
+    private void UpdateSuspiciousWait()
+    {
+        if (shark.Targeting.TryFindTarget())
+        {
+            EndSuspiciousWait();
+            return;
+        }
+
+        suspiciousTimer -= Time.deltaTime;
+        if (suspiciousTimer > 0f)
+            return;
+
+        EndSuspiciousWait();
+        shark.ChangeState(SharkStateType.Patrol);
+    }
+
+    private void EndSuspiciousWait()
+    {
+        if (!isSuspicious)
+            return;
+
+        isSuspicious = false;
+        suspiciousTimer = 0f;
+        shark.SetSuspicious(false);
     }
 }
