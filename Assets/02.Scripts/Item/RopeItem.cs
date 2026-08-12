@@ -87,6 +87,7 @@ public class RopeItem : CarryableItem
             || !ropeProjectilePrefabRef.IsValid)
         {
             Debug.LogWarning($"{itemName}: Rope Projectile Prefab Ref가 비어있거나 러너가 없어 던질 수 없음");
+            cooldownTimer = 0f; // 아무 일도 안 일어났으니 쿨타임을 돌려준다
             return;
         }
 
