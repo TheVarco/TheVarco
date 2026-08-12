@@ -40,10 +40,8 @@ public class EnemyTargeting : MonoBehaviour
         if (targetCollider == null)
             targetCollider = target.GetComponentInChildren<Collider>();
 
-        // Collider가 없으면 Transform 위치 기준.
-        return targetCollider != null && targetCollider.enabled
-            ? targetCollider.ClosestPoint(observerPosition)
-            : target.position;
+        // Collider 부재 시 Transform 위치 기준
+        return GetSafeTargetPoint(targetCollider, observerPosition, target.position);
     }
 
     private float ProximityDetectRadius => enemyData.ProximityDetectRadius;
@@ -117,8 +115,11 @@ public class EnemyTargeting : MonoBehaviour
             if (candidateDamageable != null && candidateDamageable.IsDead)
                 continue;
 
-            // Collider 표면 거리 기준 탐지 범위 및 시야각 계산.
-            Vector3 targetPoint = targetCollider.ClosestPoint(transform.position);
+            // Collider 표면 거리 기준 탐지 범위와 시야각 계산
+            Vector3 targetPoint = GetSafeTargetPoint(
+                targetCollider,
+                transform.position,
+                targetCollider.transform.position);
             Vector3 offsetToTarget = targetPoint - transform.position;
             float distanceToTarget = offsetToTarget.magnitude;
 
@@ -244,8 +245,11 @@ public class EnemyTargeting : MonoBehaviour
             if (candidateDamageable != null && candidateDamageable.IsDead)
                 continue;
 
-            // Collider 표면 거리 기준 재타깃 후보 비교.
-            Vector3 targetPoint = candidateCollider.ClosestPoint(transform.position);
+            // Collider 표면 거리 기준 재탐색 후보 비교.
+            Vector3 targetPoint = GetSafeTargetPoint(
+                candidateCollider,
+                transform.position,
+                candidateCollider.transform.position);
             Vector3 offsetToCandidate = targetPoint - transform.position;
             float distanceToCandidate = offsetToCandidate.magnitude;
 
@@ -292,6 +296,18 @@ public class EnemyTargeting : MonoBehaviour
 
         Vector3 directionToTarget = offsetToTarget / distanceToTarget;
         return !IsTargetBlocked(directionToTarget, distanceToTarget);
+    }
+
+    // 미지원 Collider는 안전한 Raycast 결과만 사용
+    private static Vector3 GetSafeTargetPoint(
+        Collider targetCollider,
+        Vector3 observerPosition,
+        Vector3 fallbackPosition)
+    {
+        return targetCollider != null && targetCollider.enabled &&
+               PhysicsSurfaceQuery.TryClosestPoint(observerPosition, targetCollider, out Vector3 point)
+            ? point
+            : fallbackPosition;
     }
 
     /// <summary>

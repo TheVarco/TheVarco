@@ -207,6 +207,78 @@ MonoBehaviour:
   iconScale: 1.8
   lineThicknessScale: 1.5
   centerMarkerScale: 1.4
+--- !u!1 &720440510884266361
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3468636091636411184}
+  - component: {fileID: 2646626592567372858}
+  - component: {fileID: 2814228357089302013}
+  m_Layer: 0
+  m_Name: WalkZone
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3468636091636411184
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 720440510884266361}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
+  m_LocalPosition: {x: 0.047499895, y: 0.0465, z: -2.84}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3027614687741519286}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
+--- !u!136 &2646626592567372858
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 720440510884266361}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.8125399
+  m_Height: 5.7121
+  m_Direction: 1
+  m_Center: {x: -0.024245262, y: -0.10479903, z: -0.07922977}
+--- !u!114 &2814228357089302013
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 720440510884266361}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5313d2c214c85784ab96a763b75ff54a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerWalkZone
+  groundCheckDistance: 2
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1 &952152690112469961
 GameObject:
   m_ObjectHideFlags: 0
@@ -1811,7 +1883,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -3910990755373119420, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: -6.29
       objectReference: {fileID: 0}
     - target: {fileID: -3910990755373119420, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
       propertyPath: m_LocalPosition.y
@@ -1819,7 +1891,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -3910990755373119420, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: 6.1
       objectReference: {fileID: 0}
     - target: {fileID: -3910990755373119420, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1950,6 +2022,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -3910990755373119420, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8156967192225894726}
+    - targetCorrespondingSourceObject: {fileID: -3910990755373119420, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3468636091636411184}
     - targetCorrespondingSourceObject: {fileID: -9167120058152895281, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
       insertIndex: 2
       addedObject: {fileID: 7688529066289748750}
@@ -1981,6 +2056,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 8771091787928289351, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 700000000000000001}
+    - targetCorrespondingSourceObject: {fileID: 8771091787928289351, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 700000000000000004}
     - targetCorrespondingSourceObject: {fileID: 8771091787928289351, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 700000000000000002}
@@ -2305,7 +2383,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
   SortKey: 3928041125
   ObjectInterest: 1
@@ -2316,10 +2394,23 @@ MonoBehaviour:
   - {fileID: 7459410224522069435}
   - {fileID: 2709867754773682312}
   - {fileID: 903412007100000006}
+  - {fileID: 700000000000000004}
   - {fileID: 700000000000000002}
   - {fileID: 700000000000000003}
   - {fileID: 3612470029738488945}
   ForceRemoteRenderTimeframe: 0
+--- !u!114 &700000000000000004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1874707628903329205}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46b26df281894351aa93c129cdf5ef5d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetworkPhysicsSimulationPolicy
 --- !u!114 &700000000000000002
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2330,7 +2421,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0a591d221a634417e9827eb58e17de84, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Fusion.Addons.Physics::Fusion.Addons.Physics.NetworkRigidbody3D
   _stateAuthorityChangeErrorCorrectionDelta: 0
   SyncScale: 0
@@ -2353,7 +2444,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5d8a3d77be214d82a89f4dfedbb6e9a1, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SubmarineHealthNetworkSync
 --- !u!1 &2240314211601929266 stripped
 GameObject:

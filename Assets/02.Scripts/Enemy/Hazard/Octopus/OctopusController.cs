@@ -1,8 +1,9 @@
 using System.Collections.Generic;
+using Fusion;
 using UnityEngine;
 
 /// <summary>
-/// 문어의 상태 전환, 부착, 피격 반응 관리
+/// 문어의 상태 전환 부착 피격 반응 관리
 /// </summary>
 [RequireComponent(typeof(Health))]
 [RequireComponent(typeof(HarvestableCreature))]
@@ -14,7 +15,7 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
     [Min(0f)] [SerializeField] private float attachDistance = 0.75f;   // 얼굴 부착 거리
     [Min(0f)] [SerializeField] private float chaseSpeedBonus = 3f;     // 추격 추가 속도
 
-    [SerializeField] private Animator animator;                         // 문어/오징어 Animator
+    [SerializeField] private Animator animator;                         // 문어와 오징어 Animator
     private static readonly int IsAttachedHash = Animator.StringToHash("IsAttached");
     private static readonly int StickHash = Animator.StringToHash("Stick");
     private static readonly int StickStateHash = Animator.StringToHash("stick");
@@ -25,6 +26,8 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
     private Dictionary<OctopusStateType, IOctopusState> states; // 상태별 실행 객체
     private IOctopusState currentState;                          // 현재 실행 상태
     private OctopusStateType currentStateType;                   // 현재 상태 종류
+    private NetworkObject networkObject; // 권위 확인 대상
+    private EnemyHealthNetworkSync networkSync; // AI 상태 게시 대상
 
     public EnemyTargeting Targeting { get; private set; }
     public EnemyNavigator Navigator { get; private set; }
@@ -45,6 +48,8 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
         harvestable = GetComponent<HarvestableCreature>();
         Targeting = GetComponent<EnemyTargeting>();
         Navigator = GetComponent<EnemyNavigator>();
+        networkObject = GetComponent<NetworkObject>(); // 같은 문어의 네트워크 오브젝트
+        networkSync = GetComponent<EnemyHealthNetworkSync>(); // 같은 문어의 동기화 컴포넌트
 
         if (animator == null)
             animator = GetComponentInChildren<Animator>();
@@ -84,6 +89,10 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
 
     private void Start()
     {
+        // 프록시의 독립 초기 상태 전환 차단
+        if (!HasSimulationAuthority)
+            return;
+
         bool isAttached = harvestable != null && harvestable.Phase == HarvestableCreature.CreaturePhase.Attached;
         UpdateAnimation(isAttached);
 
@@ -95,6 +104,10 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
 
     private void FixedUpdate()
     {
+        // AI 갱신은 권위자만 실행
+        if (!HasSimulationAuthority)
+            return;
+
         currentState?.Update();
     }
 
@@ -113,6 +126,22 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
         currentState.Enter();
 
         UpdateAnimation(newStateType == OctopusStateType.Attached);
+        // 확정된 AI 상태 게시
+        networkSync?.PublishAiState((int)newStateType);
+    }
+
+    // 프록시 상태와 연출 반영
+    public void ApplyReplicatedState(OctopusStateType replicatedState)
+    {
+        // 권위자와 잘못된 상태 제외
+        if (HasSimulationAuthority || !states.TryGetValue(replicatedState, out IOctopusState state))
+            return;
+
+        // 프록시 이동 정지와 상태 교체
+        Navigator?.StopMovement();
+        currentStateType = replicatedState;
+        currentState = state;
+        UpdateAnimation(replicatedState == OctopusStateType.Attached);
     }
 
     private void UpdateAnimation(bool isAttached)
@@ -137,6 +166,10 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
     /// </summary>
     public bool TryAttachToCurrentTarget()
     {
+        // 부착 판정은 권위자만 실행
+        if (!HasSimulationAuthority)
+            return false;
+
         Transform target = Targeting.Target;
         if (target == null)
             return false;
@@ -152,6 +185,10 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
 
     private void HandleDamaged(float amount, GameObject source)
     {
+        // 피격 AI 전환은 권위자만 실행
+        if (!HasSimulationAuthority)
+            return;
+
         if (health.IsDead || harvestable.Phase != HarvestableCreature.CreaturePhase.Hazard)
             return;
 
@@ -178,7 +215,7 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
     }
 
     // 체크포인트 복원 후 타깃 제거
-    // 생존 위험 단계면 Idle 상태에서 재시작
+    // 생존 위험 단계면 대기 상태에서 재시작
     public void RestoreCheckpointAI()
     {
         UpdateAnimation(false);
@@ -211,4 +248,8 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
         public void Update() { }
         public void Exit() { }
     }
+
+    // 로컬 실행 또는 State Authority 여부
+    private bool HasSimulationAuthority =>
+        networkObject == null || !networkObject.IsValid || networkObject.HasStateAuthority;
 }

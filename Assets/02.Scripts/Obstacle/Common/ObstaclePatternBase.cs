@@ -2,25 +2,25 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// 장애물 종류와 관계없이 Alone과 Cross 시간표를 실행하는 공용 기반 클래스
+// 장애물 공용 Alone 및 Cross 시간표 기반 클래스
 public abstract class ObstaclePatternBase : MonoBehaviour
 {
     private readonly HashSet<IPatternTarget> uniqueTargets = new HashSet<IPatternTarget>(); // 그룹 간 중복 처리를 막는 임시 집합
     private readonly List<IPatternTarget> runtimeGroupA = new List<IPatternTarget>(); // 실제 제어권을 확보한 첫 그룹
-    private readonly List<IPatternTarget> runtimeCrossGroupB = new List<IPatternTarget>(); // 실제 제어권을 확보한 Cross 두 번째 그룹
+    private readonly List<IPatternTarget> runtimeCrossGroupB = new List<IPatternTarget>(); // 제어권 확보 Cross 두 번째 그룹
     private Coroutine patternRoutine; // 현재 실행 중인 공용 시간표 코루틴
 
     public bool IsRunning { get; private set; } // 공용 시간표 실행 여부
     public int CurrentGroupIndex { get; private set; } = -1; // 현재 활성 명령을 받은 그룹 번호
 
     protected abstract bool UsesCrossPattern { get; } // Cross 시간표 사용 여부
-    protected abstract IReadOnlyList<IPatternTarget> ConfiguredGroupA { get; } // Inspector에서 설정한 첫 그룹
-    protected abstract IReadOnlyList<IPatternTarget> ConfiguredCrossGroupB { get; } // Inspector에서 설정한 Cross 두 번째 그룹
+    protected abstract IReadOnlyList<IPatternTarget> ConfiguredGroupA { get; } // Inspector 설정 첫 그룹
+    protected abstract IReadOnlyList<IPatternTarget> ConfiguredCrossGroupB { get; } // Inspector 설정 Cross 두 번째 그룹
     protected abstract float PatternStartDelay { get; } // 최초 예고 전 시작 지연시간
     protected abstract float InitialWarningDuration { get; } // 첫 활성 명령 전 예고시간
     protected abstract float ActiveDuration { get; } // 현재 그룹 활성 후 다음 전환까지의 시간
     protected abstract float CrossWarningLeadTime { get; } // 현재 그룹 종료 전 다음 그룹 예고시간
-    protected abstract float AloneRecoveryDuration { get; } // Alone 비활성 후 다음 예고 전 휴식시간
+    protected abstract float AloneRecoveryDuration { get; } // Alone 비활성 후 다음 예고 전 휴식 시간
     protected abstract string PatternDisplayName { get; } // 유효성 경고에 표시할 패턴 이름
     protected abstract string TargetDisplayName { get; } // 유효성 경고에 표시할 대상 이름
 
@@ -57,7 +57,7 @@ public abstract class ObstaclePatternBase : MonoBehaviour
 
         ClaimPatternControl();
 
-        // 첫 그룹 확보에 실패하면 빈 패턴 실행을 막고 자동 Alone 제어권 복구
+        // 첫 그룹 확보 실패 시 빈 패턴 차단 및 자동 Alone 제어권 복구
         if (!HasAnyTarget(runtimeGroupA))
         {
             Debug.LogWarning($"{PatternDisplayName} on {name} has no available {TargetDisplayName} in Group A", this);
@@ -66,7 +66,7 @@ public abstract class ObstaclePatternBase : MonoBehaviour
             return false;
         }
 
-        // Cross 두 번째 그룹 확보에 실패하면 한 그룹만 계속 활성화되는 잘못된 실행 차단
+        // Cross 두 번째 그룹 확보 실패 시 단일 그룹 연속 활성화 차단
         if (UsesCrossPattern && !HasAnyTarget(runtimeCrossGroupB))
         {
             Debug.LogWarning($"{PatternDisplayName} on {name} uses Cross but has no available {TargetDisplayName} in Cross Group B", this);
@@ -272,13 +272,13 @@ public abstract class ObstaclePatternBase : MonoBehaviour
         return false;
     }
 
-    // Unity 오브젝트가 파괴된 인터페이스 참조까지 함께 제외
+    // 파괴된 Unity 오브젝트 인터페이스 참조 제외
     private static bool IsValidTarget(IPatternTarget target)
     {
         return target != null && target.PatternTargetObject != null;
     }
 
-    // 이전 확보 목록을 반환하고 현재 Inspector 설정을 기준으로 제어권 다시 확보
+    // 이전 확보 목록 반환 및 현재 Inspector 설정 기준 제어권 재확보
     private void ClaimPatternControl()
     {
         ReleasePatternControl();
@@ -298,7 +298,11 @@ public abstract class ObstaclePatternBase : MonoBehaviour
 
         foreach (IPatternTarget target in configuredGroup)
         {
-            if (IsValidTarget(target) && !runtimeGroup.Contains(target) && target.ClaimPatternControl(this))
+            // 권위가 없는 프록시 대상 제외
+            if (IsValidTarget(target)
+                && target.HasPatternAuthority
+                && !runtimeGroup.Contains(target)
+                && target.ClaimPatternControl(this))
                 runtimeGroup.Add(target);
         }
     }

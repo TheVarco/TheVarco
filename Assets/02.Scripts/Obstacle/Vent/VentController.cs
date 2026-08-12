@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Fusion;
 using UnityEngine;
 
 // 분출구 상태
@@ -13,7 +14,7 @@ public enum VentState
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Collider))]
 // 개별 분출구 제어
-public sealed class VentController : MonoBehaviour, IPatternTarget
+public sealed class VentController : NetworkBehaviour, IPatternTarget
 {
     [Header("Effect Volume")]
     [SerializeField] private Collider effectCollider; // 기체가 영향을 주는 트리거 범위
@@ -42,6 +43,10 @@ public sealed class VentController : MonoBehaviour, IPatternTarget
     private ObstaclePatternBase patternOwner; // 현재 분출구를 제어하는 외부 패턴
     private Coroutine aloneRoutine; // 자동 Alone 반복 코루틴
     private bool hasStarted; // Start 호출 완료 여부
+    private VentState renderedNetworkState = (VentState)(-1); // 마지막으로 적용한 복제 상태
+
+    // 호스트 기준 분출 상태
+    [Networked] private int NetworkedState { get; set; }
 
     public VentState CurrentState { get; private set; } = VentState.Inactive; // 현재 분출 상태
     public Vector3 EruptionDirection => transform.up; // 오브젝트 위쪽을 기준으로 한 분출 방향
@@ -49,6 +54,9 @@ public sealed class VentController : MonoBehaviour, IPatternTarget
     public bool IsPatternControlled => patternOwner != null; // 외부 패턴 제어 여부
 
     Object IPatternTarget.PatternTargetObject => this; // 공용 패턴의 Unity 생명주기 검사 대상
+    // 로컬 실행 또는 State Authority 여부
+    public bool HasPatternAuthority =>
+        Object == null || !Object.IsValid || Object.HasStateAuthority;
 
     // 공용 패턴에서 분출구 제어권을 요청
     bool IPatternTarget.ClaimPatternControl(ObstaclePatternBase owner)
@@ -103,6 +111,46 @@ public sealed class VentController : MonoBehaviour, IPatternTarget
         ResetVent();
     }
 
+    // 권위 분출 상태 초기화
+    // 프록시 로컬 패턴 정지
+    public override void Spawned()
+    {
+        if (Object.HasStateAuthority)
+        {
+            // 현재 로컬 상태를 최초 권위 값으로 게시
+            NetworkedState = (int)CurrentState;
+            renderedNetworkState = CurrentState;
+        }
+        else
+        {
+            // 프록시에서 먼저 시작된 Alone 패턴 정지
+            StopAlonePattern();
+            // 프록시에서 먼저 확보한 외부 패턴 정지
+            patternOwner?.StopAndReset();
+            // 복제 상태의 파티클만 즉시 적용
+            ApplyState((VentState)NetworkedState, false, true);
+            renderedNetworkState = (VentState)NetworkedState;
+        }
+    }
+
+    // 프록시 분출 연출 갱신
+    public override void Render()
+    {
+        // 권위자는 이미 로컬 상태 적용 완료
+        if (Object.HasStateAuthority)
+            return;
+
+        // 네트워크 정수를 분출 상태로 변환
+        VentState replicatedState = (VentState)NetworkedState;
+        // 이미 적용한 상태의 중복 연출 차단
+        if (renderedNetworkState == replicatedState)
+            return;
+
+        // 새 상태의 파티클만 적용
+        renderedNetworkState = replicatedState;
+        ApplyState(replicatedState, false, true);
+    }
+
     // 모든 Awake 이후 외부 패턴 미등록 여부 확인
     private void Start()
     {
@@ -119,6 +167,10 @@ public sealed class VentController : MonoBehaviour, IPatternTarget
 
     private void FixedUpdate()
     {
+        // 프록시의 힘과 피해 처리 차단
+        if (!HasPatternAuthority)
+            return;
+
         // 다중 콜라이더 대상도 물리 프레임당 한 번만 가속하도록 기록 초기화
         acceleratedThisFixedStep.Clear();
     }
@@ -126,7 +178,8 @@ public sealed class VentController : MonoBehaviour, IPatternTarget
     // 외부 패턴에 제어권을 넘기고 자동 Alone 중지
     internal bool ClaimPatternControl(ObstaclePatternBase owner)
     {
-        if (owner == null)
+        // 권위 없는 프록시의 패턴 제어 차단
+        if (owner == null || !HasPatternAuthority)
             return false;
 
         // 다른 패턴이 먼저 확보한 분출구의 중복 제어 차단
@@ -156,7 +209,8 @@ public sealed class VentController : MonoBehaviour, IPatternTarget
     // 실행 가능 조건을 만족할 때만 자동 Alone 코루틴 생성
     private void TryStartAlonePattern()
     {
-        if (!hasStarted || !isActiveAndEnabled || patternOwner != null || aloneRoutine != null)
+        // 권위자만 자체 패턴 시작
+        if (!HasPatternAuthority || !hasStarted || !isActiveAndEnabled || patternOwner != null || aloneRoutine != null)
             return;
 
         aloneRoutine = StartCoroutine(RunAlonePattern());
@@ -209,6 +263,10 @@ public sealed class VentController : MonoBehaviour, IPatternTarget
     // 상태에 맞춰 파티클과 물리 판정 전환
     public void SetState(VentState nextState)
     {
+        // 상태 확정은 권위자만 실행
+        if (!HasPatternAuthority)
+            return;
+
         if (CurrentState == nextState)
         {
             if (nextState == VentState.Active)
@@ -216,6 +274,21 @@ public sealed class VentController : MonoBehaviour, IPatternTarget
 
             return;
         }
+
+        if (Object != null && Object.IsValid)
+            // 확정된 분출 상태 게시
+            NetworkedState = (int)nextState;
+
+        // 권위자만 게임 판정과 연출 함께 적용
+        ApplyState(nextState, true, false);
+    }
+
+    // 상태별 로컬 표시와 판정 적용
+    private void ApplyState(VentState nextState, bool enableGameplay, bool force)
+    {
+        // 동일 상태의 불필요한 재적용 차단
+        if (!force && CurrentState == nextState)
+            return;
 
         CurrentState = nextState;
 
@@ -234,10 +307,13 @@ public sealed class VentController : MonoBehaviour, IPatternTarget
                 break;
 
             case VentState.Active: // 접촉 기록 초기화 후 본 분출 시작
-                BeginEruption();
+                if (enableGameplay)
+                    // 권위자만 최초 충격과 피해 처리
+                    BeginEruption();
                 StopParticles(warningParticleSystems, ParticleSystemStopBehavior.StopEmitting);
                 PlayParticles(activeParticleSystems);
-                SetEffectVolumeEnabled(true);
+                // 프록시의 판정 Collider 비활성 유지
+                SetEffectVolumeEnabled(enableGameplay);
                 break;
         }
     }
@@ -245,6 +321,17 @@ public sealed class VentController : MonoBehaviour, IPatternTarget
     // 상태 파티클 접촉 기록 완전 초기화
     public void ResetVent()
     {
+        if (Object != null && Object.IsValid && !Object.HasStateAuthority)
+        {
+            // 프록시는 로컬 연출과 판정만 정리
+            ApplyState(VentState.Inactive, false, true);
+            return;
+        }
+
+        if (Object != null && Object.IsValid)
+            // 권위 비활성 상태 게시
+            NetworkedState = (int)VentState.Inactive;
+
         CurrentState = VentState.Inactive;
         SetEffectVolumeEnabled(false);
         ClearContactHistory();
@@ -279,7 +366,8 @@ public sealed class VentController : MonoBehaviour, IPatternTarget
     // 활성 분출에 닿은 대상의 이동과 피해 처리
     private void TryAffect(Collider other)
     {
-        if (CurrentState != VentState.Active || other == null)
+        // 권위 없는 접촉 처리와 비활성 상태 제외
+        if (!HasPatternAuthority || CurrentState != VentState.Active || other == null)
             return;
 
         // 대상 레이어 비트를 마스크와 비교해 제외 대상 조기 반환
@@ -307,14 +395,153 @@ public sealed class VentController : MonoBehaviour, IPatternTarget
         // 같은 분출에서 체력 대상별 피해 한 번만 허용
         if (health != null && !health.IsDead && damagedTargets.Add(health.GetInstanceID()))
         {
-            Vector3 hitPoint = other.ClosestPoint(transform.position); // 분출구와 가장 가까운 피격 지점
-            health.ApplyDamage(new DamageInfo(
-                damagePerEruption,
-                gameObject,
-                hitPoint,
-                -EruptionDirection,
-                DamageType.Environmental));
+            DamageInfo damageInfo = TryFindDamageImpact(
+                health,
+                other,
+                out Vector3 hitPoint,
+                out Vector3 hitNormal)
+                ? new DamageInfo(
+                    damagePerEruption,
+                    gameObject,
+                    hitPoint,
+                    hitNormal,
+                    DamageType.Environmental)
+                : DamageInfo.WithoutImpact(
+                    damagePerEruption,
+                    gameObject,
+                    DamageType.Environmental);
+
+            health.ApplyDamage(damageInfo);
         }
+    }
+
+    // 분출축 실제 표면 조회 및 실패 시 안전한 primitive 사용
+    private bool TryFindDamageImpact(
+        Health targetHealth,
+        Collider contactedCollider,
+        out Vector3 hitPoint,
+        out Vector3 hitNormal)
+    {
+        hitPoint = default;
+        hitNormal = default;
+
+        Collider[] candidates = targetHealth.GetComponentsInChildren<Collider>(true);
+        Bounds aggregateBounds = default;
+        bool hasActualSurface = false;
+
+        foreach (Collider candidate in candidates)
+        {
+            if (!IsOwnedDamageCollider(candidate, targetHealth) || candidate.isTrigger)
+                continue;
+
+            if (!hasActualSurface)
+            {
+                aggregateBounds = candidate.bounds;
+                hasActualSurface = true;
+            }
+            else
+            {
+                aggregateBounds.Encapsulate(candidate.bounds);
+            }
+        }
+
+        if (hasActualSurface)
+        {
+            Vector3 direction = EruptionDirection.normalized;
+            const float surfacePadding = 0.05f;
+            float maxDistance = Vector3.Distance(transform.position, aggregateBounds.center)
+                + aggregateBounds.extents.magnitude
+                + surfacePadding;
+            Ray surfaceRay = new Ray(transform.position, direction);
+            float closestDistance = float.PositiveInfinity;
+            bool foundSurface = false;
+
+            foreach (Collider candidate in candidates)
+            {
+                if (!IsOwnedDamageCollider(candidate, targetHealth) || candidate.isTrigger ||
+                    !PhysicsSurfaceQuery.TryRaycast(
+                        candidate,
+                        surfaceRay,
+                        maxDistance,
+                        out RaycastHit surfaceHit) ||
+                    surfaceHit.distance >= closestDistance)
+                {
+                    continue;
+                }
+
+                closestDistance = surfaceHit.distance;
+                hitPoint = surfaceHit.point;
+                hitNormal = surfaceHit.normal;
+                foundSurface = true;
+            }
+
+            if (foundSurface)
+                return true;
+        }
+
+        bool isSubmarine = targetHealth.GetComponentInParent<SubmarineController>() != null;
+
+        // Player는 접촉 Capsule을 근사 표면으로 사용
+        // Submarine은 전용 Shark Target Volume만 사용
+        if (TryGetCapsuleFallback(
+                contactedCollider,
+                targetHealth,
+                isSubmarine,
+                out hitPoint,
+                out hitNormal))
+        {
+            return true;
+        }
+
+        if (isSubmarine)
+        {
+            foreach (Collider candidate in candidates)
+            {
+                if (candidate == contactedCollider ||
+                    !TryGetCapsuleFallback(
+                    candidate,
+                    targetHealth,
+                    true,
+                    out hitPoint,
+                    out hitNormal))
+                {
+                    continue;
+                }
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool TryGetCapsuleFallback(
+        Collider candidate,
+        Health targetHealth,
+        bool requireSubmarineTargetVolume,
+        out Vector3 hitPoint,
+        out Vector3 hitNormal)
+    {
+        hitPoint = default;
+        hitNormal = default;
+
+        return IsOwnedDamageCollider(candidate, targetHealth) &&
+               candidate is CapsuleCollider &&
+               (!requireSubmarineTargetVolume || candidate.name == "Shark Target Volume") &&
+               PhysicsSurfaceQuery.TryDirectionalClosestPoint(
+                   candidate,
+                   transform.position,
+                   candidate.bounds.center,
+                   out hitPoint,
+                   out hitNormal);
+    }
+
+    private static bool IsOwnedDamageCollider(Collider candidate, Health targetHealth)
+    {
+        return candidate != null &&
+               candidate.enabled &&
+               candidate.gameObject.activeInHierarchy &&
+               candidate.GetComponentInParent<Health>() == targetHealth;
     }
 
     // 키네마틱 대상에 최초 충격과 지속 가속 적용
