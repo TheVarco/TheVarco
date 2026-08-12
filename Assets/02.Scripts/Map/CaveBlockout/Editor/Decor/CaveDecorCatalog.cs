@@ -228,7 +228,12 @@ namespace CaveBlockout.Editor.Decor
                 sizeMetres = new Vector2(5f, 10f),
                 surfaces = CaveSurfaceKind.Wall,
                 normalAlignment = 1f,
-                maxTiltDegrees = 5f
+                maxTiltDegrees = 5f,
+                // Removed from the map on request (2026-08-13) - it did not read well in place. Third
+                // entry to take this treatment, after Dark Crystal Spire and Dark Floating Island: the
+                // prefab and the rules above stay, so clearing this flag and rerunning asset prep
+                // brings it back without re-deriving anything.
+                placementDisabled = true
             },
             new Entry
             {
