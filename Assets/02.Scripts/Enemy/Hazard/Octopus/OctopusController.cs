@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
 /// 문어의 상태 전환 부착 피격 반응 관리
@@ -16,6 +17,12 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
     [Min(0f)] [SerializeField] private float chaseSpeedBonus = 3f;     // 추격 추가 속도
 
     [SerializeField] private Animator animator;                         // 문어와 오징어 Animator
+
+    [Header("Local Vision Blocker")]
+    [SerializeField] private Sprite visionBlockerSprite;
+    [SerializeField] private Vector2 visionBlockerSize = new Vector2(1100f, 1100f);
+    [Range(0f, 1f)] [SerializeField] private float visionDarkness = 0.45f;
+
     private static readonly int IsAttachedHash = Animator.StringToHash("IsAttached");
     private static readonly int StickHash = Animator.StringToHash("Stick");
     private static readonly int StickStateHash = Animator.StringToHash("stick");
@@ -28,6 +35,7 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
     private OctopusStateType currentStateType;                   // 현재 상태 종류
     private NetworkObject networkObject; // 권위 확인 대상
     private EnemyHealthNetworkSync networkSync; // AI 상태 게시 대상
+    private OctopusVisionBlocker localVisionBlocker;
 
     public EnemyTargeting Targeting { get; private set; }
     public EnemyNavigator Navigator { get; private set; }
@@ -84,12 +92,17 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
             harvestable.OnAttached -= HandleAttached;
             harvestable.OnDetached -= HandleDetached;
         }
+        HideLocalVisionBlocker();
         Navigator?.StopMovement();
     }
 
     private void Start()
     {
         TryStartSimulation();
+
+        // Start 이전에 이미 부착 상태가 복제/복원된 경우도 처리한다.
+        if (harvestable != null && harvestable.IsAttached)
+            ShowLocalVisionBlocker(harvestable.AttachedSlot);
     }
 
     // Fusion이 State Authority를 부여한 뒤에만 AI를 시작한다.
@@ -204,6 +217,7 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
 
     private void HandleDeath()
     {
+        HideLocalVisionBlocker();
         Targeting.ClearTarget();
         ChangeState(OctopusStateType.Dead);
     }
@@ -211,13 +225,48 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
     private void HandleAttached(AttachmentSlot slot)
     {
         UpdateAnimation(true);
+        ShowLocalVisionBlocker(slot);
     }
 
     private void HandleDetached(AttachmentSlot previousSlot)
     {
+        HideLocalVisionBlocker();
         UpdateAnimation(false);
         Targeting.ClearTarget();
         ChangeState(OctopusStateType.Dead);
+    }
+
+    private void ShowLocalVisionBlocker(AttachmentSlot slot)
+    {
+        if (localVisionBlocker != null || slot == null || !IsLocalPlayerSlot(slot))
+            return;
+
+        localVisionBlocker = OctopusVisionBlocker.Create(
+            visionBlockerSprite,
+            visionBlockerSize,
+            visionDarkness);
+    }
+
+    private static bool IsLocalPlayerSlot(AttachmentSlot slot)
+    {
+        NetworkObject playerObject = slot.GetComponentInParent<NetworkObject>();
+        if (playerObject != null && playerObject.IsValid)
+            return playerObject.HasInputAuthority;
+
+        // Fusion이 없는 오프라인 Play Mode용 폴백.
+        PlayerCameraRig cameraRig = FindFirstObjectByType<PlayerCameraRig>();
+        return cameraRig != null
+            && cameraRig.target != null
+            && cameraRig.target.root == slot.transform.root;
+    }
+
+    private void HideLocalVisionBlocker()
+    {
+        if (localVisionBlocker == null)
+            return;
+
+        Destroy(localVisionBlocker.gameObject);
+        localVisionBlocker = null;
     }
 
     // 체크포인트 복원 후 타깃 제거
@@ -258,4 +307,97 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
     // 로컬 실행 또는 State Authority 여부
     private bool HasSimulationAuthority =>
         networkObject == null || (networkObject.IsValid && networkObject.HasStateAuthority);
+}
+
+/// <summary>
+/// 로컬 플레이어에게만 문어 시야 방해 UI를 표시한다.
+/// 실제 문어는 다른 플레이어에게 보이도록 얼굴 부착 상태를 그대로 유지한다.
+/// </summary>
+internal sealed class OctopusVisionBlocker : MonoBehaviour
+{
+    private RectTransform octopusGraphic;
+    private Vector3 baseScale;
+
+    internal static OctopusVisionBlocker Create(Sprite sprite, Vector2 graphicSize, float darkness)
+    {
+        if (sprite == null)
+            return null;
+
+        GameObject root = new GameObject(
+            "Octopus Vision Blocker",
+            typeof(RectTransform),
+            typeof(Canvas),
+            typeof(CanvasScaler),
+            typeof(OctopusVisionBlocker));
+
+        Canvas canvas = root.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 30000;
+
+        CanvasScaler scaler = root.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+        scaler.matchWidthOrHeight = 0.5f;
+
+        CreateDarkness(root.transform, Mathf.Clamp01(darkness));
+
+        GameObject graphicObject = new GameObject(
+            "Octopus Graphic",
+            typeof(RectTransform),
+            typeof(CanvasRenderer),
+            typeof(Image));
+        graphicObject.transform.SetParent(root.transform, false);
+
+        RectTransform graphic = graphicObject.GetComponent<RectTransform>();
+        graphic.anchorMin = new Vector2(0.5f, 0.5f);
+        graphic.anchorMax = new Vector2(0.5f, 0.5f);
+        graphic.pivot = new Vector2(0.5f, 0.5f);
+        graphic.sizeDelta = graphicSize;
+
+        Image image = graphicObject.GetComponent<Image>();
+        image.sprite = sprite;
+        image.preserveAspect = true;
+        image.raycastTarget = false;
+
+        OctopusVisionBlocker blocker = root.GetComponent<OctopusVisionBlocker>();
+        blocker.octopusGraphic = graphic;
+        blocker.baseScale = graphic.localScale;
+        return blocker;
+    }
+
+    private static void CreateDarkness(Transform parent, float darkness)
+    {
+        if (darkness <= 0f)
+            return;
+
+        GameObject darknessObject = new GameObject(
+            "Vision Darkness",
+            typeof(RectTransform),
+            typeof(CanvasRenderer),
+            typeof(Image));
+        darknessObject.transform.SetParent(parent, false);
+
+        RectTransform rect = darknessObject.GetComponent<RectTransform>();
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+
+        Image image = darknessObject.GetComponent<Image>();
+        image.color = new Color(0.01f, 0.025f, 0.03f, darkness);
+        image.raycastTarget = false;
+    }
+
+    private void Update()
+    {
+        if (octopusGraphic == null)
+            return;
+
+        // 정적인 아이콘처럼 보이지 않도록 호흡과 흔들림을 약하게 더한다.
+        float pulse = 1f + Mathf.Sin(Time.unscaledTime * 2.4f) * 0.035f;
+        float sway = Mathf.Sin(Time.unscaledTime * 1.35f) * 2.5f;
+        octopusGraphic.localScale = baseScale * pulse;
+        octopusGraphic.localRotation = Quaternion.Euler(0f, 0f, sway);
+    }
 }
