@@ -12,6 +12,8 @@ namespace Varco.GameFlow
         private VentController[] vents;
         // 활성 낙석 제거와 풀 초기화 대상
         private RockSpawner[] rockSpawners;
+        // 전체 물리 복원이 끝난 뒤 다시 켤 장애물 상태
+        private ObstacleState pendingRestoreState;
 
         // 잠수함 이후 적보다 먼저 복원
         public override int RestoreOrder => 20;
@@ -51,7 +53,7 @@ namespace Varco.GameFlow
             };
         }
 
-        // 세부 타이머를 버리고 저장된 실행 상태부터 재시작
+        // 세부 타이머를 버리고 저장된 실행 상태를 재개 대기열에 저장
         public override void RestoreCheckpointState(object state)
         {
             if (state is not ObstacleState obstacleState)
@@ -62,15 +64,26 @@ namespace Varco.GameFlow
             foreach (RockSpawner spawner in rockSpawners)
                 spawner?.ResetRockSpawner();
 
+            pendingRestoreState = obstacleState;
+        }
+
+        // 잠수함과 플레이어 위치 복원이 끝난 뒤 저장된 장애물 상태 재개
+        private void ApplyPendingRestoreState()
+        {
+            if (pendingRestoreState == null)
+                return;
+
             // 실행 중이던 패턴은 저장 그룹부터 새 타이머로 시작
-            int patternCount = Mathf.Min(patterns.Length, obstacleState.Patterns?.Length ?? 0);
+            int patternCount = Mathf.Min(
+                patterns.Length,
+                pendingRestoreState.Patterns?.Length ?? 0);
             for (int i = 0; i < patternCount; i++)
             {
                 ObstaclePatternBase pattern = patterns[i];
                 if (pattern == null)
                     continue;
 
-                PatternState patternState = obstacleState.Patterns[i];
+                PatternState patternState = pendingRestoreState.Patterns[i];
                 if (patternState.WasRunning)
                     pattern.RestartPatternAtGroup(Mathf.Max(0, patternState.GroupIndex));
                 else
@@ -78,18 +91,26 @@ namespace Varco.GameFlow
             }
 
             // Vent는 저장된 단계 상태로 복원
-            int ventCount = Mathf.Min(vents.Length, obstacleState.Vents?.Length ?? 0);
+            int ventCount = Mathf.Min(
+                vents.Length,
+                pendingRestoreState.Vents?.Length ?? 0);
             for (int i = 0; i < ventCount; i++)
-                vents[i]?.SetState(obstacleState.Vents[i]);
+                vents[i]?.SetState(pendingRestoreState.Vents[i]);
+
+            pendingRestoreState = null;
         }
 
         // 게임 정지 시 모든 장애물 실행과 활성 낙석 초기화
         public override void SetGameplayEnabled(bool enabled)
         {
             if (enabled)
+            {
+                ApplyPendingRestoreState();
                 return;
+            }
 
             EnsureReferences();
+            pendingRestoreState = null;
             foreach (ObstaclePatternBase pattern in patterns)
                 pattern?.StopAndReset();
             foreach (VentController vent in vents)

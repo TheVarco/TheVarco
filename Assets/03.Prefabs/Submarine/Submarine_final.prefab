@@ -2277,7 +2277,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01d28949e40a3f7479fa597dc15bfecd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RepairableStructure
-  editorPreviewDamageStage: 0
   damagePerStage: 10
   damageStageMaterials:
   - {fileID: 2100000, guid: 44cefda0ae530084ba773a2c8eac057d, type: 2}

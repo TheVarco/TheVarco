@@ -148,7 +148,7 @@ namespace Varco.GameFlow
                 case GameFlowState.Succeeded:
                     titleText.text = "임무 성공";
                     titleText.color = new Color(0.45f, 1f, 0.72f);
-                    reasonText.text = "Z7의 출구에 도달했습니다.";
+                    reasonText.text = "최종 구역의 출구에 도달했습니다.";
                     waitingText.text = "호스트의 결정을 기다리는 중...";
                     break;
 

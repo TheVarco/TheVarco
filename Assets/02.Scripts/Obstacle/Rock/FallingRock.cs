@@ -1,10 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using Fusion;
+using Fusion.Addons.Physics;
 using UnityEngine;
 
 [DisallowMultipleComponent]
-[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(Rigidbody), typeof(NetworkRigidbody3D))]
 // 풀에서 재사용되며 첫 유효 충돌에 고정 피해를 주는 낙하 바위
 public sealed class FallingRock : NetworkBehaviour
 {

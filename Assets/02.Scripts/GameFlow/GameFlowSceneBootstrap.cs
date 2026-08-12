@@ -9,7 +9,7 @@ namespace Varco.GameFlow
     public static class GameFlowSceneBootstrap
     {
         // 다른 팀원 씬에 영향을 주지 않는 대상 씬 이름
-        private const string TargetSceneName = "MainScene_young";
+        private const string TargetSceneName = "MainScene_final";
 
         // 시작 화면 이후 대상 씬 로드도 감지하도록 이벤트 등록
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -35,7 +35,7 @@ namespace Varco.GameFlow
             SubmarineController submarine = Object.FindFirstObjectByType<SubmarineController>();
             if (submarine == null)
             {
-                Debug.LogError("[GameFlow] MainScene_young has no SubmarineController.");
+                Debug.LogError($"[GameFlow] {TargetSceneName} has no SubmarineController.");
                 return;
             }
 
@@ -55,7 +55,7 @@ namespace Varco.GameFlow
             if (resultUI != null)
                 resultUI.Initialize(coordinator);
             else
-                Debug.LogError("[GameFlow] MainScene_young has no configured GameFlowResultUI.");
+                Debug.LogError($"[GameFlow] {TargetSceneName} has no configured GameFlowResultUI.");
 
             coordinator.Initialize(submarine, bridge);
         }
@@ -130,7 +130,8 @@ namespace Varco.GameFlow
         private static void InstallZoneTriggers(GameObject root, GameFlowCoordinator coordinator)
         {
             CaveZoneMarker[] markers = Object.FindObjectsByType<CaveZoneMarker>(FindObjectsSortMode.None);
-            CaveZoneMarker z7Marker = null;
+            CaveZoneMarker finalZoneMarker = null;
+            int finalZone = 0;
             foreach (CaveZoneMarker marker in markers)
             {
                 if (!TryParseZone(marker.zoneId, out int zone))
@@ -145,26 +146,30 @@ namespace Varco.GameFlow
                 ZoneCheckpointTrigger trigger = triggerObject.AddComponent<ZoneCheckpointTrigger>();
                 trigger.Initialize(coordinator, zone);
 
-                if (zone == 7)
-                    z7Marker = marker;
+                if (zone > finalZone)
+                {
+                    finalZone = zone;
+                    finalZoneMarker = marker;
+                }
             }
 
-            // Z7 마커가 없으면 성공 출구 생성을 중단
-            if (z7Marker == null)
+            // 씬에 유효한 구역 마커가 하나도 없으면 성공 출구 생성을 중단
+            if (finalZoneMarker == null)
             {
-                Debug.LogError("[GameFlow] Z7 CaveZoneMarker was not found.", root);
+                Debug.LogError("[GameFlow] No valid CaveZoneMarker was found.", root);
                 return;
             }
 
-            // Z7 진행 방향 끝에 얇은 성공 출구 배치
-            GameObject exitObject = new("GoalExitTrigger_Z7");
-            exitObject.transform.SetParent(z7Marker.transform, false);
-            exitObject.transform.localPosition = Vector3.forward * (z7Marker.guideSize.z * 0.48f);
+            // 씬에 실제로 존재하는 마지막 구역의 진행 방향 끝에 성공 출구 배치
+            GameObject exitObject = new($"GoalExitTrigger_Z{finalZone}");
+            exitObject.transform.SetParent(finalZoneMarker.transform, false);
+            exitObject.transform.localPosition =
+                Vector3.forward * (finalZoneMarker.guideSize.z * 0.48f);
             BoxCollider exitCollider = exitObject.AddComponent<BoxCollider>();
             exitCollider.isTrigger = true;
             exitCollider.size = new Vector3(
-                z7Marker.guideSize.x * 0.85f,
-                z7Marker.guideSize.y * 0.85f,
+                finalZoneMarker.guideSize.x * 0.85f,
+                finalZoneMarker.guideSize.y * 0.85f,
                 4f);
             GoalExitTrigger exitTrigger = exitObject.AddComponent<GoalExitTrigger>();
             exitTrigger.Initialize(coordinator);

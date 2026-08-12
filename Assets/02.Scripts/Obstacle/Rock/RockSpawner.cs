@@ -271,6 +271,10 @@ public sealed class RockSpawner : NetworkBehaviour, IPatternTarget
                 null,
                 (runner, networkObject) =>
                 {
+                    // 활성 낙석을 생성한 Spawner 아래에 유지한다.
+                    // FallingRock의 NetworkRigidbody3D가 SyncParent를 사용해 프록시에도 같은 부모를 복제한다.
+                    networkObject.transform.SetParent(transform, true);
+
                     // Spawned 이전 권위 초기값 주입
                     FallingRock networkRock = networkObject.GetComponent<FallingRock>();
                     networkRock?.InitializeNetwork(this, impactDamage, maxLifetime);
@@ -289,7 +293,8 @@ public sealed class RockSpawner : NetworkBehaviour, IPatternTarget
 
         Transform point = spawnPoint != null ? spawnPoint : transform; // 참조 유실 시 Spawner 위치를 안전 기준으로 사용
         activeRocks.Add(rock);
-        rock.transform.SetParent(null, true);
+        // 로컬 실행에서도 활성 낙석을 생성한 Spawner 아래에 유지해 Hierarchy를 정돈한다.
+        rock.transform.SetParent(transform, true);
         rock.Launch(point.position, point.rotation, impactDamage, maxLifetime);
         return true;
     }
