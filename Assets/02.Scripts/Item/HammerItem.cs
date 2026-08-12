@@ -28,6 +28,8 @@ public class HammerItem : CarryableItem
     private GameObject currentUser;
     private bool ownsRuntimeProgressUI;
     private float nextNetworkRepairRefresh;
+    private Vector3 currentRepairWorldPoint;
+    private Vector3 currentRepairWorldNormal = Vector3.up;
 
     // 좌클릭 클릭 시 해머 근접 공격 모션 실행
     // 근접 공격 애니메이션만 재생하고 해머 유지
@@ -81,7 +83,12 @@ public class HammerItem : CarryableItem
         // 우클릭 유지 시 수리 모션(IsFixing = true) 발동
         SetFixingAnimation(true);
 
-        if (!TryFindRepairTarget(aimReference, out RepairableStructure structure, out int slotIndex))
+        if (!TryFindRepairTarget(
+                aimReference,
+                out RepairableStructure structure,
+                out int slotIndex,
+                out Vector3 repairWorldPoint,
+                out Vector3 repairWorldNormal))
         {
             ClearCurrentTarget();
             // 수리 구조물이 근처에 없더라도 우클릭 동안 모션 유지
@@ -90,6 +97,8 @@ public class HammerItem : CarryableItem
         }
 
         SwitchTargetIfNeeded(structure, slotIndex);
+        currentRepairWorldPoint = repairWorldPoint;
+        currentRepairWorldNormal = repairWorldNormal;
 
         if (currentStructure.UsesNetworkAuthority)
         {
@@ -129,11 +138,15 @@ public class HammerItem : CarryableItem
     private bool TryFindRepairTarget(
         Transform aimReference,
         out RepairableStructure structure,
-        out int slotIndex)
+        out int slotIndex,
+        out Vector3 repairWorldPoint,
+        out Vector3 repairWorldNormal)
     {
         // 조준 기준에서 광선을 쏴 RepairableStructure와 슬롯 번호 탐색
         structure = null;
         slotIndex = -1;
+        repairWorldPoint = Vector3.zero;
+        repairWorldNormal = Vector3.up;
 
         if (aimReference == null)
             return false;
@@ -152,6 +165,9 @@ public class HammerItem : CarryableItem
         structure = hit.collider.GetComponentInParent<RepairableStructure>();
         if (structure == null)
             return false;
+
+        repairWorldPoint = hit.point;
+        repairWorldNormal = hit.normal;
 
         // 손상 슬롯을 먼저 거르지 않는다. 바라본 위치의 가장 가까운 슬롯이 정상이라면 수리 불가다.
         if (!structure.TryFindClosestSlot(hit.point, false, out slotIndex))
@@ -188,8 +204,8 @@ public class HammerItem : CarryableItem
 
         if (!currentStructure.TryGetRepairUIData(
                 currentSlotIndex,
-                out Vector3 worldPosition,
-                out Vector3 worldNormal,
+                out _,
+                out _,
                 out float progress01))
         {
             return;
@@ -207,8 +223,8 @@ public class HammerItem : CarryableItem
             return;
 
         progressUI.Show(
-            worldPosition,
-            worldNormal,
+            currentRepairWorldPoint,
+            currentRepairWorldNormal,
             progress01,
             viewer);
     }

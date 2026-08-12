@@ -16,11 +16,8 @@ public class RepairProgressWorldUI : MonoBehaviour
     [SerializeField] private Text promptText;
 
     [Header("World Placement")]
-    [Tooltip("손상 표면과 UI가 겹치지 않도록 표면 법선 방향으로 띄우는 거리")]
-    [SerializeField, Min(0f)] private float surfaceOffset = 0.15f;
-
-    [Tooltip("표면에서 띄운 뒤 추가로 적용할 월드 좌표 오프셋")]
-    [SerializeField] private Vector3 worldOffset = new Vector3(0f, 0.12f, 0f);
+    [Tooltip("수리 표면에서 카메라 방향으로 UI를 당겨오는 거리")]
+    [SerializeField, Min(0f)] private float viewerOffset = 0.05f;
 
     // UI가 바라볼 카메라
     private Transform viewTransform;
@@ -73,10 +70,22 @@ public class RepairProgressWorldUI : MonoBehaviour
     {
         viewTransform = viewer;
 
-        Vector3 normal = slotWorldNormal.sqrMagnitude > 0.0001f
-            ? slotWorldNormal.normalized
-            : Vector3.up;
-        transform.position = slotWorldPosition + normal * surfaceOffset + worldOffset;
+        Vector3 toViewer = viewer != null
+            ? viewer.position - slotWorldPosition
+            : Vector3.zero;
+
+        if (toViewer.sqrMagnitude > 0.0001f)
+        {
+            transform.position = slotWorldPosition
+                + toViewer.normalized * viewerOffset;
+        }
+        else
+        {
+            Vector3 normal = slotWorldNormal.sqrMagnitude > 0.0001f
+                ? slotWorldNormal.normalized
+                : Vector3.up;
+            transform.position = slotWorldPosition + normal * viewerOffset;
+        }
 
         // fillAmount는 0~1만 사용
         float clampedProgress = Mathf.Clamp01(progress01);
@@ -87,7 +96,7 @@ public class RepairProgressWorldUI : MonoBehaviour
         {
             promptText.text = clampedProgress > 0f
                 ? "\uC218\uB9AC \uC911..."
-                : "\uC88C\uD074\uB9AD \uAE38\uAC8C \uB20C\uB7EC \uC218\uB9AC";
+                : "\uC6B0\uD074\uB9AD \uAE38\uAC8C \uB20C\uB7EC \uC218\uB9AC";
         }
 
         isVisible = true;

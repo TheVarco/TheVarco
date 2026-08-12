@@ -530,8 +530,20 @@ public class RepairableStructure : NetworkBehaviour
         if (playerObject == null || !IsValidSlotIndex(slotIndex))
             return false;
 
-        PlayerHotbar hotbar = playerObject.GetComponent<PlayerHotbar>();
-        if (hotbar == null || hotbar.GetActiveItem() is not HammerItem)
+        // PlayerHotbar 슬롯은 입력 권한을 가진 로컬 머신에서만 관리된다.
+        // 호스트는 원격 플레이어 손에 붙은 해머의 복제 상태로 장착 여부를 검증한다.
+        HammerItem[] hammers = playerObject.GetComponentsInChildren<HammerItem>(true);
+        bool hasEquippedHammer = false;
+        foreach (HammerItem hammer in hammers)
+        {
+            if (hammer != null && hammer.IsEquippedBy(playerObject))
+            {
+                hasEquippedHammer = true;
+                break;
+            }
+        }
+
+        if (!hasEquippedHammer)
             return false;
 
         Transform anchor = damageSlots[slotIndex].anchor;

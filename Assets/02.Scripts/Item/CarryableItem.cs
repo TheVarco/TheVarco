@@ -35,6 +35,18 @@ public class CarryableItem : NetworkBehaviour, Interactable
     [Networked, OnChangedRender(nameof(OnHiddenChanged))]
     private NetworkBool NetworkedHidden { get; set; }
 
+    // 모든 머신에서 복제된 소유/표시 상태를 기준으로 실제 장착 여부 확인
+    // PlayerHotbar의 슬롯 배열은 입력 권한을 가진 로컬 플레이어에게만 채워지므로
+    // 호스트가 원격 플레이어의 장비를 검증할 때는 이 상태를 사용해야 한다.
+    public bool IsEquippedBy(NetworkObject holder)
+    {
+        return holder != null
+            && holder.IsValid
+            && HolderId.IsValid
+            && HolderId == holder.Id
+            && !NetworkedHidden;
+    }
+
     protected virtual void Awake()
     {
         rb = GetComponent<Rigidbody>();
