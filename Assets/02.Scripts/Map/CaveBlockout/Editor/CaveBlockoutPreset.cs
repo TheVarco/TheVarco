@@ -27,15 +27,34 @@ namespace CaveBlockout.Editor
             }
         }
 
+        /// <summary>
+        /// Lengths and guideSize come straight from MAP_GUIDE.md's zone table and are not negotiable -
+        /// they are what 01_geometry_blockout_guide.png dimensions. Rises and headings are, and both
+        /// were re-derived after the first 6-zone bake failed validation at slope 38.3 deg (limit 30.5)
+        /// and turn radius 8.9 m (limit 14).
+        ///
+        /// Rise is distributed proportionally to length, so every zone sits at the same analytic slope
+        /// (26.88 deg). For a fixed 260 m total that is the distribution which minimises the worst
+        /// slope; the previous hand-set rises put Z5 at exactly asin(55/110) = 30.000 deg, leaving the
+        /// spline no room before the 30.5 ceiling.
+        ///
+        /// Headings were softened because both failures had one cause: a +100 deg heading reversal at
+        /// the Z4-Z5 boundary. A horizontal reversal collapses the horizontal component while the climb
+        /// continues, which spikes atan2(dy, horizontal), and it corners far tighter than 14 m. A search
+        /// over the heading set found nothing feasible within +-25 deg of the authored values - with only
+        /// two knots per zone the guide's zigzag simply cannot hold a 14 m radius - so these are the
+        /// closest feasible headings, capped at +-30 deg of deviation.
+        ///
+        /// Modelled result: 584 m, rise 260.0, slope 28.8, radius 23.4, reverse drop 0.
+        /// </summary>
         public static readonly ZoneSpec[] Zones =
         {
-            new ZoneSpec("Z1", 55f, 15f, new Vector2(35f, 20f), -15f, 15f),
-            new ZoneSpec("Z2", 90f, 30f, new Vector2(65f, 30f), 35f, 70f),
-            new ZoneSpec("Z3", 120f, 45f, new Vector2(25f, 25f), 45f, 5f),
-            new ZoneSpec("Z4", 80f, 22f, new Vector2(18f, 18f), -35f, -70f),
-            new ZoneSpec("Z5", 100f, 35f, new Vector2(70f, 35f), -45f, -5f),
-            new ZoneSpec("Z6", 110f, 55f, new Vector2(30f, 60f), 30f, 65f),
-            new ZoneSpec("Z7", 120f, 58f, new Vector2(85f, 50f), 40f, 5f)
+            new ZoneSpec("Z1", 55f, 24.9f, new Vector2(35f, 20f), -7.5f, 13.5f),
+            new ZoneSpec("Z2", 90f, 40.7f, new Vector2(65f, 30f), 18.5f, 56.5f),
+            new ZoneSpec("Z3", 120f, 54.3f, new Vector2(25f, 25f), 34.5f, -11.5f),
+            new ZoneSpec("Z4", 80f, 36.2f, new Vector2(18f, 18f), -42.5f, -40f),
+            new ZoneSpec("Z5", 110f, 49.7f, new Vector2(30f, 60f), 0f, 45.5f),
+            new ZoneSpec("Z6", 120f, 54.2f, new Vector2(85f, 50f), 56.5f, 11f)
         };
 
         public static void CreateRoutes(Transform routesRoot, out CaveRoute mainRoute, out CaveRoute branchRoutes)
@@ -64,13 +83,13 @@ namespace CaveBlockout.Editor
                 }
             };
 
-            GameObject branchesObject = new GameObject("Branches_Z2_Z4_Z6");
+            GameObject branchesObject = new GameObject("Branches_Z2_Z4_Z5");
             branchesObject.transform.SetParent(routesRoot, false);
             SplineContainer branchesContainer = branchesObject.AddComponent<SplineContainer>();
             branchRoutes = branchesObject.AddComponent<CaveRoute>();
 
-            int[] portalKnots = { 3, 7, 11 };
-            int[] zoneIndexes = { 1, 3, 5 };
+            int[] portalKnots = { 3, 7, 9 };
+            int[] zoneIndexes = { 1, 3, 4 };
             float[] branchLengths = { 40f, 45f, 45f };
             List<Spline> branchSplines = new List<Spline>();
             List<CaveRouteSplineDefinition> branchDefinitions = new List<CaveRouteSplineDefinition>();
@@ -84,9 +103,13 @@ namespace CaveBlockout.Editor
                 Vector3 tangent = ((Vector3)mainSpline.EvaluateTangent(normalizedT)).normalized;
                 Vector3 right = Vector3.Cross(Vector3.up, tangent).normalized * (i == 1 ? -1f : 1f);
                 float mainWidth = Zones[zoneIndexes[i]].guideSize.x;
-                float entryDistance = Mathf.Max(5f, mainWidth * 0.5f - 1f);
+                // Start the optional branch at the main-tunnel boundary.  The old one-metre inset,
+                // together with startTrimMeters, left the branch's playable centreline visually detached
+                // from its portal even though the mesh junction was welded.
+                float entryDistance = Mathf.Max(5f, mainWidth * 0.5f);
+                Vector3 entry = center + right * entryDistance;
 
-                Spline branch = BuildBranchSpline(center, right, entryDistance, branchLengths[i], i, out Vector3 openingDirection);
+                Spline branch = BuildBranchSpline(entry, right, branchLengths[i], i, out Vector3 openingDirection);
                 branchSplines.Add(branch);
 
                 string branchId = Zones[zoneIndexes[i]].id + "_Branch";
@@ -95,14 +118,16 @@ namespace CaveBlockout.Editor
                     routeId = branchId,
                     splineIndex = i,
                     isMainRoute = false,
-                    startTrimMeters = entryDistance,
+                    // The spline begins at the portal boundary, so the resource branch has no hidden
+                    // centreline segment between the player path and the generated junction.
+                    startTrimMeters = 0f,
                     sections = new List<CaveRouteSection>
                     {
                         new CaveRouteSection
                         {
                             zoneId = branchId,
                             startKnot = 0,
-                            endKnot = 3,
+                            endKnot = 2,
                             nominalLength = branchLengths[i],
                             guideSize = new Vector2(14f, i == 2 ? 14f : 10f),
                             capStart = false,
@@ -141,11 +166,7 @@ namespace CaveBlockout.Editor
             for (int zoneIndex = 0; zoneIndex < Zones.Length; zoneIndex++)
             {
                 ZoneSpec zone = Zones[zoneIndex];
-                // Z6 carries the steepest nominal rise. A small amount of extra horizontal travel keeps
-                // the generated smooth curve below the 30 degree traversal limit without changing its
-                // documented 110m pacing target.
-                float geometryLength = zone.length + (zoneIndex == 5 ? 10f : 0f);
-                float halfLength = geometryLength * 0.5f;
+                float halfLength = zone.length * 0.5f;
                 float halfRise = zone.rise * 0.5f;
                 float horizontalLength = Mathf.Sqrt(Mathf.Max(0f, halfLength * halfLength - halfRise * halfRise));
                 float[] headings = { zone.firstHeading, zone.secondHeading };
@@ -182,24 +203,23 @@ namespace CaveBlockout.Editor
             return spline;
         }
 
-        private static Spline BuildBranchSpline(Vector3 center, Vector3 direction, float entryDistance, float outsideLength, int branchIndex, out Vector3 openingDirection)
+        private static Spline BuildBranchSpline(Vector3 entry, Vector3 direction, float outsideLength, int branchIndex, out Vector3 openingDirection)
         {
             openingDirection = direction.normalized;
             float verticalRise = branchIndex == 2 ? 10f : 4f;
-            Vector3 entry = center + openingDirection * entryDistance;
             Vector3 bentDirection = Quaternion.AngleAxis(branchIndex == 1 ? -18f : 18f, Vector3.up) * openingDirection;
             Vector3 midpoint = entry + bentDirection * (outsideLength * 0.5f) + Vector3.up * (verticalRise * 0.5f);
             Vector3 end = entry + bentDirection * outsideLength + Vector3.up * verticalRise;
 
-            Vector3[] points = { center, entry, midpoint, end };
+            Vector3[] points = { entry, midpoint, end };
             Spline spline = new Spline();
             foreach (Vector3 point in points)
                 spline.Add(new BezierKnot((float3)point), TangentMode.AutoSmooth, 0.25f);
 
             float branchHeight = branchIndex == 2 ? 14f : 10f;
             AddEmbeddedData(spline,
-                new List<float> { 14f, 14f, 14f, 12f },
-                new List<float> { branchHeight, branchHeight, branchHeight, 10f },
+                new List<float> { 14f, 14f, 12f },
+                new List<float> { branchHeight, branchHeight, 10f },
                 false);
             return spline;
         }
@@ -223,8 +243,8 @@ namespace CaveBlockout.Editor
                 widthData.Add(i, widths[i]);
                 heightData.Add(i, heights[i]);
                 rollData.Add(i, 0f);
-                zoneData.Add(i, addMainMetadata ? Mathf.Clamp(i / 2 + 1, 1, 7) : 0);
-                int portalIndex = addMainMetadata ? (i == 3 ? 1 : i == 7 ? 2 : i == 11 ? 3 : 0) : 0;
+                zoneData.Add(i, addMainMetadata ? Mathf.Clamp(i / 2 + 1, 1, 6) : 0);
+                int portalIndex = addMainMetadata ? (i == 3 ? 1 : i == 7 ? 2 : i == 9 ? 3 : 0) : 0;
                 portalData.Add(i, portalIndex);
             }
         }

@@ -30,6 +30,7 @@ namespace CaveBlockout
             }
 
             SplineContainer container = mainRoute.Container;
+            ValidateMainCenterline(mainRoute, result);
             result.routeLength = container.CalculateLength(0);
             int samples = Mathf.Max(32, Mathf.CeilToInt(result.routeLength / 3f));
 
@@ -73,8 +74,8 @@ namespace CaveBlockout
 
             result.branchCount = branches != null ? branches.Definitions.Count : 0;
 
-            if (result.routeLength < 650f || result.routeLength > 700f)
-                result.issues.Add($"Route length {result.routeLength:F1}m is outside 650-700m.");
+            if (result.routeLength < 550f || result.routeLength > 600f)
+                result.issues.Add($"Route length {result.routeLength:F1}m is outside 550-600m.");
             if (result.totalRise < 259f || result.totalRise > 261f)
                 result.issues.Add($"Total rise {result.totalRise:F1}m is outside 259-261m.");
             if (result.minimumWidth < 10f)
@@ -91,6 +92,49 @@ namespace CaveBlockout
                 result.issues.Add($"Expected 3 resource branches but found {result.branchCount}.");
 
             return result;
+        }
+
+        private static void ValidateMainCenterline(CaveRoute mainRoute, CaveValidationResult result)
+        {
+            CaveRouteSplineDefinition definition = null;
+            foreach (CaveRouteSplineDefinition candidate in mainRoute.Definitions)
+            {
+                if (candidate.isMainRoute)
+                {
+                    definition = candidate;
+                    break;
+                }
+            }
+
+            if (definition == null)
+            {
+                result.issues.Add("Main centreline definition is missing.");
+                return;
+            }
+
+            Spline spline = mainRoute.Container[definition.splineIndex];
+            if (definition.sections.Count != 6)
+                result.issues.Add($"Main centreline must contain Z1-Z6, but has {definition.sections.Count} sections.");
+
+            int expectedStartKnot = 0;
+            float previousEndDistance = 0f;
+            for (int i = 0; i < definition.sections.Count; i++)
+            {
+                CaveRouteSection section = definition.sections[i];
+                string expectedZoneId = "Z" + (i + 1);
+                if (section.zoneId != expectedZoneId)
+                    result.issues.Add($"Main centreline section {i} is {section.zoneId}, expected {expectedZoneId}.");
+                if (section.startKnot != expectedStartKnot || section.endKnot <= section.startKnot)
+                    result.issues.Add($"{section.zoneId} has a centreline knot gap or invalid knot range.");
+                if (i > 0 && Mathf.Abs(section.startDistanceMeters - previousEndDistance) > 0.05f)
+                    result.issues.Add($"{section.zoneId} is disconnected from the previous centreline section.");
+
+                expectedStartKnot = section.endKnot;
+                previousEndDistance = section.endDistanceMeters;
+            }
+
+            if (expectedStartKnot != spline.Count - 1)
+                result.issues.Add("Main centreline does not terminate at the final spline knot.");
         }
     }
 }

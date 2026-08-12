@@ -247,17 +247,50 @@ namespace Varco.Underwater.EditorTools
 
             DepthOfField depthOfField = GetOrAdd<DepthOfField>(profile);
             depthOfField.mode.Override(DepthOfFieldMode.Gaussian);
-            depthOfField.gaussianStart.Override(baseline.visibilityMeters * 0.5f);
-            depthOfField.gaussianEnd.Override(baseline.visibilityMeters * 1.5f);
+
+            // Baked out past the far end of the map, not at the baseline zone's visibility.
+            //
+            // The director rewrites both distances from the resolved profile every LateUpdate, so these
+            // numbers only ever describe the editor. Baking Z1's values instead - start 6 m, end 18 m -
+            // puts maximum gaussian blur on everything past eighteen metres of a five-hundred-metre
+            // cave, which is the entire scene view: rock silhouettes go mushy and prop edges soften,
+            // and judging placement against that is not possible.
+            //
+            // Overriding the distances rather than clearing `active` is deliberate. ApplyPostProcessing
+            // assigns .value and never touches .active, so an inactive component here would disable
+            // depth of field in the shipping look too.
+            depthOfField.gaussianStart.Override(EditorDepthOfFieldStartMeters);
+            depthOfField.gaussianEnd.Override(EditorDepthOfFieldEndMeters);
             depthOfField.gaussianMaxRadius.Override(0.7f);
 
             EditorUtility.SetDirty(profile);
             return profile;
         }
 
+        /// <summary>
+        /// Adds a volume component and parents it to the profile asset so it actually survives a save.
+        ///
+        /// VolumeProfile.Add creates a loose ScriptableObject and registers it in the profile's list;
+        /// nothing owns it on disk. Unity's own VolumeProfile inspector is what normally calls
+        /// AddObjectToAsset, so a profile built from script serialises with the right number of entries
+        /// and every one of them null. MainMapUnderwaterProfile.asset was in exactly that state - 610
+        /// bytes, "components:" holding seven {fileID: 0} - which meant every TryGet in
+        /// UnderwaterZoneDirector.ApplyPostProcessing failed and the whole post-processing block was a
+        /// no-op from the day it was written.
+        /// </summary>
         private static T GetOrAdd<T>(VolumeProfile profile) where T : VolumeComponent
         {
-            return profile.TryGet(out T component) ? component : profile.Add<T>();
+            // A profile that was saved in the broken state comes back with null entries. TryGet walks
+            // that list, so they have to go before anything is looked up or added.
+            profile.components.RemoveAll(component => component == null);
+
+            if (profile.TryGet(out T existing))
+                return existing;
+
+            T added = profile.Add<T>();
+            added.hideFlags = HideFlags.HideInHierarchy;
+            AssetDatabase.AddObjectToAsset(added, profile);
+            return added;
         }
 
         // ----------------------------------------------------------------------------------------
@@ -439,7 +472,13 @@ namespace Varco.Underwater.EditorTools
             volume.isGlobal = true;
             volume.priority = 50f;
             volume.weight = 1f;
-            volume.profile = profile;
+
+            // sharedProfile, not profile. Volume.profile is the *instance* accessor: its setter writes
+            // m_InternalProfile, a runtime-only clone that is never serialised, so assigning through it
+            // from an editor tool leaves the saved scene with "sharedProfile: {fileID: 0}". The getter
+            // then hands UnderwaterZoneDirector a freshly created empty profile, every TryGet in
+            // ApplyPostProcessing misses, and no post-processing has ever been applied to this scene.
+            volume.sharedProfile = profile;
 
             // MainMap's camera has m_VolumeLayerMask set to layer 0 only, so the volume must sit there.
             volumeTransform.gameObject.layer = 0;
@@ -622,18 +661,58 @@ namespace Varco.Underwater.EditorTools
         {
             UnderwaterZoneProfile baseline = zoneSet.Zones.Count > 0 ? zoneSet.Zones[0] : zoneSet.Fallback;
 
-            RenderSettings.fog = true;
+            // Fog off, and the values behind it left correct anyway.
+            //
+            // RenderSettings fog is the *fallback* path: UnderwaterZoneDirector.Apply only drives it
+            // when the screen pass is inactive, and every zone in the set - all six plus the fallback -
+            // is authored with screenStrength 1, so the running game always takes the other branch and
+            // sets fog = false itself. Baking it on therefore never matches the shipping look; all it
+            // does is put a 12 m exponential-squared fog over the scene view, on top of an ambient that
+            // is already being cut for the editor's benefit, and drag the whole viewport to black.
+            RenderSettings.fog = false;
             RenderSettings.fogMode = FogMode.ExponentialSquared;
             RenderSettings.fogColor = baseline.fogColor;
             RenderSettings.fogDensity = baseline.FogDensity;
 
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = baseline.ambientSky;
-            RenderSettings.ambientEquatorColor = baseline.ambientEquator;
-            RenderSettings.ambientGroundColor = baseline.ambientGround;
+            RenderSettings.ambientSkyColor = ScaleRgb(baseline.ambientSky, EditorAmbientScale);
+            RenderSettings.ambientEquatorColor = ScaleRgb(baseline.ambientEquator, EditorAmbientScale);
+            RenderSettings.ambientGroundColor = ScaleRgb(baseline.ambientGround, EditorAmbientScale);
             RenderSettings.ambientIntensity = 1f;
             RenderSettings.reflectionIntensity = 0.35f;
             RenderSettings.subtractiveShadowColor = new Color(0.008f, 0.035f, 0.060f);
+        }
+
+        /// <summary>
+        /// Divisor applied to the baseline zone's ambient before it is baked into the scene.
+        ///
+        /// Zone ambient is authored pre-compensated for the screen-space extinction pass: Z1 asks for a
+        /// sky colour of (1.61, 9.06, 9.96), roughly forty times a conventional scene, because
+        /// UnderwaterFullScreen eats most of it back out at 12 m visibility. That pass is gated on
+        /// _Underwater_Strength, which only a *playing* director raises - UnderwaterZoneDirector.LateUpdate
+        /// returns immediately in edit mode by design, and Remove() zeroes the global. So the scene view
+        /// gets the forty-times ambient with none of the extinction, every surface clips well past 1.0,
+        /// and the whole viewport sits on the clipping threshold: a pixel of camera movement flips large
+        /// areas at once, which is what reads as flicker while editing.
+        ///
+        /// Scaling only the *baked* copy costs nothing at runtime. The director overwrites all three
+        /// ambient colours from the resolved profile every LateUpdate, so this value is visible in the
+        /// editor and for the single frame between scene load and the director's first update.
+        /// </summary>
+        /// Sized against what actually clips, which is ambient x albedo rather than the ambient value.
+        /// Z1's sky blue is 9.96; at 1/8 that is 1.25, so the palest rock in the library (albedo ~0.7)
+        /// lands at 0.87 and nothing hard-clips, while mid-grey rock sits around 0.3 and stays readable.
+        /// Two earlier passes bracket it: 1/20 with the fog still baked on was unreadably dark, and 1/12
+        /// was still dimmer than it needed to be.
+        private const float EditorAmbientScale = 1f / 8f;
+
+        /// Past the far corner of a 580 m route, so nothing in the scene view falls inside the blur.
+        private const float EditorDepthOfFieldStartMeters = 600f;
+        private const float EditorDepthOfFieldEndMeters = 900f;
+
+        private static Color ScaleRgb(Color color, float scale)
+        {
+            return new Color(color.r * scale, color.g * scale, color.b * scale, color.a);
         }
 
         internal static Camera FindMainCamera()

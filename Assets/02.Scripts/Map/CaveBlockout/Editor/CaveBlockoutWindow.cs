@@ -38,7 +38,7 @@ namespace CaveBlockout.Editor
             if (GUILayout.Button("Open MainMap"))
                 EditorSceneManager.OpenScene(CaveBlockoutBuilder.MainMapPath);
 
-            if (GUILayout.Button("Create / Reset Default Z1-Z7 Routes"))
+                if (GUILayout.Button("Create / Reset Default Z1-Z6 Routes"))
                 CaveBlockoutBuilder.BuildMainMapInteractive();
 
             EditorGUILayout.Space();

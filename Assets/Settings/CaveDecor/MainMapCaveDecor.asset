@@ -1,0 +1,4199 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 953e0b14112603c439d2a73264bade5f, type: 3}
+  m_Name: MainMapCaveDecor
+  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.Decor.CaveDecorSet
+  palette:
+  - id: BlueFacetedRock
+    prefab: {fileID: 7117332701409935335, guid: c5940e2d8dd416641a87d7db4792250d, type: 3}
+    allowedSurfaces: 3
+    zones:
+    - Z1
+    - Z3
+    - Z4
+    - Z6
+    weight: 3
+    scaleRange: {x: 2.5, y: 5}
+    minSpacing: 7.5
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 0.75
+    maxTiltDegrees: 8
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 3
+  - id: JaggedRockSpire
+    prefab: {fileID: 8892303166431597667, guid: b865a787d43c2ca4ba980bf49eea6472, type: 3}
+    allowedSurfaces: 3
+    zones:
+    - Z1
+    - Z3
+    - Z5
+    weight: 3
+    scaleRange: {x: 3, y: 6}
+    minSpacing: 9
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 0.9
+    maxTiltDegrees: 8
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 3
+  - id: BlueFacetedRocks
+    prefab: {fileID: 1857094440323549054, guid: 2d7cf1214ed2093478435ed876bc9537, type: 3}
+    allowedSurfaces: 1
+    zones:
+    - Z1
+    - Z6
+    weight: 3
+    scaleRange: {x: 3, y: 6}
+    minSpacing: 9
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 0.7
+    maxTiltDegrees: 8
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 3
+  - id: BlueGeometricRock
+    prefab: {fileID: 9000280145297459452, guid: 91e8d598578e16b4397a06cfc5b7f3fa, type: 3}
+    allowedSurfaces: 3
+    zones:
+    - Z1
+    - Z4
+    weight: 2
+    scaleRange: {x: 2.5, y: 5}
+    minSpacing: 7.5
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 0.8
+    maxTiltDegrees: 8
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 2
+  - id: LowPolyBlueCoral
+    prefab: {fileID: 7710644511204299093, guid: 727bfd124fa13d4418eafc405c5997fd, type: 3}
+    allowedSurfaces: 3
+    zones:
+    - Z2
+    weight: 8
+    scaleRange: {x: 1.5, y: 3.5}
+    minSpacing: 5.25
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 1
+    maxTiltDegrees: 6
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides:
+    - zoneId: Z2
+      material: {fileID: 2100000, guid: ebc605eddffb1b14ab36e3dfe293c90b, type: 2}
+    autoScatterCountPerZone: 8
+  - id: VioletLowpolySeaFan
+    prefab: {fileID: 2927520154573145672, guid: d6057f1bd4f7a4e449dfd415886d435b, type: 3}
+    allowedSurfaces: 2
+    zones:
+    - Z2
+    weight: 6
+    scaleRange: {x: 1.5, y: 3}
+    minSpacing: 4.5
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 1
+    maxTiltDegrees: 6
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides:
+    - zoneId: Z2
+      material: {fileID: 2100000, guid: 72457ef4640c39649869a58cbcb56420, type: 2}
+    autoScatterCountPerZone: 6
+  - id: BlueCrystalFormation
+    prefab: {fileID: 6212127565637274246, guid: 5528c527f47241343b0a2737d60cf2e8, type: 3}
+    allowedSurfaces: 3
+    zones:
+    - Z2
+    - Z6
+    weight: 5
+    scaleRange: {x: 2, y: 4.5}
+    minSpacing: 6.75
+    boundingRadius: 0.49999997
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 1
+    maxTiltDegrees: 8
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides:
+    - zoneId: Z2
+      material: {fileID: 2100000, guid: b1d54ee0d252b2c49b8d9755fd8f55f8, type: 2}
+    autoScatterCountPerZone: 5
+  - id: DarkBlueCrystalFormation
+    prefab: {fileID: 593992101860534089, guid: 60fa71e912800ea428d04f7e8e7c734b, type: 3}
+    allowedSurfaces: 6
+    zones:
+    - Z4
+    weight: 4
+    scaleRange: {x: 2, y: 4}
+    minSpacing: 6
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 1
+    maxTiltDegrees: 8
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 4
+  - id: DarkFacetedIcicles
+    prefab: {fileID: 6739516121096921668, guid: f61135bed0fa98e4688b3c1e34275854, type: 3}
+    allowedSurfaces: 4
+    zones:
+    - Z3
+    - Z4
+    weight: 3
+    scaleRange: {x: 2.5, y: 5}
+    minSpacing: 7.5
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 1
+    maxTiltDegrees: 5
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 3
+  - id: LowpolyVolcano
+    prefab: {fileID: 5407486114210986602, guid: 17d2bad430af9c54cb650a9d5ab38e87, type: 3}
+    allowedSurfaces: 1
+    zones:
+    - Z5
+    weight: 3
+    scaleRange: {x: 4, y: 9}
+    minSpacing: 13.5
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 0.6
+    maxTiltDegrees: 4
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides:
+    - zoneId: Z5
+      material: {fileID: 2100000, guid: 96cfe69878fe3bf43a7b9a78173b09fb, type: 2}
+    autoScatterCountPerZone: 3
+  - id: BlueStonePlatform
+    prefab: {fileID: 8508745973148948180, guid: 88fa283ba5637404890d6d5111de3e6d, type: 3}
+    allowedSurfaces: 1
+    zones:
+    - Z5
+    - Z6
+    weight: 3
+    scaleRange: {x: 5, y: 9}
+    minSpacing: 13.5
+    boundingRadius: 0.49999997
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 0.5
+    maxTiltDegrees: 4
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 3
+  - id: FacetedBlueRamp
+    prefab: {fileID: 9065738198022429526, guid: 2ad3fe64cb42a834fa30b340f1c1747f, type: 3}
+    allowedSurfaces: 1
+    zones:
+    - Z5
+    weight: 3
+    scaleRange: {x: 4, y: 8}
+    minSpacing: 12
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 0.6
+    maxTiltDegrees: 4
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 3
+  - id: FacetedBlueRock
+    prefab: {fileID: 6499976362875416433, guid: 4ad7c402aeae1fc4d95c872efd77f811, type: 3}
+    allowedSurfaces: 3
+    zones:
+    - Z3
+    - Z5
+    - Z6
+    weight: 3
+    scaleRange: {x: 2.5, y: 5}
+    minSpacing: 7.5
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 0.75
+    maxTiltDegrees: 8
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 3
+  - id: BlueFacetedArch
+    prefab: {fileID: 8438754267185597957, guid: b14a2ecdfa094ce4f9f39b7a624eaba3, type: 3}
+    allowedSurfaces: 1
+    zones:
+    - Z6
+    weight: 2
+    scaleRange: {x: 10, y: 16}
+    minSpacing: 24
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 0.4
+    maxTiltDegrees: 3
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 2
+  - id: SciFiStorageTank
+    prefab: {fileID: 2737781306075786246, guid: 8573b821671e207429e13fd047a6cdac, type: 3}
+    allowedSurfaces: 1
+    zones:
+    - Z6
+    weight: 2
+    scaleRange: {x: 3, y: 5}
+    minSpacing: 7.5
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 0.5
+    maxTiltDegrees: 14
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 2
+  - id: BlueLayeredRock
+    prefab: {fileID: 850463631808437231, guid: fdf028d34cb801e41a7f2fa7f60884ac, type: 3}
+    allowedSurfaces: 1
+    zones:
+    - Z1
+    - Z3
+    - Z6
+    weight: 2
+    scaleRange: {x: 2.5, y: 5}
+    minSpacing: 7.5
+    boundingRadius: 0.49999997
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 0.7
+    maxTiltDegrees: 6
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 2
+  - id: BlueGeometricRocks
+    prefab: {fileID: 7505464965054014276, guid: 296cb420aab88b84b9b2c683f5189b02, type: 3}
+    allowedSurfaces: 3
+    zones:
+    - Z1
+    - Z3
+    - Z4
+    weight: 2
+    scaleRange: {x: 2, y: 4}
+    minSpacing: 6
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 0.8
+    maxTiltDegrees: 8
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 2
+  - id: StylizedVeinedRock
+    prefab: {fileID: 4085711592818117144, guid: 272324b832a2e7a489fe68e1b8d3ef6f, type: 3}
+    allowedSurfaces: 3
+    zones:
+    - Z3
+    - Z5
+    weight: 2
+    scaleRange: {x: 2.5, y: 5}
+    minSpacing: 7.5
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 0.75
+    maxTiltDegrees: 8
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 2
+  - id: DarkRockSpike
+    prefab: {fileID: 3792620270938237604, guid: d8e970c31cea23f42b416b3ffe0a091a, type: 3}
+    allowedSurfaces: 6
+    zones:
+    - Z1
+    - Z3
+    - Z4
+    weight: 2
+    scaleRange: {x: 2, y: 4.5}
+    minSpacing: 6.75
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 1
+    maxTiltDegrees: 10
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 2
+  - id: FacetedIceStone
+    prefab: {fileID: 2694028313000500364, guid: 76917eaabd7a5f4448c4801abd98d342, type: 3}
+    allowedSurfaces: 3
+    zones:
+    - Z2
+    - Z6
+    weight: 2
+    scaleRange: {x: 2, y: 4}
+    minSpacing: 6
+    boundingRadius: 0.49999997
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 0.8
+    maxTiltDegrees: 8
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 2
+  - id: GlowingStoneStack
+    prefab: {fileID: 6718588769847155241, guid: 8bc0d47a5f5d6c24f84e8e4602cc7acf, type: 3}
+    allowedSurfaces: 1
+    zones:
+    - Z2
+    - Z5
+    weight: 1
+    scaleRange: {x: 1.5, y: 3}
+    minSpacing: 4.5
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 0.6
+    maxTiltDegrees: 5
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 1
+  - id: BlueFacetedStone
+    prefab: {fileID: 2665950394260191230, guid: bac8cda547e0687479edbf24d7f5c699, type: 3}
+    allowedSurfaces: 1
+    zones:
+    - Z1
+    - Z6
+    weight: 1
+    scaleRange: {x: 3, y: 6}
+    minSpacing: 9
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 0.3
+    maxTiltDegrees: 6
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 1
+  - id: BlueBandedPedestal
+    prefab: {fileID: 6996829418670180088, guid: 31e851b9fe19904428fcf1e8fad7da01, type: 3}
+    allowedSurfaces: 1
+    zones:
+    - Z5
+    - Z6
+    weight: 1
+    scaleRange: {x: 3, y: 6}
+    minSpacing: 9
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 0.4
+    maxTiltDegrees: 4
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 1
+  - id: StylizedRockArch
+    prefab: {fileID: 4995763932695733161, guid: 93e675ec70535b14a9d2d678f0df5049, type: 3}
+    allowedSurfaces: 1
+    zones:
+    - Z2
+    - Z6
+    weight: 1
+    scaleRange: {x: 8, y: 14}
+    minSpacing: 21
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 0.4
+    maxTiltDegrees: 4
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 1
+  - id: BlueStoneCavern
+    prefab: {fileID: 1008692005593910008, guid: c28f3a49c1d6b5b439ec2476abfa726c, type: 3}
+    allowedSurfaces: 1
+    zones:
+    - Z2
+    - Z6
+    weight: 1
+    scaleRange: {x: 6, y: 12}
+    minSpacing: 18
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 0.5
+    maxTiltDegrees: 5
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 1
+  - id: DarkCrystalCluster
+    prefab: {fileID: 3913336149466252082, guid: e51c3c6f2824bf846b8fa00157f24a4b, type: 3}
+    allowedSurfaces: 3
+    zones:
+    - Z1
+    - Z4
+    weight: 2
+    scaleRange: {x: 2, y: 4}
+    minSpacing: 6
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 0.9
+    maxTiltDegrees: 8
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 2
+  - id: StylizedTealCoral
+    prefab: {fileID: 3671034561501908441, guid: a593a6680ce854c429501b18b9178b05, type: 3}
+    allowedSurfaces: 3
+    zones:
+    - Z2
+    weight: 4
+    scaleRange: {x: 1.5, y: 3}
+    minSpacing: 4.5
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 1
+    maxTiltDegrees: 6
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides:
+    - zoneId: Z2
+      material: {fileID: 2100000, guid: d78723981e8a3b540afa7e141859a83d, type: 2}
+    autoScatterCountPerZone: 4
+  - id: BlueCrystalSeaweed
+    prefab: {fileID: 3007201103313364550, guid: c3017fb491b80dc4c966ff11ad261912, type: 3}
+    allowedSurfaces: 3
+    zones:
+    - Z2
+    - Z6
+    weight: 3
+    scaleRange: {x: 1.5, y: 3.5}
+    minSpacing: 5.25
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 1
+    maxTiltDegrees: 8
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides:
+    - zoneId: Z2
+      material: {fileID: 2100000, guid: f36f1f25a2d0f1545bf2f16e8d6b305e, type: 2}
+    autoScatterCountPerZone: 3
+  - id: ColorfulStylizedCoral
+    prefab: {fileID: 5113198175354710928, guid: b247f5d0ae4802e4ea737009133be76c, type: 3}
+    allowedSurfaces: 3
+    zones:
+    - Z2
+    - Z6
+    weight: 3
+    scaleRange: {x: 1.5, y: 3}
+    minSpacing: 4.5
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 1
+    maxTiltDegrees: 6
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides:
+    - zoneId: Z2
+      material: {fileID: 2100000, guid: 7f1fe39cb602098478b4325d41004b2c, type: 2}
+    autoScatterCountPerZone: 3
+  - id: StylizedGreenSeaweed
+    prefab: {fileID: 4159566269040617671, guid: 0346421bc3834d344a7779c37be62858, type: 3}
+    allowedSurfaces: 3
+    zones:
+    - Z1
+    - Z2
+    - Z3
+    - Z6
+    weight: 2
+    scaleRange: {x: 1.5, y: 3.5}
+    minSpacing: 5.25
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 1
+    maxTiltDegrees: 10
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 2
+  - id: StylizedRedSeaweed
+    prefab: {fileID: 9160455647307708525, guid: 5c79c131853dc0b4bbc99ea8afbaec42, type: 3}
+    allowedSurfaces: 3
+    zones:
+    - Z3
+    - Z5
+    weight: 2
+    scaleRange: {x: 1.2, y: 2.8}
+    minSpacing: 4.2
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 1
+    maxTiltDegrees: 10
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 2
+  - id: StylizedGrassPatch
+    prefab: {fileID: 5002483579290684589, guid: 88c825a2e28d0004680b334a70198376, type: 3}
+    allowedSurfaces: 1
+    zones:
+    - Z1
+    - Z2
+    - Z3
+    - Z6
+    weight: 3
+    scaleRange: {x: 2, y: 4}
+    minSpacing: 6
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 1
+    maxTiltDegrees: 12
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 3
+  - id: LowPolyGreenPlant
+    prefab: {fileID: 4606177125644091352, guid: 39d458111ed70eb4e85a03a3850fbe8b, type: 3}
+    allowedSurfaces: 3
+    zones:
+    - Z1
+    - Z3
+    - Z6
+    weight: 2
+    scaleRange: {x: 1.2, y: 2.5}
+    minSpacing: 3.75
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 1
+    maxTiltDegrees: 12
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 2
+  - id: GreenStylizedPlant
+    prefab: {fileID: 4654336527755163708, guid: 809d0311b2bf309499728e9a08a744ff, type: 3}
+    allowedSurfaces: 3
+    zones:
+    - Z1
+    - Z3
+    - Z6
+    weight: 2
+    scaleRange: {x: 1.5, y: 3}
+    minSpacing: 4.5
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 1
+    maxTiltDegrees: 12
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 2
+  - id: LowPolyYellowPlant
+    prefab: {fileID: 8226303671253060600, guid: 33f490d249484034db07332bbfaca6e5, type: 3}
+    allowedSurfaces: 1
+    zones:
+    - Z2
+    - Z6
+    weight: 2
+    scaleRange: {x: 1.2, y: 2.5}
+    minSpacing: 3.75
+    boundingRadius: 0.5
+    embedFractionRange: {x: -0.3, y: -0.08}
+    normalAlignment: 1
+    maxTiltDegrees: 10
+    defaultMaterialOverride: {fileID: 0}
+    zoneMaterialOverrides: []
+    autoScatterCountPerZone: 2
+  placements:
+  - id: 3fa5842d091845bb9745d4f65ecf3682
+    paletteId: BlueFacetedRocks
+    routeId: MainRoute
+    routeDistance: 9.9894285
+    angleDegrees: 120.236694
+    surfaceOffset: -1.7334099
+    surfaceRotation: {x: 0.27633807, y: 0.38157344, z: -0.12230406, w: 0.873545}
+    scale: 7.4708505
+    zoneId: Z1
+  - id: 43f69d1f555d4e69ac5aed6565033397
+    paletteId: BlueFacetedRocks
+    routeId: MainRoute
+    routeDistance: 27.973743
+    angleDegrees: 126.863556
+    surfaceOffset: -1.3942511
+    surfaceRotation: {x: 0.30657932, y: 0.22454855, z: -0.10769762, w: 0.9186885}
+    scale: 7.4708505
+    zoneId: Z1
+  - id: f811e32f6b22413bac62e2f4e6a15991
+    paletteId: BlueFacetedRocks
+    routeId: MainRoute
+    routeDistance: 31.914295
+    angleDegrees: 149.13358
+    surfaceOffset: 0.4039302
+    surfaceRotation: {x: -0.15959916, y: -0.13741133, z: 0.26461875, w: 0.9410755}
+    scale: 5.0122437
+    zoneId: Z1
+  - id: b8297d690d8740e18d80460b3754f96f
+    paletteId: DarkBlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 33.381165
+    angleDegrees: 149.001
+    surfaceOffset: 1.7580141
+    surfaceRotation: {x: -0.12600203, y: -0.58983624, z: 0.06941849, w: 0.79460543}
+    scale: 4.258462
+    zoneId: Z1
+  - id: 01951644b005450697056896a8c851d4
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 32.498055
+    angleDegrees: 146.03517
+    surfaceOffset: -1.3347104
+    surfaceRotation: {x: -0.17277484, y: -0.21535368, z: 0.2115866, w: 0.93755144}
+    scale: 7.690275
+    zoneId: Z1
+  - id: 0cc05d0a2704491385591a429141b4fd
+    paletteId: BlueFacetedRocks
+    routeId: MainRoute
+    routeDistance: 6.2198715
+    angleDegrees: 117.06414
+    surfaceOffset: -1.2597375
+    surfaceRotation: {x: -0.39441228, y: 0.3656438, z: 0.3488465, w: 0.7674959}
+    scale: 12.819232
+    zoneId: Z1
+  - id: fe06b50bda3e4514bca5b8d01d10e57d
+    paletteId: BlueFacetedRocks
+    routeId: MainRoute
+    routeDistance: 3.392334
+    angleDegrees: 125.4254
+    surfaceOffset: -0.6750032
+    surfaceRotation: {x: 0.093768805, y: 0.14584734, z: -0.13869436, w: 0.97503847}
+    scale: 6.081123
+    zoneId: Z1
+  - id: ba64702ef90349f3867797ece388639e
+    paletteId: BlueFacetedRocks
+    routeId: MainRoute
+    routeDistance: 5.990654
+    angleDegrees: 159.49973
+    surfaceOffset: -1.3906256
+    surfaceRotation: {x: 0.3793184, y: -0.42283303, z: -0.036148123, w: 0.8222063}
+    scale: 7.549934
+    zoneId: Z1
+  - id: 35fb683e2a1144f7ab31c19d56749f1c
+    paletteId: BlueFacetedRocks
+    routeId: MainRoute
+    routeDistance: 2.5944774
+    angleDegrees: 176.30302
+    surfaceOffset: -1.2452713
+    surfaceRotation: {x: -0.26143795, y: -0.39905572, z: 0.06394822, w: 0.8765361}
+    scale: 12.954931
+    zoneId: Z1
+  - id: 4ef44fe53f064a33a06d32acf0969c9a
+    paletteId: BlueFacetedRocks
+    routeId: MainRoute
+    routeDistance: 7.1025815
+    angleDegrees: -166.3626
+    surfaceOffset: -1.2756828
+    surfaceRotation: {x: -0.077298835, y: -0.32446674, z: -0.56467056, w: 0.7549129}
+    scale: 6.232205
+    zoneId: Z1
+  - id: 748fcaff7aa445d4802fbbea1d30656e
+    paletteId: BlueFacetedRocks
+    routeId: MainRoute
+    routeDistance: 0
+    angleDegrees: 159.64421
+    surfaceOffset: -5.174327
+    surfaceRotation: {x: 0.65173864, y: -0.24773596, z: -0.36271048, w: 0.6183081}
+    scale: 17.10714
+    zoneId: Z1
+  - id: 061c143b822642e3b792a789338d7d24
+    paletteId: BlueFacetedRocks
+    routeId: MainRoute
+    routeDistance: 0
+    angleDegrees: 130.34224
+    surfaceOffset: -3.209771
+    surfaceRotation: {x: 0.43685737, y: -0.24732359, z: -0.2009889, w: 0.84118384}
+    scale: 16.67036
+    zoneId: Z1
+  - id: 9802da732f2f431fa309d53d99c237e2
+    paletteId: BlueFacetedRocks
+    routeId: MainRoute
+    routeDistance: 0
+    angleDegrees: -118.47697
+    surfaceOffset: 0.9998453
+    surfaceRotation: {x: 0.48886508, y: -0.67961985, z: -0.3039684, w: 0.4546769}
+    scale: 9.982705
+    zoneId: Z1
+  - id: 7ccf3f2131d1465bb97ab8ffd8c5f187
+    paletteId: BlueFacetedRocks
+    routeId: MainRoute
+    routeDistance: 0
+    angleDegrees: -159.97826
+    surfaceOffset: -12.125304
+    surfaceRotation: {x: 0.38425115, y: -0.5029619, z: -0.5556617, w: 0.5390924}
+    scale: 13.683089
+    zoneId: Z1
+  - id: c78d563b227b4d51be11e79e460f2aad
+    paletteId: LowPolyBlueCoral
+    routeId: MainRoute
+    routeDistance: 18.543514
+    angleDegrees: 127.52791
+    surfaceOffset: 0.265406
+    surfaceRotation: {x: 0.1473516, y: 0.22237714, z: 0.12130008, w: 0.9560975}
+    scale: 4.733198
+    zoneId: Z1
+  - id: 89ee599e193c41649d1f6d0b68784a21
+    paletteId: LowPolyBlueCoral
+    routeId: MainRoute
+    routeDistance: 20.171099
+    angleDegrees: 122.82563
+    surfaceOffset: 0.032506485
+    surfaceRotation: {x: -0.15828082, y: 0.38603657, z: 0.02900265, w: 0.9083402}
+    scale: 3.0010118
+    zoneId: Z1
+  - id: 26f23d8e8ad84c83b6057cf3f75145e9
+    paletteId: LowPolyBlueCoral
+    routeId: MainRoute
+    routeDistance: 19.092016
+    angleDegrees: 131.01376
+    surfaceOffset: -0.08688604
+    surfaceRotation: {x: 0.111167334, y: 0.23039865, z: -0.2838886, w: 0.92410266}
+    scale: 4.8239202
+    zoneId: Z1
+  - id: de0ddc58661e46c39c87495fe96f200f
+    paletteId: LowPolyBlueCoral
+    routeId: MainRoute
+    routeDistance: 20.181702
+    angleDegrees: 130.89467
+    surfaceOffset: -0.3632784
+    surfaceRotation: {x: 0.22618492, y: 0.21051314, z: 0.09305478, w: 0.9465017}
+    scale: 4.72736
+    zoneId: Z1
+  - id: 8d289a6f69f8432783e716e12e609fc3
+    paletteId: VioletLowpolySeaFan
+    routeId: MainRoute
+    routeDistance: 23.003864
+    angleDegrees: 89.949165
+    surfaceOffset: 0.8501563
+    surfaceRotation: {x: 0.67169803, y: -0.21003854, z: -0.0951432, w: 0.7040266}
+    scale: 3.3000002
+    zoneId: Z1
+  - id: 72956e2d99fb42109558617bd857cce5
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 23.531015
+    angleDegrees: -130.1938
+    surfaceOffset: -0.2830343
+    surfaceRotation: {x: -0.45548463, y: 0.40936816, z: 0.15754999, w: 0.7746803}
+    scale: 4.873266
+    zoneId: Z1
+  - id: b6d6ca36459d43f1b748be00c390a458
+    paletteId: DarkBlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 29.253994
+    angleDegrees: 131.77777
+    surfaceOffset: 0.0065893885
+    surfaceRotation: {x: -0.3301947, y: -0.21835785, z: -0.16863863, w: 0.9026918}
+    scale: 6.367711
+    zoneId: Z1
+  - id: 893f756f781d4bf2b16a34ff0d316590
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 47.356983
+    angleDegrees: 109.47116
+    surfaceOffset: -0.14623688
+    surfaceRotation: {x: -0.15483896, y: 0.7290831, z: -0.084782705, w: -0.6612677}
+    scale: 3.259606
+    zoneId: Z1
+  - id: 48878bfa55434e45a45de5de13c0938b
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 52.140686
+    angleDegrees: 224.71025
+    surfaceOffset: -0.2438932
+    surfaceRotation: {x: 0.11225869, y: 0.6416595, z: -0.10919406, w: 0.7508314}
+    scale: 3.102983
+    zoneId: Z1
+  - id: 79aad9e07c434b5c93bc10d04b1f7ef1
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 6.0894437
+    angleDegrees: -127.15227
+    surfaceOffset: -0.49766076
+    surfaceRotation: {x: 0.032826036, y: 0.40712285, z: 0.098604605, w: -0.90744185}
+    scale: 3.3881571
+    zoneId: Z1
+  - id: deaeeb5114364bc6b105412a2c90e9dc
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 45.386806
+    angleDegrees: 203.65526
+    surfaceOffset: -0.24958853
+    surfaceRotation: {x: -0.04607947, y: 0.21203119, z: 0.06440122, w: 0.97404927}
+    scale: 3.596131
+    zoneId: Z1
+  - id: c06869beefc94a369e31e5547ac6a2d8
+    paletteId: JaggedRockSpire
+    routeId: MainRoute
+    routeDistance: 37.30044
+    angleDegrees: 147.8077
+    surfaceOffset: -0.423047
+    surfaceRotation: {x: -0.103600904, y: 0.8545891, z: -0.041558154, w: -0.50716585}
+    scale: 3.0034523
+    zoneId: Z1
+  - id: 6cbcdfb18adf4d909f7268358e717264
+    paletteId: JaggedRockSpire
+    routeId: MainRoute
+    routeDistance: 14.447067
+    angleDegrees: -127.107
+    surfaceOffset: -0.45181465
+    surfaceRotation: {x: 0.022352638, y: 0.7491709, z: -0.021476196, w: 0.6616513}
+    scale: 4.8125143
+    zoneId: Z1
+  - id: 56e60f1446d547ba9db5a53cae982fa9
+    paletteId: JaggedRockSpire
+    routeId: MainRoute
+    routeDistance: 26.742607
+    angleDegrees: 158.30806
+    surfaceOffset: -0.3329197
+    surfaceRotation: {x: -0.0048617986, y: 0.1152596, z: -0.030671792, w: 0.9928497}
+    scale: 5.1775265
+    zoneId: Z1
+  - id: 1ab42bf73aa34575ae7e10f8a160a323
+    paletteId: JaggedRockSpire
+    routeId: MainRoute
+    routeDistance: 16.297136
+    angleDegrees: 195.43546
+    surfaceOffset: -0.24860966
+    surfaceRotation: {x: 0.044796284, y: 0.7920742, z: 0.10818908, w: 0.5990883}
+    scale: 3.4906602
+    zoneId: Z1
+  - id: ae8b2cee275d4992a664d68c7985c3f2
+    paletteId: BlueFacetedRocks
+    routeId: MainRoute
+    routeDistance: 26.25749
+    angleDegrees: 191.6243
+    surfaceOffset: -0.49833286
+    surfaceRotation: {x: 0.03344588, y: 0.67589986, z: 0.048433956, w: 0.7346392}
+    scale: 4.926175
+    zoneId: Z1
+  - id: 7b3d655f753a4cdf9b23f22198ad01dd
+    paletteId: BlueFacetedRocks
+    routeId: MainRoute
+    routeDistance: 47.634426
+    angleDegrees: 154.21791
+    surfaceOffset: -0.58133495
+    surfaceRotation: {x: 0.026980815, y: 0.37197524, z: -0.08770482, w: 0.9236959}
+    scale: 4.481647
+    zoneId: Z1
+  - id: 89f74f652039473aadef2b09dc70ac72
+    paletteId: BlueGeometricRock
+    routeId: MainRoute
+    routeDistance: 41.327793
+    angleDegrees: 202.37082
+    surfaceOffset: -0.4083412
+    surfaceRotation: {x: -0.0250874, y: 0.9631282, z: 0.13205548, w: -0.23305793}
+    scale: 3.2166135
+    zoneId: Z1
+  - id: 48991e4dcf3d45bdb493e80aeabca828
+    paletteId: BlueGeometricRock
+    routeId: MainRoute
+    routeDistance: 30.657776
+    angleDegrees: -57.15372
+    surfaceOffset: -0.1630111
+    surfaceRotation: {x: 0.06816956, y: 0.17728993, z: 0.08884778, w: -0.9777664}
+    scale: 2.6012418
+    zoneId: Z1
+  - id: f4583597001c4972ad7af8c7e113be11
+    paletteId: LowPolyBlueCoral
+    routeId: MainRoute
+    routeDistance: 125.68771
+    angleDegrees: 126.71096
+    surfaceOffset: -0.35508263
+    surfaceRotation: {x: -0.03508287, y: 0.63277316, z: -0.0290109, w: -0.7729979}
+    scale: 2.6213858
+    zoneId: Z2
+  - id: f5b3a4b732e94b299d516b9110d3238a
+    paletteId: LowPolyBlueCoral
+    routeId: MainRoute
+    routeDistance: 85.63507
+    angleDegrees: 162.8286
+    surfaceOffset: -0.17118424
+    surfaceRotation: {x: 0.030842854, y: 0.9962419, z: -0.023151983, w: -0.077555835}
+    scale: 2.6687872
+    zoneId: Z2
+  - id: b2e6f5b147274328a4b748f0d2314005
+    paletteId: LowPolyBlueCoral
+    routeId: MainRoute
+    routeDistance: 134.96007
+    angleDegrees: 68.733444
+    surfaceOffset: -0.24787916
+    surfaceRotation: {x: -0.02454636, y: 0.9890769, z: 0.032769002, w: 0.14160027}
+    scale: 2.0821576
+    zoneId: Z2
+  - id: 88022bc0295948119e2a943adcba5eeb
+    paletteId: LowPolyBlueCoral
+    routeId: MainRoute
+    routeDistance: 93.14604
+    angleDegrees: 69.59011
+    surfaceOffset: -0.13736676
+    surfaceRotation: {x: -0.028158242, y: 0.88383436, z: -0.023914162, w: 0.46633914}
+    scale: 2.4478853
+    zoneId: Z2
+  - id: 07b480618c4d4ea49675edcfa5d4040d
+    paletteId: LowPolyBlueCoral
+    routeId: MainRoute
+    routeDistance: 58.60132
+    angleDegrees: -93.74489
+    surfaceOffset: -0.092678204
+    surfaceRotation: {x: 0.03267394, y: 0.2529744, z: -0.030284334, w: -0.9664467}
+    scale: 1.8491842
+    zoneId: Z2
+  - id: 977d06064bd64acab9adc38a5a322a84
+    paletteId: LowPolyBlueCoral
+    routeId: MainRoute
+    routeDistance: 68.45199
+    angleDegrees: 117.546394
+    surfaceOffset: -0.19294992
+    surfaceRotation: {x: -0.01948118, y: 0.3179259, z: -0.028603045, w: 0.9474838}
+    scale: 2.3695014
+    zoneId: Z2
+  - id: 9545ff20c5014ed9a73babe437759651
+    paletteId: LowPolyBlueCoral
+    routeId: MainRoute
+    routeDistance: 133.35373
+    angleDegrees: 222.89723
+    surfaceOffset: -0.34104913
+    surfaceRotation: {x: -0.00078512426, y: 0.39622176, z: -0.040649954, w: 0.91725427}
+    scale: 2.984429
+    zoneId: Z2
+  - id: b1a034760e0441218de80b78134f1bdb
+    paletteId: LowPolyBlueCoral
+    routeId: MainRoute
+    routeDistance: 127.42695
+    angleDegrees: -93.12601
+    surfaceOffset: -0.11438969
+    surfaceRotation: {x: 0.006801098, y: 0.8798411, z: 0.04072184, w: 0.4734712}
+    scale: 2.797359
+    zoneId: Z2
+  - id: fcb2b0754efb44e8b0354cc0122ae7c4
+    paletteId: LowPolyBlueCoral
+    routeId: MainRoute
+    routeDistance: 118.23686
+    angleDegrees: -77.2914
+    surfaceOffset: -0.20785524
+    surfaceRotation: {x: -0.021873167, y: 0.3758669, z: -0.0054863915, w: 0.9263991}
+    scale: 2.0216737
+    zoneId: Z2
+  - id: 93ed761e234c4bcea27b3d6a72f8fd13
+    paletteId: LowPolyBlueCoral
+    routeId: MainRoute
+    routeDistance: 55.997295
+    angleDegrees: -129.23372
+    surfaceOffset: -0.13028295
+    surfaceRotation: {x: -0.016322913, y: 0.31319124, z: 0.008859644, w: -0.9495084}
+    scale: 1.5035397
+    zoneId: Z2
+  - id: 40c90699ab8048d1b8cfc873e696174c
+    paletteId: LowPolyBlueCoral
+    routeId: MainRoute
+    routeDistance: 95.19942
+    angleDegrees: 106.96257
+    surfaceOffset: -0.085864685
+    surfaceRotation: {x: 0.046772502, y: 0.8762878, z: 0.003671642, w: 0.47949836}
+    scale: 1.8988065
+    zoneId: Z2
+  - id: 15ec049209c14f4994676163c9e6c299
+    paletteId: LowPolyBlueCoral
+    routeId: MainRoute
+    routeDistance: 133.6134
+    angleDegrees: 138.39545
+    surfaceOffset: -0.11745605
+    surfaceRotation: {x: -0.017564854, y: 0.32842422, z: -0.03271416, w: 0.9438003}
+    scale: 1.7049067
+    zoneId: Z2
+  - id: 6f533855ecb240e6b932d1da1db1863d
+    paletteId: LowPolyBlueCoral
+    routeId: MainRoute
+    routeDistance: 123.25057
+    angleDegrees: 194.29448
+    surfaceOffset: -0.17597532
+    surfaceRotation: {x: 0.037634417, y: 0.7511641, z: 0.019911874, w: -0.65874094}
+    scale: 2.5342357
+    zoneId: Z2
+  - id: b32aa840227c49048a48fc6e0c3b09be
+    paletteId: LowPolyBlueCoral
+    routeId: MainRoute
+    routeDistance: 106.21078
+    angleDegrees: 225.67807
+    surfaceOffset: -0.21400845
+    surfaceRotation: {x: 0.014573102, y: 0.51352566, z: -0.050925236, w: -0.85643786}
+    scale: 1.6802639
+    zoneId: Z2
+  - id: ece5300a599a4a4eae536c0e9a632e48
+    paletteId: LowPolyBlueCoral
+    routeId: MainRoute
+    routeDistance: 122.98389
+    angleDegrees: -120.70071
+    surfaceOffset: -0.13461898
+    surfaceRotation: {x: 0.017688993, y: 0.2618093, z: -0.019987114, w: -0.9647504}
+    scale: 2.9942222
+    zoneId: Z2
+  - id: 7c832255b5d84c7fa5712ce6ce37664e
+    paletteId: LowPolyBlueCoral
+    routeId: MainRoute
+    routeDistance: 73.63929
+    angleDegrees: 177.07932
+    surfaceOffset: -0.17014842
+    surfaceRotation: {x: 0.018943254, y: 0.22899163, z: 0.014047305, w: -0.9731427}
+    scale: 1.8223841
+    zoneId: Z2
+  - id: e441f123105d45d5a3f0ced20896d356
+    paletteId: VioletLowpolySeaFan
+    routeId: MainRoute
+    routeDistance: 140.56522
+    angleDegrees: -68.37363
+    surfaceOffset: -0.09136417
+    surfaceRotation: {x: 0.051873136, y: 0.055848252, z: 0.029146906, w: 0.99666476}
+    scale: 2.0840855
+    zoneId: Z2
+  - id: 2116eb434caf4e1cafc41f33d2db8f22
+    paletteId: VioletLowpolySeaFan
+    routeId: MainRoute
+    routeDistance: 144.1622
+    angleDegrees: 112.62601
+    surfaceOffset: -0.2456492
+    surfaceRotation: {x: 0.012344665, y: 0.53329754, z: 0.0049012685, w: -0.8458234}
+    scale: 2.567437
+    zoneId: Z2
+  - id: 7785e593c6094fe1a6c4455aca8fce14
+    paletteId: VioletLowpolySeaFan
+    routeId: MainRoute
+    routeDistance: 87.45651
+    angleDegrees: -50.451015
+    surfaceOffset: -0.17296119
+    surfaceRotation: {x: 0.03839368, y: 0.9526172, z: -0.007757372, w: -0.30163905}
+    scale: 1.5181134
+    zoneId: Z2
+  - id: cde9ff5535c2417d9e1cfe23aa2121d6
+    paletteId: VioletLowpolySeaFan
+    routeId: MainRoute
+    routeDistance: 79.38495
+    angleDegrees: 120.714516
+    surfaceOffset: -0.19413479
+    surfaceRotation: {x: 0.030757993, y: 0.44645602, z: -0.0028151951, w: 0.89427245}
+    scale: 1.7865797
+    zoneId: Z2
+  - id: a51ac863a63d497e837dadaf1b41e17f
+    paletteId: VioletLowpolySeaFan
+    routeId: MainRoute
+    routeDistance: 134.11807
+    angleDegrees: 85.94853
+    surfaceOffset: -0.24967779
+    surfaceRotation: {x: -0.045401078, y: 0.8066649, z: -0.01817326, w: 0.5889825}
+    scale: 1.8611889
+    zoneId: Z2
+  - id: 786e267f7eff4177a10462b075bc3ba4
+    paletteId: VioletLowpolySeaFan
+    routeId: MainRoute
+    routeDistance: 113.78848
+    angleDegrees: -98.76955
+    surfaceOffset: -0.23276307
+    surfaceRotation: {x: 0.036097232, y: 0.57005507, z: -0.032652747, w: -0.8201633}
+    scale: 1.8918109
+    zoneId: Z2
+  - id: 3cf28b0d299e4cc1ae3187e3fb9dbd92
+    paletteId: VioletLowpolySeaFan
+    routeId: MainRoute
+    routeDistance: 117.60537
+    angleDegrees: 77.74761
+    surfaceOffset: -0.120859995
+    surfaceRotation: {x: -0.027566582, y: 0.5342647, z: 0.03129978, w: 0.84428775}
+    scale: 1.6677305
+    zoneId: Z2
+  - id: d654e4a26d6c4393a7250a375236cbc5
+    paletteId: VioletLowpolySeaFan
+    routeId: MainRoute
+    routeDistance: 102.91639
+    angleDegrees: -68.33442
+    surfaceOffset: -0.24962822
+    surfaceRotation: {x: -0.037272725, y: 0.28342226, z: 0.03357847, w: -0.9576822}
+    scale: 1.9909638
+    zoneId: Z2
+  - id: e4e9686587ca4e7ba326d676637b3d01
+    paletteId: VioletLowpolySeaFan
+    routeId: MainRoute
+    routeDistance: 113.533714
+    angleDegrees: -123.03189
+    surfaceOffset: -0.28852782
+    surfaceRotation: {x: 0.047163993, y: 0.9980383, z: 0.0129009755, w: 0.03910251}
+    scale: 2.180197
+    zoneId: Z2
+  - id: 4b3957d736c2466fb6912083f937bbb5
+    paletteId: VioletLowpolySeaFan
+    routeId: MainRoute
+    routeDistance: 127.58171
+    angleDegrees: -57.80342
+    surfaceOffset: -0.31640413
+    surfaceRotation: {x: -0.04291711, y: 0.48778543, z: 0.017789442, w: -0.8717265}
+    scale: 2.5401282
+    zoneId: Z2
+  - id: 6fdbb96523424ac0919ffe623d951352
+    paletteId: VioletLowpolySeaFan
+    routeId: MainRoute
+    routeDistance: 59.12147
+    angleDegrees: -113.066795
+    surfaceOffset: -0.2236172
+    surfaceRotation: {x: -0.013580204, y: 0.499665, z: 0.007232404, w: 0.8660821}
+    scale: 2.816178
+    zoneId: Z2
+  - id: 9fb4d163b7414eafa41e31c542b33798
+    paletteId: VioletLowpolySeaFan
+    routeId: MainRoute
+    routeDistance: 119.87527
+    angleDegrees: -98.775536
+    surfaceOffset: -0.11526517
+    surfaceRotation: {x: -0.000119118355, y: 0.55249655, z: -0.02376567, w: 0.83317626}
+    scale: 2.4050043
+    zoneId: Z2
+  - id: acb6d045d6154624b14ba7de0bd8b1b4
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 67.75778
+    angleDegrees: 220.7995
+    surfaceOffset: -0.5959154
+    surfaceRotation: {x: -0.042046014, y: 0.88451594, z: 0.01826761, w: 0.46425223}
+    scale: 3.9890172
+    zoneId: Z2
+  - id: 7e066f61455a4578a9cd784bacbf3500
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 135.90244
+    angleDegrees: 118.18861
+    surfaceOffset: -0.38805488
+    surfaceRotation: {x: -0.043965477, y: 0.39082253, z: 0.025612261, w: 0.9190586}
+    scale: 2.9176881
+    zoneId: Z2
+  - id: 36d2542101144dd095c44f1492e092c6
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 78.723045
+    angleDegrees: 190.47568
+    surfaceOffset: -0.24539246
+    surfaceRotation: {x: 0.011165374, y: 0.27007636, z: 0.009379914, w: 0.9627285}
+    scale: 4.0348845
+    zoneId: Z2
+  - id: 196d030e54a141c78832ab00d20b5b52
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 78.78265
+    angleDegrees: 232.8242
+    surfaceOffset: -0.34467784
+    surfaceRotation: {x: -0.02233757, y: 0.7606695, z: -0.05641625, w: -0.64629716}
+    scale: 2.3428435
+    zoneId: Z2
+  - id: a16d08bece5844a28173b8a2791034a8
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 122.947136
+    angleDegrees: 89.64304
+    surfaceOffset: -0.29387113
+    surfaceRotation: {x: 0.03955341, y: 0.99671686, z: 0.027149107, w: 0.065222874}
+    scale: 3.8560061
+    zoneId: Z2
+  - id: 12ca88fe6d35471095d639c7ef4e7c1a
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 63.37695
+    angleDegrees: 125.07145
+    surfaceOffset: -0.26046672
+    surfaceRotation: {x: -0.015270184, y: 0.77925664, z: 0.043621335, w: 0.6249985}
+    scale: 2.131684
+    zoneId: Z2
+  - id: 8a091b2db92548f29215c8f6f4676187
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 125.28157
+    angleDegrees: 151.31647
+    surfaceOffset: -0.48816067
+    surfaceRotation: {x: -0.0385705, y: 0.9228541, z: -0.014440188, w: -0.38294134}
+    scale: 3.828213
+    zoneId: Z2
+  - id: 7b4aabff5c584f8a85f4cbca619cb316
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 95.8658
+    angleDegrees: 128.15555
+    surfaceOffset: -0.4217405
+    surfaceRotation: {x: 0.049356032, y: 0.8999807, z: -0.033264846, w: 0.43184716}
+    scale: 3.8575785
+    zoneId: Z2
+  - id: cebed64d555f4af9ad09feed97ec8794
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 67.45452
+    angleDegrees: 181.12291
+    surfaceOffset: -0.37728697
+    surfaceRotation: {x: 0.045697752, y: 0.36222866, z: -0.063271224, w: 0.9288159}
+    scale: 3.198046
+    zoneId: Z2
+  - id: 461eb8eca6544ea8a424b34c906e461e
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 145.13278
+    angleDegrees: 194.6599
+    surfaceOffset: -0.10532742
+    surfaceRotation: {x: 0.018678974, y: 0.37623352, z: 0.015452606, w: -0.92620766}
+    scale: 2.1316435
+    zoneId: Z2
+  - id: 93632b29e0344e6e9ff57d18ce0e6aac
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 191.786
+    angleDegrees: -89.454575
+    surfaceOffset: -0.3014662
+    surfaceRotation: {x: 0.030045528, y: 0.9589998, z: -0.039979156, w: 0.27895936}
+    scale: 4.4397106
+    zoneId: Z3
+  - id: e8c889ba999b40e19c618da96143a01f
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 195.78613
+    angleDegrees: 128.41768
+    surfaceOffset: -0.45770615
+    surfaceRotation: {x: 0.13694009, y: -0.63561577, z: -0.21480319, w: -0.7287659}
+    scale: 3.97205
+    zoneId: Z3
+  - id: 54724082007142daa481ccfd1d56baa7
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 239.02591
+    angleDegrees: 171.89394
+    surfaceOffset: -0.5698105
+    surfaceRotation: {x: -0.054134436, y: 0.328032, z: 0.019576939, w: -0.94291097}
+    scale: 4.5881824
+    zoneId: Z3
+  - id: 9278029277ec4e7cbb47c754319524e0
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 218.34554
+    angleDegrees: -128.20778
+    surfaceOffset: -0.3200801
+    surfaceRotation: {x: 0.014630604, y: 0.28125548, z: -0.08230568, w: 0.95598465}
+    scale: 3.559237
+    zoneId: Z3
+  - id: 924067f421074415bc427cb224b3b9ef
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 192.17862
+    angleDegrees: 212.37968
+    surfaceOffset: -0.14834943
+    surfaceRotation: {x: -0.031979892, y: 0.9893849, z: -0.060218923, w: 0.12832981}
+    scale: 2.988748
+    zoneId: Z3
+  - id: c0fb180bc2fa49c799942567a06d99ee
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 184.43056
+    angleDegrees: 202.52266
+    surfaceOffset: -0.1785233
+    surfaceRotation: {x: -0.0685848, y: 0.79123145, z: 0.03948377, w: -0.6063744}
+    scale: 2.952948
+    zoneId: Z3
+  - id: 0126447ba997476b97f2d48d50075f98
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 239.03432
+    angleDegrees: 60.671654
+    surfaceOffset: -0.20811532
+    surfaceRotation: {x: 0.059133176, y: -0.17355083, z: -0.28514922, w: -0.9407833}
+    scale: 4.4552193
+    zoneId: Z3
+  - id: 82e7418d4efc4335aedeaa93fb8b4885
+    paletteId: JaggedRockSpire
+    routeId: MainRoute
+    routeDistance: 197.3625
+    angleDegrees: -67.54999
+    surfaceOffset: -0.49416113
+    surfaceRotation: {x: 0.020150118, y: 0.2796873, z: -0.15552226, w: 0.94719696}
+    scale: 5.7451496
+    zoneId: Z3
+  - id: 18acc4533fd4491282d8e3244dc12252
+    paletteId: JaggedRockSpire
+    routeId: MainRoute
+    routeDistance: 264.21866
+    angleDegrees: 123.08921
+    surfaceOffset: -0.30915457
+    surfaceRotation: {x: -0.017701555, y: 0.8544439, z: 0.039074115, w: -0.5177698}
+    scale: 5.46075
+    zoneId: Z3
+  - id: a2f5b9c5a6484cac85a3094fabc5fa7a
+    paletteId: JaggedRockSpire
+    routeId: MainRoute
+    routeDistance: 153.6296
+    angleDegrees: -110.83358
+    surfaceOffset: -0.39428797
+    surfaceRotation: {x: 0.0665151, y: 0.9899407, z: 0.09934117, w: -0.075658545}
+    scale: 4.7935433
+    zoneId: Z3
+  - id: 632b4a411a3c4576865c41f27989eb4b
+    paletteId: JaggedRockSpire
+    routeId: MainRoute
+    routeDistance: 197.79456
+    angleDegrees: 157.85818
+    surfaceOffset: -0.42879266
+    surfaceRotation: {x: -0.016112149, y: 0.85137737, z: 0.12976606, w: -0.5079939}
+    scale: 5.033555
+    zoneId: Z3
+  - id: afe505155ea44a999d95a16c989e19e4
+    paletteId: JaggedRockSpire
+    routeId: MainRoute
+    routeDistance: 149.38515
+    angleDegrees: 93.754265
+    surfaceOffset: -0.22285183
+    surfaceRotation: {x: -0.042137675, y: 0.93344456, z: -0.09176427, w: -0.34421653}
+    scale: 3.3299525
+    zoneId: Z3
+  - id: cc1679c1b7eb4ef3be457807af24bdab
+    paletteId: JaggedRockSpire
+    routeId: MainRoute
+    routeDistance: 164.856
+    angleDegrees: 117.92677
+    surfaceOffset: -0.31244272
+    surfaceRotation: {x: -0.016480112, y: 0.061859433, z: 0.0145641565, w: 0.9978426}
+    scale: 5.7586746
+    zoneId: Z3
+  - id: c819b3bbc873408d9ccc1c55806f6b83
+    paletteId: JaggedRockSpire
+    routeId: MainRoute
+    routeDistance: 251.09863
+    angleDegrees: 129.10426
+    surfaceOffset: -0.64662504
+    surfaceRotation: {x: -0.055543523, y: 0.5733297, z: -0.058036514, w: -0.8153771}
+    scale: 4.982101
+    zoneId: Z3
+  - id: 572b068b48854c93b6895f498225837d
+    paletteId: JaggedRockSpire
+    routeId: MainRoute
+    routeDistance: 182.63823
+    angleDegrees: 50.571285
+    surfaceOffset: -0.3568587
+    surfaceRotation: {x: -0.006355787, y: 0.962901, z: -0.040796798, w: -0.26667732}
+    scale: 3.8653803
+    zoneId: Z3
+  - id: c7228aedf1284b1594fe9144e161167a
+    paletteId: DarkFacetedIcicles
+    routeId: MainRoute
+    routeDistance: 256.9864
+    angleDegrees: 7.0299826
+    surfaceOffset: -0.17517407
+    surfaceRotation: {x: -0.034293234, y: -0.9585055, z: -0.031645432, w: 0.28122908}
+    scale: 2.5499468
+    zoneId: Z3
+  - id: 9cfa7a6a20a147f791ff67845784d0b2
+    paletteId: DarkFacetedIcicles
+    routeId: MainRoute
+    routeDistance: 205.15262
+    angleDegrees: 32.13794
+    surfaceOffset: -0.20049366
+    surfaceRotation: {x: 0.021418773, y: 0.9482201, z: -0.049389165, w: -0.31301835}
+    scale: 2.9235783
+    zoneId: Z3
+  - id: 581fb5669cf842adb5df4f9201368fe9
+    paletteId: DarkFacetedIcicles
+    routeId: MainRoute
+    routeDistance: 223.1545
+    angleDegrees: -4.4966784
+    surfaceOffset: -0.6149865
+    surfaceRotation: {x: -0.031500548, y: 0.05723432, z: -0.0128995525, w: -0.99778026}
+    scale: 4.1888714
+    zoneId: Z3
+  - id: 1d66c20f9e5c45eb8798fe36549d4519
+    paletteId: DarkFacetedIcicles
+    routeId: MainRoute
+    routeDistance: 242.5007
+    angleDegrees: 52.13826
+    surfaceOffset: -0.33184627
+    surfaceRotation: {x: 0.027688546, y: -0.36891302, z: 0.011953928, w: 0.9289745}
+    scale: 2.612932
+    zoneId: Z3
+  - id: 39fc198d9c2d40318c398470eeec2ef1
+    paletteId: DarkFacetedIcicles
+    routeId: MainRoute
+    routeDistance: 188.81009
+    angleDegrees: -23.19455
+    surfaceOffset: -0.17378874
+    surfaceRotation: {x: 0.02277082, y: -0.68903255, z: -0.024837308, w: 0.72394663}
+    scale: 2.8097122
+    zoneId: Z3
+  - id: 26c59792196d4b79b29d7f4359486926
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 174.04251
+    angleDegrees: 179.1
+    surfaceOffset: -0.31855047
+    surfaceRotation: {x: -0.07823362, y: 0.403073, z: -0.0863782, w: -0.90771717}
+    scale: 3.6959534
+    zoneId: Z3
+  - id: 8fc1fdb65d844660b25fb3146397681e
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 199.9509
+    angleDegrees: 206.2446
+    surfaceOffset: -0.1698199
+    surfaceRotation: {x: -0.0053123306, y: 0.96256286, z: 0.040439993, w: -0.2679726}
+    scale: 3.3216069
+    zoneId: Z3
+  - id: d16d68e32fd8402ea55166f2a984ecd8
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 243.58897
+    angleDegrees: -86.23086
+    surfaceOffset: -0.67376393
+    surfaceRotation: {x: 0.052600548, y: 0.4361182, z: 0.11367018, w: -0.89113027}
+    scale: 4.5592775
+    zoneId: Z3
+  - id: 9f812e33b5fb4f769079f3a5f03aa239
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 235.02956
+    angleDegrees: 118.15759
+    surfaceOffset: -0.41862056
+    surfaceRotation: {x: -0.13188635, y: 0.4510715, z: 0.08014436, w: -0.87904346}
+    scale: 4.1754155
+    zoneId: Z3
+  - id: 5141cf5b05cb47648e15784ff5223534
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 187.91905
+    angleDegrees: -115.196495
+    surfaceOffset: -0.53500074
+    surfaceRotation: {x: 0.11884178, y: 0.85341936, z: 0.06887813, w: -0.50280017}
+    scale: 4.9289813
+    zoneId: Z3
+  - id: 059f9aa423494d0187ec104fa027be3b
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 222.0621
+    angleDegrees: -129.73254
+    surfaceOffset: -0.12566854
+    surfaceRotation: {x: 0.16830592, y: 0.8488201, z: 0.057396736, w: 0.4978785}
+    scale: 2.965123
+    zoneId: Z3
+  - id: e02ff22f8ed64cfe8bc97ff899a430cd
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 172.76787
+    angleDegrees: 124.304085
+    surfaceOffset: -0.2787175
+    surfaceRotation: {x: -0.0068610627, y: 0.6127246, z: 0.08814945, w: 0.7853349}
+    scale: 3.300062
+    zoneId: Z3
+  - id: 5447080c77064c8e9010b9e11221d479
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 189.58525
+    angleDegrees: 96.248474
+    surfaceOffset: -0.38314176
+    surfaceRotation: {x: -0.1638447, y: 0.9819503, z: 0.009044201, w: -0.09405973}
+    scale: 4.69956
+    zoneId: Z3
+  - id: 661de554c7634fcc86fa2282b22d3669
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 324.68985
+    angleDegrees: 174.21922
+    surfaceOffset: -0.4823668
+    surfaceRotation: {x: 0.074939445, y: 0.7309336, z: -0.08492825, w: 0.67298394}
+    scale: 4.8303485
+    zoneId: Z4
+  - id: b98c364245d841f1bdb13038f8c1e614
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 293.86053
+    angleDegrees: -87.234695
+    surfaceOffset: -0.19899485
+    surfaceRotation: {x: 0.12530306, y: 0.29156715, z: -0.17927848, w: 0.9312073}
+    scale: 3.1014938
+    zoneId: Z4
+  - id: 399080e883fa43e1a724bdba93b8b52a
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 284.9208
+    angleDegrees: -97.95036
+    surfaceOffset: -0.61141163
+    surfaceRotation: {x: 0.0045124134, y: 0.30113158, z: 0.2306173, w: -0.925265}
+    scale: 4.518985
+    zoneId: Z4
+  - id: c8cb11da1ef147cba9268c63494fb0d6
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 294.78915
+    angleDegrees: 60.82463
+    surfaceOffset: -0.5040724
+    surfaceRotation: {x: 0.04794621, y: -0.5724449, z: -0.22243774, w: -0.7877369}
+    scale: 4.403602
+    zoneId: Z4
+  - id: cc747d41b08241ccbcac4c4412c4c95c
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 285.38455
+    angleDegrees: 192.62283
+    surfaceOffset: -0.18374386
+    surfaceRotation: {x: -0.009787446, y: 0.8680932, z: -0.0076387473, w: 0.4962459}
+    scale: 2.6499772
+    zoneId: Z4
+  - id: 92531ca2c5694000bb7f67e59007b82e
+    paletteId: BlueGeometricRock
+    routeId: MainRoute
+    routeDistance: 291.40582
+    angleDegrees: 105.51816
+    surfaceOffset: -0.6362462
+    surfaceRotation: {x: -0.06283515, y: 0.6904122, z: 0.07734625, w: 0.7165197}
+    scale: 4.63501
+    zoneId: Z4
+  - id: b0f24011fce64351b2e5d1ba532da3eb
+    paletteId: BlueGeometricRock
+    routeId: MainRoute
+    routeDistance: 317.20895
+    angleDegrees: -84.24692
+    surfaceOffset: -0.53085357
+    surfaceRotation: {x: -0.051105917, y: 0.066558115, z: 0.24602842, w: -0.9656234}
+    scale: 4.409374
+    zoneId: Z4
+  - id: 52275b0281e64e0e996ce703aed013e0
+    paletteId: BlueGeometricRock
+    routeId: MainRoute
+    routeDistance: 331.48492
+    angleDegrees: 113.23335
+    surfaceOffset: -0.36642963
+    surfaceRotation: {x: -0.16253896, y: 0.9840483, z: 0.0714697, w: 0.011048657}
+    scale: 3.071068
+    zoneId: Z4
+  - id: 0e6c4cdf15bd4256af9ad506fcb79c56
+    paletteId: BlueGeometricRock
+    routeId: MainRoute
+    routeDistance: 296.8247
+    angleDegrees: -107.42663
+    surfaceOffset: -0.22211032
+    surfaceRotation: {x: 0.09439619, y: 0.80688876, z: -0.009715761, w: 0.5830311}
+    scale: 2.623899
+    zoneId: Z4
+  - id: cb67dec4bc29458ca188487a44b1467b
+    paletteId: DarkBlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 323.44843
+    angleDegrees: -41.493896
+    surfaceOffset: -0.42110595
+    surfaceRotation: {x: -0.0048848367, y: 0.9543869, z: 0.037561245, w: -0.29616085}
+    scale: 3.4675972
+    zoneId: Z4
+  - id: 3bb3b852dc764456bc57548c6b81a833
+    paletteId: DarkBlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 278.52243
+    angleDegrees: 21.392473
+    surfaceOffset: -0.2784749
+    surfaceRotation: {x: -0.026262626, y: -0.8344014, z: -0.017965142, w: -0.55023825}
+    scale: 3.0376582
+    zoneId: Z4
+  - id: f2be624d11a74033bd740cfb6dd1db26
+    paletteId: DarkBlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 347.2697
+    angleDegrees: 12.419087
+    surfaceOffset: -0.23594972
+    surfaceRotation: {x: 0.005802474, y: -0.6756023, z: -0.07887928, w: -0.73301166}
+    scale: 3.4029255
+    zoneId: Z4
+  - id: 86fedfd69b224c03a05554fce89fe2fd
+    paletteId: DarkBlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 314.03424
+    angleDegrees: -68.98715
+    surfaceOffset: -0.5153138
+    surfaceRotation: {x: 0.022991855, y: 0.38801908, z: 0.021038152, w: 0.9211244}
+    scale: 3.7940187
+    zoneId: Z4
+  - id: 9e1c2e720bf544a291bffc8d6df285ac
+    paletteId: DarkBlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 341.09058
+    angleDegrees: -97.08478
+    surfaceOffset: -0.12742226
+    surfaceRotation: {x: 0.05083851, y: 0.8008064, z: -0.038860355, w: 0.5954953}
+    scale: 2.6454322
+    zoneId: Z4
+  - id: d632ccf5e30144d69ed69940b9a5dc9b
+    paletteId: DarkBlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 286.03354
+    angleDegrees: 60.424194
+    surfaceOffset: -0.3536529
+    surfaceRotation: {x: 0.019272475, y: -0.054879323, z: -0.05766378, w: 0.9966402}
+    scale: 3.0597882
+    zoneId: Z4
+  - id: 6035cdecade7417fb286ac2676fe2899
+    paletteId: DarkBlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 332.11182
+    angleDegrees: -73.65688
+    surfaceOffset: -0.36348644
+    surfaceRotation: {x: 0.0016742576, y: 0.1014627, z: -0.019829912, w: 0.99464065}
+    scale: 3.8704596
+    zoneId: Z4
+  - id: 28719c07d7ad4bf8af18568cf2a14867
+    paletteId: DarkFacetedIcicles
+    routeId: MainRoute
+    routeDistance: 303.7655
+    angleDegrees: -25.577381
+    surfaceOffset: -0.64053434
+    surfaceRotation: {x: -0.004885764, y: -0.7869866, z: 0.057837315, w: 0.6142337}
+    scale: 4.329294
+    zoneId: Z4
+  - id: 5a49366d0b824147b68d11f664aeae27
+    paletteId: DarkFacetedIcicles
+    routeId: MainRoute
+    routeDistance: 311.6128
+    angleDegrees: -13.231276
+    surfaceOffset: -0.18716656
+    surfaceRotation: {x: -0.0422403, y: -0.9852123, z: 0.03445938, w: -0.16243427}
+    scale: 4.2327228
+    zoneId: Z4
+  - id: 47496f6cc43b417c907a4230530064d1
+    paletteId: DarkFacetedIcicles
+    routeId: MainRoute
+    routeDistance: 274.7191
+    angleDegrees: 42.46552
+    surfaceOffset: -0.30280417
+    surfaceRotation: {x: -0.009600892, y: -0.97489667, z: 0.034070387, w: 0.21982604}
+    scale: 4.3571796
+    zoneId: Z4
+  - id: b476fd28c9864141a45ce923e0e171b5
+    paletteId: DarkFacetedIcicles
+    routeId: MainRoute
+    routeDistance: 326.6022
+    angleDegrees: 26.417303
+    surfaceOffset: -0.43698084
+    surfaceRotation: {x: -0.02433034, y: 0.9210151, z: -0.014653292, w: -0.3884902}
+    scale: 3.15558
+    zoneId: Z4
+  - id: 2a490ef412cc4919b8043d9490fb5108
+    paletteId: DarkFacetedIcicles
+    routeId: MainRoute
+    routeDistance: 305.08945
+    angleDegrees: 47.302074
+    surfaceOffset: -0.3649205
+    surfaceRotation: {x: -0.026201466, y: 0.276692, z: 0.0037450667, w: 0.96059406}
+    scale: 2.861474
+    zoneId: Z4
+  - id: 5c35a6a2eac34832a648bd5b77170cd7
+    paletteId: JaggedRockSpire
+    routeId: MainRoute
+    routeDistance: 359.1201
+    angleDegrees: 99.10921
+    surfaceOffset: -0.4496189
+    surfaceRotation: {x: 0.051548664, y: 0.65487415, z: 0.03518489, w: 0.75315654}
+    scale: 3.138488
+    zoneId: Z5
+  - id: 3f474f0c9fe44e41b302709549147e81
+    paletteId: JaggedRockSpire
+    routeId: MainRoute
+    routeDistance: 448.75232
+    angleDegrees: 78.98615
+    surfaceOffset: -0.44447044
+    surfaceRotation: {x: -0.07352546, y: 0.60439616, z: -0.027600236, w: -0.79280347}
+    scale: 4.654114
+    zoneId: Z5
+  - id: e22cbfad49d34876bd06da4d29c922eb
+    paletteId: JaggedRockSpire
+    routeId: MainRoute
+    routeDistance: 391.77252
+    angleDegrees: 97.11761
+    surfaceOffset: -0.4808008
+    surfaceRotation: {x: -0.09619444, y: 0.9671581, z: -0.0030364012, w: 0.23525105}
+    scale: 3.9314778
+    zoneId: Z5
+  - id: 586a237413d04a3796ff014db9cd66f4
+    paletteId: JaggedRockSpire
+    routeId: MainRoute
+    routeDistance: 442.15128
+    angleDegrees: -121.133255
+    surfaceOffset: -0.5138457
+    surfaceRotation: {x: 0.091637455, y: 0.9842387, z: -0.04370214, w: 0.14479956}
+    scale: 3.5586107
+    zoneId: Z5
+  - id: 2b9697a2a1ad491bb4f65d7da9771ea5
+    paletteId: JaggedRockSpire
+    routeId: MainRoute
+    routeDistance: 422.02747
+    angleDegrees: -72.65899
+    surfaceOffset: -0.28717497
+    surfaceRotation: {x: 0.120796666, y: 0.10846579, z: -0.119385615, w: 0.97948474}
+    scale: 4.829151
+    zoneId: Z5
+  - id: 80ede0f5016a47f79a934e439bdad6bd
+    paletteId: JaggedRockSpire
+    routeId: MainRoute
+    routeDistance: 420.69885
+    angleDegrees: 98.71108
+    surfaceOffset: -0.39564943
+    surfaceRotation: {x: -0.11273799, y: 0.8564631, z: 0.07491265, w: 0.49814588}
+    scale: 4.1581516
+    zoneId: Z5
+  - id: 759f4e50f9b348b99945c01b8d78b3bd
+    paletteId: JaggedRockSpire
+    routeId: MainRoute
+    routeDistance: 401.1003
+    angleDegrees: 81.891525
+    surfaceOffset: -0.2990542
+    surfaceRotation: {x: 0.0010010466, y: 0.5748923, z: -0.06455605, w: -0.815678}
+    scale: 3.2056134
+    zoneId: Z5
+  - id: b797a9f79b1a4c69802c1ac87b71366a
+    paletteId: LowpolyVolcano
+    routeId: MainRoute
+    routeDistance: 389.7974
+    angleDegrees: 157.64902
+    surfaceOffset: -0.76620626
+    surfaceRotation: {x: -0.047593784, y: 0.9305862, z: -0.050131883, w: -0.35948694}
+    scale: 8.381388
+    zoneId: Z5
+  - id: f0d7552d294a49fb83acebbe84dfd526
+    paletteId: LowpolyVolcano
+    routeId: MainRoute
+    routeDistance: 416.89835
+    angleDegrees: 172.88647
+    surfaceOffset: -0.65487975
+    surfaceRotation: {x: 0.026126113, y: 0.97873074, z: 0.16162387, w: 0.1236174}
+    scale: 7.048759
+    zoneId: Z5
+  - id: 55dfbfa12e70429395482fb98aaddc63
+    paletteId: LowpolyVolcano
+    routeId: MainRoute
+    routeDistance: 371.46902
+    angleDegrees: 183.23322
+    surfaceOffset: -0.34849268
+    surfaceRotation: {x: -0.11526543, y: 0.9250067, z: -0.032954108, w: 0.36054197}
+    scale: 5.3422832
+    zoneId: Z5
+  - id: 77fb05d58e9a48f1addf266bf04e5faa
+    paletteId: LowpolyVolcano
+    routeId: MainRoute
+    routeDistance: 393.58133
+    angleDegrees: 214.11482
+    surfaceOffset: -0.39480236
+    surfaceRotation: {x: 0.07103148, y: 0.63161665, z: -0.06413205, w: 0.7693518}
+    scale: 5.6843896
+    zoneId: Z5
+  - id: ab19695a12a54bf28f1391917adec212
+    paletteId: BlueStonePlatform
+    routeId: MainRoute
+    routeDistance: 371.2427
+    angleDegrees: 149.00624
+    surfaceOffset: -0.651342
+    surfaceRotation: {x: 0.06725501, y: 0.68309444, z: 0.21943037, w: 0.6933319}
+    scale: 5.804841
+    zoneId: Z5
+  - id: 66c992d300f6428cbd29664bb5b2a667
+    paletteId: BlueStonePlatform
+    routeId: MainRoute
+    routeDistance: 409.94925
+    angleDegrees: 212.76509
+    surfaceOffset: -0.9380246
+    surfaceRotation: {x: 0.12100044, y: 0.9651687, z: 0.22098026, w: -0.07054071}
+    scale: 8.055008
+    zoneId: Z5
+  - id: 452e2cadf4ea41c6a1b0d58e0d2888e7
+    paletteId: BlueStonePlatform
+    routeId: MainRoute
+    routeDistance: 384.66412
+    angleDegrees: 186.28577
+    surfaceOffset: -0.22789402
+    surfaceRotation: {x: 0.10224719, y: 0.17539395, z: -0.10523624, w: -0.9735029}
+    scale: 5.6488466
+    zoneId: Z5
+  - id: a6a261c75d6f49608fcde595498c8cc2
+    paletteId: BlueStonePlatform
+    routeId: MainRoute
+    routeDistance: 360.03992
+    angleDegrees: 207.97723
+    surfaceOffset: -0.63064486
+    surfaceRotation: {x: -0.051067553, y: 0.05848036, z: 0.12755688, w: -0.98878783}
+    scale: 5.5478888
+    zoneId: Z5
+  - id: 49975b5dce14413e8ba6fdd3b181af2a
+    paletteId: BlueStonePlatform
+    routeId: MainRoute
+    routeDistance: 398.1798
+    angleDegrees: 189.056
+    surfaceOffset: -0.7833397
+    surfaceRotation: {x: -0.07215517, y: 0.45002016, z: -0.20172225, w: 0.8669392}
+    scale: 5.5522757
+    zoneId: Z5
+  - id: 466fd7253d524578bfd60122f2212257
+    paletteId: FacetedBlueRamp
+    routeId: MainRoute
+    routeDistance: 417.75107
+    angleDegrees: 155.64967
+    surfaceOffset: -0.73991513
+    surfaceRotation: {x: -0.016284088, y: 0.69089466, z: 0.044636875, w: -0.7213923}
+    scale: 6.70562
+    zoneId: Z5
+  - id: 5f47866b5dad41dc96b365e0f64901fd
+    paletteId: FacetedBlueRamp
+    routeId: MainRoute
+    routeDistance: 439.00446
+    angleDegrees: 206.78189
+    surfaceOffset: -0.36232355
+    surfaceRotation: {x: 0.1544903, y: 0.98428226, z: 0.026222907, w: -0.081445746}
+    scale: 6.133856
+    zoneId: Z5
+  - id: a5c76cc8c41a4bf693c37f82e0d32e35
+    paletteId: FacetedBlueRamp
+    routeId: MainRoute
+    routeDistance: 396.80533
+    angleDegrees: 153.08104
+    surfaceOffset: -0.5832107
+    surfaceRotation: {x: -0.059439782, y: 0.37760285, z: -0.08680447, w: -0.91997176}
+    scale: 4.2124915
+    zoneId: Z5
+  - id: 52e58c3a1e184214876bd1d01ae6e0ed
+    paletteId: FacetedBlueRamp
+    routeId: MainRoute
+    routeDistance: 377.81287
+    angleDegrees: 154.09592
+    surfaceOffset: -0.41769826
+    surfaceRotation: {x: 0.04217691, y: 0.25404832, z: -0.070161946, w: -0.9637208}
+    scale: 6.544107
+    zoneId: Z5
+  - id: e7fe3c99f5b0449f909f7a0502ec0c54
+    paletteId: FacetedBlueRamp
+    routeId: MainRoute
+    routeDistance: 453.9969
+    angleDegrees: 166.3787
+    surfaceOffset: -0.24960685
+    surfaceRotation: {x: -0.004490711, y: 0.83293295, z: 0.064382374, w: -0.54959756}
+    scale: 4.2334495
+    zoneId: Z5
+  - id: 12adca01c6ce45c48e0786749ebdd6a9
+    paletteId: FacetedBlueRamp
+    routeId: MainRoute
+    routeDistance: 420.03308
+    angleDegrees: 190.20116
+    surfaceOffset: -0.25734425
+    surfaceRotation: {x: -0.14465667, y: 0.45207, z: 0.047859795, w: -0.8788724}
+    scale: 5.247225
+    zoneId: Z5
+  - id: aec17d99a41a44d1a1fa222cd6f5ff25
+    paletteId: FacetedBlueRamp
+    routeId: MainRoute
+    routeDistance: 386.65097
+    angleDegrees: 194.84856
+    surfaceOffset: -0.59333074
+    surfaceRotation: {x: 0.18728657, y: 0.8746518, z: -0.01483223, w: 0.44686475}
+    scale: 4.86757
+    zoneId: Z5
+  - id: 78442dab0dca48d99c90a8dc8d3d6e32
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 365.01755
+    angleDegrees: 99.74935
+    surfaceOffset: -0.5450787
+    surfaceRotation: {x: -0.07588627, y: 0.77762777, z: 0.14010201, w: 0.6082007}
+    scale: 4.8621836
+    zoneId: Z5
+  - id: 964f46f578e940ac9cafb9f51788a343
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 391.1144
+    angleDegrees: 73.704956
+    surfaceOffset: -0.26122093
+    surfaceRotation: {x: -0.09407177, y: 0.579423, z: 0.17203063, w: 0.7910911}
+    scale: 3.5108688
+    zoneId: Z5
+  - id: 6be0b2b48fbf410aa79dae2b386b8aec
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 352.63312
+    angleDegrees: 101.16769
+    surfaceOffset: -0.33040053
+    surfaceRotation: {x: -0.22265254, y: 0.96913594, z: -0.0030817532, w: -0.10579126}
+    scale: 4.27854
+    zoneId: Z5
+  - id: a5e8c8e0e3024f5c8a4996a4afa99c63
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 371.66537
+    angleDegrees: 67.087006
+    surfaceOffset: -0.44747987
+    surfaceRotation: {x: -0.060335353, y: 0.7714692, z: 0.14267552, w: 0.61712146}
+    scale: 4.2385507
+    zoneId: Z5
+  - id: 9fd60f206a4a4432b5bfadf4057f3d7a
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 407.61386
+    angleDegrees: -88.479256
+    surfaceOffset: -0.117005125
+    surfaceRotation: {x: -0.10920594, y: 0.73583376, z: 0.11588353, w: -0.65817463}
+    scale: 2.5992463
+    zoneId: Z5
+  - id: a34a738418d84375b1228bb4af4c0fdb
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 408.24744
+    angleDegrees: 185.29881
+    surfaceOffset: -0.34298608
+    surfaceRotation: {x: -0.032061387, y: 0.3770106, z: 0.13401721, w: -0.9159009}
+    scale: 4.219108
+    zoneId: Z5
+  - id: e2ce34581cc44a6b849b44a5fb3f36d6
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 465.2069
+    angleDegrees: 101.07928
+    surfaceOffset: -0.32276782
+    surfaceRotation: {x: -0.12860985, y: 0.9035732, z: 0.094833754, w: 0.39751908}
+    scale: 3.2933788
+    zoneId: Z6
+  - id: f098247c2d9a4f26be14d26b1bfb705d
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 505.45383
+    angleDegrees: -121.071846
+    surfaceOffset: -0.4530768
+    surfaceRotation: {x: -0.09608835, y: 0.1078506, z: -0.026625656, w: 0.9891544}
+    scale: 4.066348
+    zoneId: Z6
+  - id: c5efb71d9f594a10bff336ac473dbe1f
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 508.99548
+    angleDegrees: -105.09786
+    surfaceOffset: -0.33995748
+    surfaceRotation: {x: -0.08860574, y: 0.12397163, z: -0.07866169, w: 0.9851865}
+    scale: 3.9334624
+    zoneId: Z6
+  - id: 0634bf731b5c4e30aee3b4b690c7189f
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 521.89685
+    angleDegrees: 135.08566
+    surfaceOffset: -0.44132727
+    surfaceRotation: {x: -0.093232594, y: 0.8502068, z: -0.024040278, w: -0.51756954}
+    scale: 3.2285888
+    zoneId: Z6
+  - id: 74b8acfc20cd47c598a582da0d1d7ac6
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 571.8828
+    angleDegrees: 184.51701
+    surfaceOffset: -0.24575658
+    surfaceRotation: {x: 0.0034382588, y: 0.12888433, z: 0.08384995, w: 0.9881024}
+    scale: 2.5821717
+    zoneId: Z6
+  - id: accc1162973e465fa6a433583a784372
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 519.7513
+    angleDegrees: 170.29074
+    surfaceOffset: -0.1447153
+    surfaceRotation: {x: 0.07631108, y: 0.027191887, z: -0.03368606, w: 0.9961439}
+    scale: 3.0879138
+    zoneId: Z6
+  - id: 753a74ff8b024899ae27cecd8909f99e
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 520.4909
+    angleDegrees: 77.04495
+    surfaceOffset: -0.2951693
+    surfaceRotation: {x: 0.18681334, y: -0.87492347, z: -0.03264097, w: 0.44558287}
+    scale: 2.8570325
+    zoneId: Z6
+  - id: f7260d0288ef4b4a895dfb1e9dd8995f
+    paletteId: BlueFacetedRock
+    routeId: MainRoute
+    routeDistance: 476.7377
+    angleDegrees: 212.40778
+    surfaceOffset: -0.49284357
+    surfaceRotation: {x: -0.088952534, y: 0.428263, z: 0.006390197, w: -0.8992427}
+    scale: 3.998848
+    zoneId: Z6
+  - id: 0ee32517d09f4cbd87e4a56f64cc4acc
+    paletteId: BlueFacetedRocks
+    routeId: MainRoute
+    routeDistance: 486.60373
+    angleDegrees: 134.66351
+    surfaceOffset: -0.20348684
+    surfaceRotation: {x: -0.03362451, y: 0.617537, z: -0.09967779, w: -0.7794754}
+    scale: 4.7448688
+    zoneId: Z6
+  - id: e4f7de410c714c81a37397af2c414d7b
+    paletteId: BlueFacetedRocks
+    routeId: MainRoute
+    routeDistance: 473.48764
+    angleDegrees: 203.18419
+    surfaceOffset: -0.26686877
+    surfaceRotation: {x: -0.039526194, y: 0.2690313, z: 0.15869403, w: 0.94914484}
+    scale: 5.02192
+    zoneId: Z6
+  - id: f75987c62286466faff1d9f255aaae49
+    paletteId: BlueFacetedRocks
+    routeId: MainRoute
+    routeDistance: 551.5
+    angleDegrees: 172.6686
+    surfaceOffset: -0.19594578
+    surfaceRotation: {x: -0.00016738224, y: 0.9967462, z: 0.0009797504, w: -0.08059705}
+    scale: 3.8024871
+    zoneId: Z6
+  - id: 6b8aff7596d344f38e51eba5a6da17e7
+    paletteId: BlueFacetedRocks
+    routeId: MainRoute
+    routeDistance: 566.1313
+    angleDegrees: 224.3125
+    surfaceOffset: -0.27327126
+    surfaceRotation: {x: 0.06842593, y: 0.14294016, z: -0.02318282, w: -0.987091}
+    scale: 4.4031897
+    zoneId: Z6
+  - id: e55eb79720554c06924f504377c88e52
+    paletteId: BlueFacetedRocks
+    routeId: MainRoute
+    routeDistance: 484.18958
+    angleDegrees: 201.01898
+    surfaceOffset: -0.5614735
+    surfaceRotation: {x: -0.09274185, y: 0.99062794, z: 0.02056805, w: 0.0981449}
+    scale: 5.714941
+    zoneId: Z6
+  - id: da64271361cf474996b6f2252cfe88ef
+    paletteId: BlueFacetedRocks
+    routeId: MainRoute
+    routeDistance: 558.40027
+    angleDegrees: 138.85162
+    surfaceOffset: -0.3777149
+    surfaceRotation: {x: 0.106129155, y: 0.87096536, z: 0.11075556, w: 0.46678582}
+    scale: 5.3445897
+    zoneId: Z6
+  - id: 4d07b411f2a34030ba6c6a57b0cc5924
+    paletteId: BlueFacetedRocks
+    routeId: MainRoute
+    routeDistance: 535.56384
+    angleDegrees: 192.50005
+    surfaceOffset: -0.21651265
+    surfaceRotation: {x: -0.11471387, y: 0.80994606, z: 0.1454849, w: -0.5564732}
+    scale: 3.5743346
+    zoneId: Z6
+  - id: 25888f4696054a16a94316c7f492122a
+    paletteId: BlueFacetedRocks
+    routeId: MainRoute
+    routeDistance: 558.09955
+    angleDegrees: 193.8865
+    surfaceOffset: -0.1536164
+    surfaceRotation: {x: -0.09304939, y: 0.9904541, z: -0.022319019, w: 0.099219866}
+    scale: 3.7590907
+    zoneId: Z6
+  - id: f2e27898fec74ed794dcdef690b06802
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 564.54285
+    angleDegrees: 94.05854
+    surfaceOffset: -0.15865771
+    surfaceRotation: {x: -0.03698647, y: 0.9990173, z: 0.02144149, w: -0.011692863}
+    scale: 3.449284
+    zoneId: Z6
+  - id: 905f09895a3e44a6b836b456629cd4da
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 564.8392
+    angleDegrees: -127.82743
+    surfaceOffset: -0.47591895
+    surfaceRotation: {x: 0.05241967, y: 0.17761013, z: -0.015513428, w: -0.98258144}
+    scale: 4.227086
+    zoneId: Z6
+  - id: 864e566130c54029a993b0b13777390a
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 488.42056
+    angleDegrees: -100.41586
+    surfaceOffset: -0.4801173
+    surfaceRotation: {x: -0.046049427, y: 0.44946826, z: 0.035391394, w: -0.89140636}
+    scale: 3.3112226
+    zoneId: Z6
+  - id: 2bc10000a22440249e04872a7da1d07c
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 540.57916
+    angleDegrees: 113.81698
+    surfaceOffset: -0.5003297
+    surfaceRotation: {x: -0.06656822, y: 0.8707059, z: -0.0084199635, w: -0.48720556}
+    scale: 3.5784888
+    zoneId: Z6
+  - id: 1dd3498e3a9d436ead608f05ccb40960
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 487.2796
+    angleDegrees: 189.91335
+    surfaceOffset: -0.259105
+    surfaceRotation: {x: 0.024359422, y: 0.84751564, z: 0.040143885, w: 0.5286892}
+    scale: 2.337862
+    zoneId: Z6
+  - id: b22b2763a8d6415a95c219279660e5e5
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 503.20258
+    angleDegrees: 69.87767
+    surfaceOffset: -0.40703383
+    surfaceRotation: {x: 0.016055796, y: 0.59303164, z: -0.035401326, w: -0.80424017}
+    scale: 4.484167
+    zoneId: Z6
+  - id: 33a5b58c2c5f416ca8844a8493fcac54
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 549.55945
+    angleDegrees: -109.33621
+    surfaceOffset: -0.21038021
+    surfaceRotation: {x: -0.049021553, y: 0.8946835, z: -0.0028208091, w: 0.44399408}
+    scale: 3.8224082
+    zoneId: Z6
+  - id: ae999956a1394f00b0fcd4078551dd25
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 484.19388
+    angleDegrees: 71.22709
+    surfaceOffset: -0.107602164
+    surfaceRotation: {x: -0.022163354, y: 0.79397666, z: 0.008149145, w: 0.60748965}
+    scale: 2.0186431
+    zoneId: Z6
+  - id: bc2d226f4877487a9c64572682e43b55
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 477.64212
+    angleDegrees: 191.2697
+    surfaceOffset: -0.31779468
+    surfaceRotation: {x: -0.035472613, y: 0.36800748, z: 0.057163257, w: -0.92738587}
+    scale: 3.716179
+    zoneId: Z6
+  - id: b7b652cf337441b8a08b945f55aa7e41
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 565.03015
+    angleDegrees: 169.37407
+    surfaceOffset: -0.26242462
+    surfaceRotation: {x: 0.020758227, y: 0.3607021, z: 0.020910043, w: -0.9322156}
+    scale: 2.140311
+    zoneId: Z6
+  - id: c0f0ce0751ca420fa1ca0bc13915d501
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 499.946
+    angleDegrees: 133.34106
+    surfaceOffset: -0.21817277
+    surfaceRotation: {x: 0.053863864, y: 0.93107474, z: 0.03720068, w: 0.35890752}
+    scale: 3.7814221
+    zoneId: Z6
+  - id: 8e1d3312739045ef99f037aba982ce1c
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 550.49927
+    angleDegrees: -125.29702
+    surfaceOffset: -0.29577821
+    surfaceRotation: {x: -0.04575137, y: 0.98934823, z: 0.022758164, w: 0.13630494}
+    scale: 2.6135337
+    zoneId: Z6
+  - id: ec6b51ea2d3846e290c06b51e0f0d35c
+    paletteId: BlueCrystalFormation
+    routeId: MainRoute
+    routeDistance: 505.4285
+    angleDegrees: -88.06204
+    surfaceOffset: -0.384316
+    surfaceRotation: {x: 0.000054327367, y: 0.96940064, z: -0.05085443, w: 0.2401584}
+    scale: 3.5731006
+    zoneId: Z6
+  - id: cbc8cf4004a641f29489a1186a61d817
+    paletteId: BlueStonePlatform
+    routeId: MainRoute
+    routeDistance: 510.07443
+    angleDegrees: 187.13712
+    surfaceOffset: -1.1904312
+    surfaceRotation: {x: -0.18014584, y: 0.2940872, z: 0.0011449299, w: 0.9386473}
+    scale: 8.008912
+    zoneId: Z6
+  - id: 1ffd6176fdd94e4880986e828f82ed75
+    paletteId: BlueStonePlatform
+    routeId: MainRoute
+    routeDistance: 578.2478
+    angleDegrees: 129.43349
+    surfaceOffset: -0.44822967
+    surfaceRotation: {x: -0.15239865, y: 0.62780637, z: 0.020687561, w: -0.76302403}
+    scale: 6.032294
+    zoneId: Z6
+  - id: 6e82756fe0a44f47bffc1fb2ccbe4859
+    paletteId: BlueStonePlatform
+    routeId: MainRoute
+    routeDistance: 538.35394
+    angleDegrees: 139.20006
+    surfaceOffset: -0.8907969
+    surfaceRotation: {x: -0.12812375, y: 0.5242151, z: 0.0061028944, w: 0.84187037}
+    scale: 5.972949
+    zoneId: Z6
+  - id: e26d783ea6f94c8e9fbfa89f53eff7d9
+    paletteId: BlueStonePlatform
+    routeId: MainRoute
+    routeDistance: 563.39325
+    angleDegrees: 189.72998
+    surfaceOffset: -0.43581167
+    surfaceRotation: {x: 0.18247534, y: 0.09578292, z: -0.017451096, w: 0.97837836}
+    scale: 5.3882914
+    zoneId: Z6
+  - id: e371efc1d8e7467880cb6756d65441bf
+    paletteId: BlueStonePlatform
+    routeId: MainRoute
+    routeDistance: 551.6695
+    angleDegrees: 224.99245
+    surfaceOffset: -0.7664868
+    surfaceRotation: {x: 0.02819195, y: 0.45989177, z: -0.05466864, w: 0.88584214}
+    scale: 6.8678603
+    zoneId: Z6
+  - id: eaaa27bc5532436fbdc64a964f23bd85
+    paletteId: BlueStonePlatform
+    routeId: MainRoute
+    routeDistance: 491.59378
+    angleDegrees: 220.41928
+    surfaceOffset: -0.47812226
+    surfaceRotation: {x: 0.13366127, y: 0.9633246, z: 0.21591146, w: 0.08673378}
+    scale: 5.3917723
+    zoneId: Z6
+  - id: 5e7bcaef08644acb8ff4c2a8e2d8b800
+    paletteId: BlueStonePlatform
+    routeId: MainRoute
+    routeDistance: 511.16696
+    angleDegrees: 151.80647
+    surfaceOffset: -0.8625151
+    surfaceRotation: {x: 0.0011788058, y: 0.49058247, z: -0.08593079, w: -0.8671467}
+    scale: 5.8680367
+    zoneId: Z6
+  - id: 6d883be1db9c4100bcd913e2fa294161
+    paletteId: BlueStonePlatform
+    routeId: MainRoute
+    routeDistance: 496.64023
+    angleDegrees: 152.65855
+    surfaceOffset: -0.91358787
+    surfaceRotation: {x: -0.035882413, y: 0.5914278, z: 0.005837959, w: 0.80553806}
+    scale: 6.8484926
+    zoneId: Z6
+  - id: d0f1e1df4c1b4b97ade0248a4fc73671
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 493.6398
+    angleDegrees: 119.50083
+    surfaceOffset: -0.5094353
+    surfaceRotation: {x: -0.034486476, y: 0.50720453, z: -0.08875549, w: -0.8565492}
+    scale: 4.145188
+    zoneId: Z6
+  - id: dec327b435894460a2398d2c30a96a55
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 537.4476
+    angleDegrees: 159.98027
+    surfaceOffset: -0.24988717
+    surfaceRotation: {x: -0.01538757, y: 0.34454486, z: -0.002412144, w: 0.93864065}
+    scale: 3.7870631
+    zoneId: Z6
+  - id: b39637efa9324365a1d7cfef24c3720a
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 483.99368
+    angleDegrees: -72.8781
+    surfaceOffset: -0.12839392
+    surfaceRotation: {x: -0.015012989, y: 0.09911911, z: -0.26937747, w: 0.95780265}
+    scale: 2.8373263
+    zoneId: Z6
+  - id: a873eb89a9624349bb8038d7e405f5e2
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 486.52856
+    angleDegrees: 70.454506
+    surfaceOffset: -0.5254217
+    surfaceRotation: {x: -0.022142923, y: 0.46974185, z: -0.04781055, w: -0.8812299}
+    scale: 4.1142926
+    zoneId: Z6
+  - id: d159b867eb014548a09f8443a2e537cd
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 471.5648
+    angleDegrees: 94.53052
+    surfaceOffset: -0.12851028
+    surfaceRotation: {x: -0.05762038, y: 0.38745525, z: 0.08335716, w: 0.9163025}
+    scale: 2.9344308
+    zoneId: Z6
+  - id: b7cb1a3f533144619c881866bc9c1582
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 562.4044
+    angleDegrees: 221.3827
+    surfaceOffset: -0.58964396
+    surfaceRotation: {x: 0.057619844, y: 0.9443422, z: 0.06811152, w: 0.31663647}
+    scale: 4.120637
+    zoneId: Z6
+  - id: 90f256b761b5471bb7368296775dc0ce
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 556.8533
+    angleDegrees: 129.13622
+    surfaceOffset: -0.5987007
+    surfaceRotation: {x: 0.013381392, y: 0.49660036, z: 0.009960751, w: -0.867819}
+    scale: 4.991109
+    zoneId: Z6
+  - id: 9a25d72aa7d642f9987ad597e8041c9c
+    paletteId: FacetedBlueRock
+    routeId: MainRoute
+    routeDistance: 478.95435
+    angleDegrees: 172.08624
+    surfaceOffset: -0.43471575
+    surfaceRotation: {x: -0.022842586, y: 0.65119994, z: -0.009745328, w: -0.7584998}
+    scale: 4.815558
+    zoneId: Z6
+  - id: 8a5baa357d4f45e2ab82d27bc2efc37f
+    paletteId: BlueFacetedArch
+    routeId: MainRoute
+    routeDistance: 503.63504
+    angleDegrees: 205.0817
+    surfaceOffset: -0.6714001
+    surfaceRotation: {x: 0.12554713, y: 0.95615363, z: 0.07633652, w: -0.25333962}
+    scale: 12.837679
+    zoneId: Z6
+  - id: bef3e056693d4f77b97ece2ff1ad9b58
+    paletteId: BlueFacetedArch
+    routeId: MainRoute
+    routeDistance: 526.7222
+    angleDegrees: 210.30261
+    surfaceOffset: -1.0758585
+    surfaceRotation: {x: 0.10718229, y: 0.79204386, z: 0.18987748, w: 0.5701973}
+    scale: 14.538238
+    zoneId: Z6
+  - id: c61f055a09324c88b048d99bbc35b260
+    paletteId: BlueFacetedArch
+    routeId: MainRoute
+    routeDistance: 578.7151
+    angleDegrees: 206.4106
+    surfaceOffset: -1.0643317
+    surfaceRotation: {x: 0.010536988, y: 0.98718596, z: 0.14196631, w: -0.07210081}
+    scale: 14.399033
+    zoneId: Z6
+  - id: d78ea7145e2340a680fa3d0a416fb3fd
+    paletteId: SciFiStorageTank
+    routeId: MainRoute
+    routeDistance: 575.3792
+    angleDegrees: 125.26021
+    surfaceOffset: -0.2178162
+    surfaceRotation: {x: -0.2981168, y: 0.94198424, z: -0.005501204, w: 0.15414885}
+    scale: 4.0102034
+    zoneId: Z6
+  - id: adbb901e130746b4af0bdb5e611e8d08
+    paletteId: SciFiStorageTank
+    routeId: MainRoute
+    routeDistance: 508.55853
+    angleDegrees: 165.81654
+    surfaceOffset: -0.17746994
+    surfaceRotation: {x: -0.03979527, y: 0.5534746, z: 0.0843982, w: 0.82762265}
+    scale: 3.880449
+    zoneId: Z6
+  - id: e2222b55d72743c6a75eecc4aa0a8f97
+    paletteId: SciFiStorageTank
+    routeId: MainRoute
+    routeDistance: 491.28622
+    angleDegrees: 136.6654
+    surfaceOffset: -0.2422147
+    surfaceRotation: {x: -0.08262366, y: 0.87870306, z: 0.003087944, w: 0.47015402}
+    scale: 3.7366076
+    zoneId: Z6
+  - id: 2fb974a9f52f4260886df8637dc0b807
+    paletteId: SciFiStorageTank
+    routeId: MainRoute
+    routeDistance: 469.4591
+    angleDegrees: 218.82924
+    surfaceOffset: -0.4674324
+    surfaceRotation: {x: 0.09097093, y: 0.96462125, z: 0.013469538, w: 0.24708067}
+    scale: 4.5105586
+    zoneId: Z6
+  - id: fdfbbffdc56b434dbb944f9f9110b3bc
+    paletteId: SciFiStorageTank
+    routeId: MainRoute
+    routeDistance: 490.7606
+    angleDegrees: 169.6355
+    surfaceOffset: -0.32035366
+    surfaceRotation: {x: -0.058522724, y: 0.36456907, z: 0.15673564, w: -0.9160232}
+    scale: 4.9800935
+    zoneId: Z6
+  - id: 5f45755a557e47c686721d116ca277a4
+    paletteId: BlueLayeredRock
+    routeId: MainRoute
+    routeDistance: 12.599403
+    angleDegrees: 185.50858
+    surfaceOffset: -0.3280471
+    surfaceRotation: {x: 0.070903294, y: 0.33249345, z: -0.06729025, w: 0.9380261}
+    scale: 2.616994
+    zoneId: Z1
+  - id: c5c5cd7aca4d4f42ac5da7038c703309
+    paletteId: BlueLayeredRock
+    routeId: MainRoute
+    routeDistance: 39.16089
+    angleDegrees: 158.70653
+    surfaceOffset: -0.42946473
+    surfaceRotation: {x: -0.02929459, y: 0.17358829, z: 0.005412889, w: -0.98436767}
+    scale: 2.9298759
+    zoneId: Z1
+  - id: b562029c6408458f9697665aa12e3dc0
+    paletteId: BlueGeometricRocks
+    routeId: MainRoute
+    routeDistance: 19.496496
+    angleDegrees: 232.58835
+    surfaceOffset: -0.10137387
+    surfaceRotation: {x: -0.0040051234, y: 0.104132384, z: 0.07428313, w: 0.99177736}
+    scale: 2.433586
+    zoneId: Z1
+  - id: b7b69b742d7948519fddbe23e4851231
+    paletteId: BlueGeometricRocks
+    routeId: MainRoute
+    routeDistance: 52.719376
+    angleDegrees: 105.48152
+    surfaceOffset: -0.14450528
+    surfaceRotation: {x: -0.010982232, y: 0.80905885, z: 0.056130886, w: 0.58493817}
+    scale: 2.400716
+    zoneId: Z1
+  - id: f81efe26fa1e4eec9ec44926ffeeb6bf
+    paletteId: DarkRockSpike
+    routeId: MainRoute
+    routeDistance: 39.2035
+    angleDegrees: -52.219986
+    surfaceOffset: -0.16243315
+    surfaceRotation: {x: 0.070127375, y: 0.7857122, z: 0.042198636, w: 0.61315405}
+    scale: 3.3145638
+    zoneId: Z1
+  - id: 623a39a10bea4ff58bdfc16bee4e67f8
+    paletteId: DarkRockSpike
+    routeId: MainRoute
+    routeDistance: 13.891683
+    angleDegrees: -17.930847
+    surfaceOffset: -0.32535914
+    surfaceRotation: {x: -0.057340175, y: 0.28568906, z: 0.059797827, w: -0.9547347}
+    scale: 4.464414
+    zoneId: Z1
+  - id: f0432f9e69ab443a9485618e1b0cb17d
+    paletteId: BlueFacetedStone
+    routeId: MainRoute
+    routeDistance: 15.952443
+    angleDegrees: 216.43956
+    surfaceOffset: -0.40752095
+    surfaceRotation: {x: 0.26387855, y: 0.89003986, z: 0.035846453, w: 0.37001657}
+    scale: 3.0171227
+    zoneId: Z1
+  - id: cb173fd76b534a97aa47a8f000aa53bf
+    paletteId: DarkCrystalCluster
+    routeId: MainRoute
+    routeDistance: 21.060503
+    angleDegrees: 211.81543
+    surfaceOffset: -0.34640262
+    surfaceRotation: {x: 0.020072043, y: 0.78775257, z: 0.050629612, w: 0.6135793}
+    scale: 2.5368686
+    zoneId: Z1
+  - id: 629c662ec9f745f0b7ddac05f523941a
+    paletteId: DarkCrystalCluster
+    routeId: MainRoute
+    routeDistance: 43.16644
+    angleDegrees: 135.64268
+    surfaceOffset: -0.14260186
+    surfaceRotation: {x: -0.014101022, y: 0.7212236, z: 0.0014697383, w: -0.6925573}
+    scale: 3.2474122
+    zoneId: Z1
+  - id: 3bdabaae6f4a4d68876e3e87c55be84d
+    paletteId: StylizedGreenSeaweed
+    routeId: MainRoute
+    routeDistance: 53.69402
+    angleDegrees: 143.30888
+    surfaceOffset: -0.34778184
+    surfaceRotation: {x: 0.087737, y: 0.94739026, z: -0.043646015, w: 0.30471122}
+    scale: 3.1330254
+    zoneId: Z1
+  - id: 7fe1d17133994459b57d0e426c955e46
+    paletteId: StylizedGreenSeaweed
+    routeId: MainRoute
+    routeDistance: 36.13395
+    angleDegrees: -123.588684
+    surfaceOffset: -0.16744624
+    surfaceRotation: {x: -0.0586795, y: 0.2355018, z: 0.024515824, w: 0.96979094}
+    scale: 1.625299
+    zoneId: Z1
+  - id: 0e99daf70b2c434687e559aae25566a8
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 11.596031
+    angleDegrees: 208.98973
+    surfaceOffset: -0.1359845
+    surfaceRotation: {x: -0.035989366, y: 0.76230776, z: 0.08399159, w: -0.6407318}
+    scale: 3.0210216
+    zoneId: Z1
+  - id: baa68af360d044468ad28f0f5c8c6548
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 22.423187
+    angleDegrees: 168.02386
+    surfaceOffset: -0.34614557
+    surfaceRotation: {x: 0.018692482, y: 0.9352771, z: -0.0027529923, w: 0.35341188}
+    scale: 2.919295
+    zoneId: Z1
+  - id: 266dc49862704076ae884f7d2c350564
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 5.197652
+    angleDegrees: 222.9249
+    surfaceOffset: -0.23140249
+    surfaceRotation: {x: 0.0069454387, y: 0.8621581, z: -0.061531555, w: -0.50284106}
+    scale: 3.538495
+    zoneId: Z1
+  - id: ee5929d23c98493a918fcdecbda66a8e
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 39.650917
+    angleDegrees: 222.44255
+    surfaceOffset: -0.43425643
+    surfaceRotation: {x: 0.0047606044, y: 0.69467324, z: 0.102138385, w: 0.7120213}
+    scale: 3.6898623
+    zoneId: Z1
+  - id: 70733931481c4247a3951f85c3b9461f
+    paletteId: LowPolyGreenPlant
+    routeId: MainRoute
+    routeDistance: 50.78926
+    angleDegrees: -61.84627
+    surfaceOffset: -0.24965902
+    surfaceRotation: {x: 0.0054604653, y: 0.40250406, z: 0.09313763, w: -0.9106516}
+    scale: 1.7602011
+    zoneId: Z1
+  - id: f141690e1ee7482895f2a35547a11c1a
+    paletteId: LowPolyGreenPlant
+    routeId: MainRoute
+    routeDistance: 1.6235807
+    angleDegrees: 215.93256
+    surfaceOffset: -0.13413633
+    surfaceRotation: {x: -0.11059264, y: 0.38983396, z: -0.0044754767, w: 0.9142094}
+    scale: 2.1082785
+    zoneId: Z1
+  - id: 4f28df6ad9094d7582144bff887df881
+    paletteId: GreenStylizedPlant
+    routeId: MainRoute
+    routeDistance: 11.568073
+    angleDegrees: 62.499783
+    surfaceOffset: -0.1014086
+    surfaceRotation: {x: -0.011595295, y: 0.8539388, z: 0.08942907, w: -0.5125004}
+    scale: 1.6175891
+    zoneId: Z1
+  - id: ce70e0a3ba4949d69759cb20c98a45db
+    paletteId: GreenStylizedPlant
+    routeId: MainRoute
+    routeDistance: 54.324226
+    angleDegrees: -72.383804
+    surfaceOffset: -0.11604445
+    surfaceRotation: {x: 0.07183399, y: 0.10299985, z: 0.07461901, w: 0.98927397}
+    scale: 1.5269698
+    zoneId: Z1
+  - id: bd46280b86bd4a938713adc308a629d3
+    paletteId: FacetedIceStone
+    routeId: MainRoute
+    routeDistance: 144.75854
+    angleDegrees: 150.81572
+    surfaceOffset: -0.09176178
+    surfaceRotation: {x: 0.08016653, y: 0.00899096, z: 0.015310334, w: 0.9966235}
+    scale: 2.0662026
+    zoneId: Z2
+  - id: b1f151e6e99f4481b349e076378f5644
+    paletteId: FacetedIceStone
+    routeId: MainRoute
+    routeDistance: 94.8889
+    angleDegrees: 70.419395
+    surfaceOffset: -0.19485821
+    surfaceRotation: {x: -0.118055485, y: 0.51891756, z: 0.12618293, w: 0.8371771}
+    scale: 2.265878
+    zoneId: Z2
+  - id: a9ef2ada2a0b4dbcb72bfbeca372880b
+    paletteId: FacetedIceStone
+    routeId: MainRoute
+    routeDistance: 81.642715
+    angleDegrees: -58.45948
+    surfaceOffset: -0.2891374
+    surfaceRotation: {x: 0.226037, y: 0.82181424, z: 0.14147721, w: -0.50350064}
+    scale: 3.7601438
+    zoneId: Z2
+  - id: b9f5e25b41874005bb82524017e841f8
+    paletteId: FacetedIceStone
+    routeId: MainRoute
+    routeDistance: 131.4811
+    angleDegrees: 208.40059
+    surfaceOffset: -0.47063679
+    surfaceRotation: {x: -0.054893307, y: 0.9645749, z: 0.092267215, w: -0.24097477}
+    scale: 3.8775597
+    zoneId: Z2
+  - id: 4ce78d6b693b47e78b26e3b35de436ca
+    paletteId: GlowingStoneStack
+    routeId: MainRoute
+    routeDistance: 65.05075
+    angleDegrees: 141.50543
+    surfaceOffset: -0.12573434
+    surfaceRotation: {x: -0.18731216, y: 0.47526103, z: -0.009494635, w: -0.8596226}
+    scale: 1.7672831
+    zoneId: Z2
+  - id: e2401fd7ab254df0bdfb104a37f33c3d
+    paletteId: GlowingStoneStack
+    routeId: MainRoute
+    routeDistance: 80.28265
+    angleDegrees: 214.74292
+    surfaceOffset: -0.07132573
+    surfaceRotation: {x: 0.067916475, y: 0.34516364, z: 0.13687766, w: 0.9260205}
+    scale: 1.5365188
+    zoneId: Z2
+  - id: 4d59cdd239394b7e9078dabfa39b0b73
+    paletteId: StylizedRockArch
+    routeId: MainRoute
+    routeDistance: 94.73081
+    angleDegrees: 194.54732
+    surfaceOffset: -0.6893906
+    surfaceRotation: {x: -0.09466215, y: 0.9653338, z: 0.17359488, w: 0.17039512}
+    scale: 9.047987
+    zoneId: Z2
+  - id: 81646130766d46a4933cad3a4a7915e0
+    paletteId: BlueStoneCavern
+    routeId: MainRoute
+    routeDistance: 71.53015
+    angleDegrees: 211.04793
+    surfaceOffset: -1.0208507
+    surfaceRotation: {x: -0.13479234, y: 0.7173705, z: 0.10527422, w: -0.67537236}
+    scale: 7.003787
+    zoneId: Z2
+  - id: 7aa665d0ff9c44968c9368cb60cdd487
+    paletteId: BlueStoneCavern
+    routeId: MainRoute
+    routeDistance: 114.25222
+    angleDegrees: 218.13867
+    surfaceOffset: -1.0129489
+    surfaceRotation: {x: -0.25938275, y: 0.058936864, z: -0.10680947, w: -0.95803905}
+    scale: 7.5913296
+    zoneId: Z2
+  - id: 4a4fe32ad3804d94bbf18b1adc77172b
+    paletteId: StylizedTealCoral
+    routeId: MainRoute
+    routeDistance: 109.56154
+    angleDegrees: 83.34915
+    surfaceOffset: -0.10533257
+    surfaceRotation: {x: -0.042726584, y: 0.9600963, z: 0.028371954, w: -0.27492672}
+    scale: 2.357382
+    zoneId: Z2
+  - id: 5e9ba777b6114f10ad1c80fa7a03c667
+    paletteId: StylizedTealCoral
+    routeId: MainRoute
+    routeDistance: 59.397453
+    angleDegrees: 160.4455
+    surfaceOffset: -0.13672945
+    surfaceRotation: {x: -0.0010595466, y: 0.6739526, z: -0.057490274, w: -0.7365337}
+    scale: 2.0143356
+    zoneId: Z2
+  - id: c886c0ed5ada47698afa39678aae5220
+    paletteId: StylizedTealCoral
+    routeId: MainRoute
+    routeDistance: 112.699425
+    angleDegrees: 106.76128
+    surfaceOffset: -0.22544491
+    surfaceRotation: {x: 0.034922745, y: 0.5131214, z: 0.032557342, w: 0.85698724}
+    scale: 2.6610348
+    zoneId: Z2
+  - id: 21e3b41c62d34f6ba6622bba71dbe500
+    paletteId: StylizedTealCoral
+    routeId: MainRoute
+    routeDistance: 97.839
+    angleDegrees: 161.40083
+    surfaceOffset: -0.33290446
+    surfaceRotation: {x: 0.05334983, y: 0.61472076, z: -0.015543462, w: -0.78678507}
+    scale: 2.5498574
+    zoneId: Z2
+  - id: 98852b99df994e7abf0967b92ff78dc5
+    paletteId: StylizedTealCoral
+    routeId: MainRoute
+    routeDistance: 72.06862
+    angleDegrees: -122.51293
+    surfaceOffset: -0.19224648
+    surfaceRotation: {x: 0.026551202, y: 0.28975078, z: -0.043946505, w: -0.955724}
+    scale: 1.7017746
+    zoneId: Z2
+  - id: 7c360a65ab994572aaa734b9a07e806b
+    paletteId: StylizedTealCoral
+    routeId: MainRoute
+    routeDistance: 112.87653
+    angleDegrees: 187.24843
+    surfaceOffset: -0.14157636
+    surfaceRotation: {x: -0.0018619761, y: 0.9756767, z: -0.0019647623, w: 0.21919821}
+    scale: 2.2581413
+    zoneId: Z2
+  - id: 006c8355ad6d4158a1c50db62b4316bf
+    paletteId: StylizedTealCoral
+    routeId: MainRoute
+    routeDistance: 119.849335
+    angleDegrees: 121.771866
+    surfaceOffset: -0.2504009
+    surfaceRotation: {x: -0.024092617, y: 0.79430306, z: 0.043365378, w: 0.60549307}
+    scale: 1.7899418
+    zoneId: Z2
+  - id: 93d68b7f8ee44dfcbe59009c36b47e75
+    paletteId: StylizedTealCoral
+    routeId: MainRoute
+    routeDistance: 139.86435
+    angleDegrees: 226.32082
+    surfaceOffset: -0.18335967
+    surfaceRotation: {x: 0.04083491, y: 0.047083188, z: -0.034122452, w: -0.99747235}
+    scale: 2.3757427
+    zoneId: Z2
+  - id: 4fae440133164242a0585781f563d73f
+    paletteId: BlueCrystalSeaweed
+    routeId: MainRoute
+    routeDistance: 125.798164
+    angleDegrees: 62.94118
+    surfaceOffset: -0.3957238
+    surfaceRotation: {x: 0.012432357, y: 0.44005308, z: -0.076313935, w: 0.8946367}
+    scale: 3.1241195
+    zoneId: Z2
+  - id: bb9dfcea731a4d8f89a82f4f43de1813
+    paletteId: BlueCrystalSeaweed
+    routeId: MainRoute
+    routeDistance: 91.5634
+    angleDegrees: 142.83397
+    surfaceOffset: -0.19398838
+    surfaceRotation: {x: 0.037796345, y: 0.9963342, z: -0.021621285, w: -0.07363706}
+    scale: 1.8817666
+    zoneId: Z2
+  - id: 72d25e5c5353497b91755be0fe8cfaa2
+    paletteId: BlueCrystalSeaweed
+    routeId: MainRoute
+    routeDistance: 108.23068
+    angleDegrees: 120.10701
+    surfaceOffset: -0.42029983
+    surfaceRotation: {x: -0.0141747985, y: 0.13989745, z: -0.024719777, w: -0.9897558}
+    scale: 3.0058787
+    zoneId: Z2
+  - id: fe997a111c654dcf9cca5846d6837238
+    paletteId: BlueCrystalSeaweed
+    routeId: MainRoute
+    routeDistance: 83.32125
+    angleDegrees: -126.193825
+    surfaceOffset: -0.106912315
+    surfaceRotation: {x: 0.0021376135, y: 0.8748596, z: 0.06406824, w: 0.48011643}
+    scale: 1.5958062
+    zoneId: Z2
+  - id: ab35c323a94e4634ad4f3b75680c1bb2
+    paletteId: BlueCrystalSeaweed
+    routeId: MainRoute
+    routeDistance: 98.46697
+    angleDegrees: 109.97044
+    surfaceOffset: -0.24270038
+    surfaceRotation: {x: 0.046856966, y: 0.37038335, z: -0.029459396, w: -0.9272285}
+    scale: 1.9331137
+    zoneId: Z2
+  - id: df97d15561f545ef8ffc089414d7370b
+    paletteId: BlueCrystalSeaweed
+    routeId: MainRoute
+    routeDistance: 131.70412
+    angleDegrees: 111.815865
+    surfaceOffset: -0.29831275
+    surfaceRotation: {x: 0.031243306, y: 0.92543095, z: -0.0017102755, w: -0.37762243}
+    scale: 2.0852268
+    zoneId: Z2
+  - id: 6eea60a7c1b64ac28095d71083421ead
+    paletteId: ColorfulStylizedCoral
+    routeId: MainRoute
+    routeDistance: 58.84806
+    angleDegrees: 217.3481
+    surfaceOffset: -0.1189169
+    surfaceRotation: {x: 0.04244758, y: 0.62825733, z: 0.027483504, w: 0.7763606}
+    scale: 1.8055916
+    zoneId: Z2
+  - id: 937d4d5265e24ac49a7c45bbb2cd3656
+    paletteId: ColorfulStylizedCoral
+    routeId: MainRoute
+    routeDistance: 59.452824
+    angleDegrees: 109.26925
+    surfaceOffset: -0.3262388
+    surfaceRotation: {x: 0.02306622, y: 0.9384711, z: -0.04541233, w: 0.3415815}
+    scale: 2.9732475
+    zoneId: Z2
+  - id: 64f3b914499a424ba410d0422640b348
+    paletteId: ColorfulStylizedCoral
+    routeId: MainRoute
+    routeDistance: 87.50412
+    angleDegrees: -100.98651
+    surfaceOffset: -0.112453476
+    surfaceRotation: {x: -0.041178316, y: 0.4529641, z: 0.00056024705, w: 0.89057714}
+    scale: 2.1901872
+    zoneId: Z2
+  - id: 46d1bf4753be4a97bb35b1842bf99362
+    paletteId: ColorfulStylizedCoral
+    routeId: MainRoute
+    routeDistance: 135.72531
+    angleDegrees: 143.26385
+    surfaceOffset: -0.28578648
+    surfaceRotation: {x: -0.0152647635, y: 0.87364453, z: 0.0565417, w: -0.48302758}
+    scale: 2.2131002
+    zoneId: Z2
+  - id: 496caae0b03849bb8040e7082a164a64
+    paletteId: ColorfulStylizedCoral
+    routeId: MainRoute
+    routeDistance: 130.47424
+    angleDegrees: -107.64177
+    surfaceOffset: -0.22882168
+    surfaceRotation: {x: -0.06927743, y: 0.87537986, z: -0.02149598, w: -0.47796303}
+    scale: 2.3781686
+    zoneId: Z2
+  - id: c24c2464333e4978b462884709bfa521
+    paletteId: ColorfulStylizedCoral
+    routeId: MainRoute
+    routeDistance: 67.79451
+    angleDegrees: 74.74748
+    surfaceOffset: -0.13862531
+    surfaceRotation: {x: -0.02223398, y: -0.8426863, z: -0.056831118, w: -0.5349354}
+    scale: 1.6744722
+    zoneId: Z2
+  - id: f8997e46b8354d20a3ab80b7eea2deaf
+    paletteId: StylizedGreenSeaweed
+    routeId: MainRoute
+    routeDistance: 78.24805
+    angleDegrees: 95.04346
+    surfaceOffset: -0.1549908
+    surfaceRotation: {x: 0.04938114, y: 0.83084106, z: -0.0034273276, w: -0.5543039}
+    scale: 3.1944237
+    zoneId: Z2
+  - id: fc45c5fe20de42bdb4b7c4c9061353ff
+    paletteId: StylizedGreenSeaweed
+    routeId: MainRoute
+    routeDistance: 55.952927
+    angleDegrees: 187.80753
+    surfaceOffset: -0.18590248
+    surfaceRotation: {x: -0.08520604, y: 0.8908211, z: -0.02114101, w: -0.44579247}
+    scale: 2.7143087
+    zoneId: Z2
+  - id: a305cec411f74b33aa2ab0eefc9e595c
+    paletteId: StylizedGreenSeaweed
+    routeId: MainRoute
+    routeDistance: 113.64559
+    angleDegrees: 230.50311
+    surfaceOffset: -0.2023057
+    surfaceRotation: {x: 0.014188793, y: 0.9745834, z: -0.06470645, w: 0.21400788}
+    scale: 1.6646249
+    zoneId: Z2
+  - id: 53065393f34a4973bd7f335f8e260495
+    paletteId: StylizedGreenSeaweed
+    routeId: MainRoute
+    routeDistance: 61.90767
+    angleDegrees: -92.9374
+    surfaceOffset: -0.16219449
+    surfaceRotation: {x: 0.01676011, y: 0.051982883, z: 0.05267661, w: -0.99711686}
+    scale: 3.4380624
+    zoneId: Z2
+  - id: a79af238decd41d082048e6a8e0a2dec
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 62.77007
+    angleDegrees: 160.55528
+    surfaceOffset: -0.2411434
+    surfaceRotation: {x: -0.08346331, y: 0.98399556, z: -0.06868122, w: -0.1416666}
+    scale: 3.4675875
+    zoneId: Z2
+  - id: 490866c7299b46e7b1a216ec30838fcc
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 95.21835
+    angleDegrees: 213.94165
+    surfaceOffset: -0.11667294
+    surfaceRotation: {x: 0.02271442, y: 0.45964602, z: 0.00023613051, w: -0.8878117}
+    scale: 2.2915878
+    zoneId: Z2
+  - id: 3240e545659d4605992d8bc8b8dda25c
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 84.106186
+    angleDegrees: 153.37387
+    surfaceOffset: -0.17395523
+    surfaceRotation: {x: -0.010400034, y: 0.9408039, z: 0.10797717, w: -0.32112443}
+    scale: 2.8161793
+    zoneId: Z2
+  - id: 57aa1dd77e1b4c15b401727aede8b794
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 74.81774
+    angleDegrees: 185.74097
+    surfaceOffset: -0.2998165
+    surfaceRotation: {x: -0.05446628, y: 0.6182918, z: 0.009384947, w: 0.78400296}
+    scale: 2.0794938
+    zoneId: Z2
+  - id: 28b79128d1e2433d997f2941c707e965
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 69.58898
+    angleDegrees: 150.94997
+    surfaceOffset: -0.123197764
+    surfaceRotation: {x: -0.05956487, y: 0.9923022, z: 0.05808519, w: -0.09173227}
+    scale: 2.7679677
+    zoneId: Z2
+  - id: 73962bc10c97423db2074bab26e2a22b
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 121.884
+    angleDegrees: 151.59042
+    surfaceOffset: -0.33220997
+    surfaceRotation: {x: -0.02956144, y: 0.5639295, z: 0.02415108, w: -0.8249403}
+    scale: 2.7506592
+    zoneId: Z2
+  - id: 83b269cbdb1348a4ad5d61c5575798d3
+    paletteId: LowPolyYellowPlant
+    routeId: MainRoute
+    routeDistance: 90.93165
+    angleDegrees: 155.07986
+    surfaceOffset: -0.20854793
+    surfaceRotation: {x: 0.03294694, y: 0.64973, z: -0.03799952, w: 0.7584995}
+    scale: 1.4165726
+    zoneId: Z2
+  - id: 55ecd51933084a2eaa7ea0b26988deb1
+    paletteId: LowPolyYellowPlant
+    routeId: MainRoute
+    routeDistance: 143.87305
+    angleDegrees: 214.76073
+    surfaceOffset: -0.069354296
+    surfaceRotation: {x: 0.02038886, y: 0.98724365, z: -0.069325946, w: -0.14187439}
+    scale: 1.5126153
+    zoneId: Z2
+  - id: fe83a5e99f4a47518726b0e78cfafb2c
+    paletteId: LowPolyYellowPlant
+    routeId: MainRoute
+    routeDistance: 99.47275
+    angleDegrees: 132.9886
+    surfaceOffset: -0.18079504
+    surfaceRotation: {x: -0.03269084, y: 0.805747, z: 0.062237483, w: -0.58807284}
+    scale: 2.2160194
+    zoneId: Z2
+  - id: 2c9a7769299b4a0687d0729779866aef
+    paletteId: LowPolyYellowPlant
+    routeId: MainRoute
+    routeDistance: 112.60313
+    angleDegrees: 179.83406
+    surfaceOffset: -0.14839745
+    surfaceRotation: {x: -0.027803564, y: 0.6336552, z: 0.0737468, w: 0.7695907}
+    scale: 1.8727875
+    zoneId: Z2
+  - id: 449d884a3b3341ec8b4f1ae49b2b1595
+    paletteId: BlueLayeredRock
+    routeId: MainRoute
+    routeDistance: 212.88632
+    angleDegrees: 214.59628
+    surfaceOffset: -0.18184473
+    surfaceRotation: {x: -0.030285105, y: 0.25823414, z: -0.06468196, w: 0.9634388}
+    scale: 3.3742447
+    zoneId: Z3
+  - id: aa82015b662f439db5612064ef5fc009
+    paletteId: BlueLayeredRock
+    routeId: MainRoute
+    routeDistance: 193.96413
+    angleDegrees: 153.11263
+    surfaceOffset: -0.38333654
+    surfaceRotation: {x: 0.030795647, y: 0.23990129, z: -0.07130163, w: -0.9676855}
+    scale: 4.3191576
+    zoneId: Z3
+  - id: 54f2f9b7dc6a403cb1244114d56354ef
+    paletteId: BlueLayeredRock
+    routeId: MainRoute
+    routeDistance: 177.66013
+    angleDegrees: 157.94016
+    surfaceOffset: -0.30511442
+    surfaceRotation: {x: -0.021099508, y: 0.67260784, z: 0.089899965, w: -0.73421484}
+    scale: 3.0316162
+    zoneId: Z3
+  - id: 6c519fd10735477a92de5a4ce40bf9a4
+    paletteId: BlueLayeredRock
+    routeId: MainRoute
+    routeDistance: 253.51624
+    angleDegrees: 210.70895
+    surfaceOffset: -0.27231547
+    surfaceRotation: {x: -0.054339666, y: 0.2785543, z: -0.015850665, w: -0.95875096}
+    scale: 4.9091697
+    zoneId: Z3
+  - id: a9a0bb606cb046b691990b3d064a5588
+    paletteId: BlueLayeredRock
+    routeId: MainRoute
+    routeDistance: 228.84032
+    angleDegrees: 165.59544
+    surfaceOffset: -0.1844491
+    surfaceRotation: {x: -0.07564041, y: 0.5131217, z: 0.058989607, w: 0.8529389}
+    scale: 2.6526427
+    zoneId: Z3
+  - id: de2e24c03ab340dd92d0b191dcebeb8f
+    paletteId: BlueGeometricRocks
+    routeId: MainRoute
+    routeDistance: 217.96878
+    angleDegrees: 143.31573
+    surfaceOffset: -0.27318805
+    surfaceRotation: {x: 0.10258297, y: 0.32784447, z: 0.05730019, w: 0.9373961}
+    scale: 2.017788
+    zoneId: Z3
+  - id: f914cb36b51b484ba3a13aa782782dde
+    paletteId: BlueGeometricRocks
+    routeId: MainRoute
+    routeDistance: 258.03757
+    angleDegrees: 130.8488
+    surfaceOffset: -0.13906084
+    surfaceRotation: {x: -0.05535975, y: 0.92615247, z: 0.039645225, w: 0.37095225}
+    scale: 3.1404176
+    zoneId: Z3
+  - id: 45eab61328d24467a6a80a44ad2d0c1d
+    paletteId: BlueGeometricRocks
+    routeId: MainRoute
+    routeDistance: 218.16725
+    angleDegrees: -110.85413
+    surfaceOffset: -0.11485608
+    surfaceRotation: {x: 0.08567088, y: 0.99599034, z: -0.025119023, w: 0.00575746}
+    scale: 2.1737452
+    zoneId: Z3
+  - id: 03374dc6591143e5a5eff693ec2be9c7
+    paletteId: BlueGeometricRocks
+    routeId: MainRoute
+    routeDistance: 233.28827
+    angleDegrees: 197.05669
+    surfaceOffset: -0.50570786
+    surfaceRotation: {x: -0.046083298, y: 0.38383216, z: 0.17491372, w: -0.90551335}
+    scale: 3.5044088
+    zoneId: Z3
+  - id: e2882cb15968493b89c59583246e944e
+    paletteId: BlueGeometricRocks
+    routeId: MainRoute
+    routeDistance: 248.49976
+    angleDegrees: -66.149925
+    surfaceOffset: -0.31683457
+    surfaceRotation: {x: 0.15367678, y: 0.6102326, z: -0.10210869, w: 0.7704372}
+    scale: 2.986466
+    zoneId: Z3
+  - id: 2762d697bf5243529e17f912e4677c99
+    paletteId: StylizedVeinedRock
+    routeId: MainRoute
+    routeDistance: 179.02475
+    angleDegrees: -99.94417
+    surfaceOffset: -0.32312113
+    surfaceRotation: {x: 0.08967826, y: 0.23408851, z: 0.1998694, w: -0.94721323}
+    scale: 3.6258643
+    zoneId: Z3
+  - id: bdb5ff95613e40b49afa94e22e4cdc6a
+    paletteId: StylizedVeinedRock
+    routeId: MainRoute
+    routeDistance: 148.61284
+    angleDegrees: -83.44632
+    surfaceOffset: -0.53930193
+    surfaceRotation: {x: 0.14993742, y: 0.33886924, z: -0.25883752, w: 0.8920144}
+    scale: 3.868877
+    zoneId: Z3
+  - id: 37fe751ac4a9401a9a8df89fab61db91
+    paletteId: StylizedVeinedRock
+    routeId: MainRoute
+    routeDistance: 220.01567
+    angleDegrees: 162.68982
+    surfaceOffset: -0.19082367
+    surfaceRotation: {x: -0.082161635, y: 0.99198985, z: 0.08146939, w: 0.050679035}
+    scale: 3.8555791
+    zoneId: Z3
+  - id: a4326aae11704c52a4682e47bdf2e97d
+    paletteId: StylizedVeinedRock
+    routeId: MainRoute
+    routeDistance: 186.59541
+    angleDegrees: -60.375587
+    surfaceOffset: -0.35070658
+    surfaceRotation: {x: 0.055270832, y: 0.42881915, z: 0.1989522, w: -0.87947565}
+    scale: 4.4558682
+    zoneId: Z3
+  - id: ccf13382809a4c1997a0876e7318bc6d
+    paletteId: StylizedVeinedRock
+    routeId: MainRoute
+    routeDistance: 225.94748
+    angleDegrees: 128.63693
+    surfaceOffset: -0.37982324
+    surfaceRotation: {x: -0.030682769, y: 0.99314505, z: 0.10410397, w: 0.043405984}
+    scale: 4.770285
+    zoneId: Z3
+  - id: 76bf5126ddbc4963829abec7388c2279
+    paletteId: DarkRockSpike
+    routeId: MainRoute
+    routeDistance: 226.72208
+    angleDegrees: -73.21088
+    surfaceOffset: -0.19705577
+    surfaceRotation: {x: -0.05777865, y: 0.94943017, z: -0.10283323, w: 0.29098007}
+    scale: 4.236519
+    zoneId: Z3
+  - id: 7faad204bdf748199ea6fb6badc3915c
+    paletteId: DarkRockSpike
+    routeId: MainRoute
+    routeDistance: 168.12431
+    angleDegrees: -52.029636
+    surfaceOffset: -0.26819366
+    surfaceRotation: {x: -0.08032038, y: 0.98346466, z: -0.029485706, w: 0.15961318}
+    scale: 2.4140775
+    zoneId: Z3
+  - id: 2af6d780dc0648339a1f76425a1436e5
+    paletteId: DarkRockSpike
+    routeId: MainRoute
+    routeDistance: 247.28552
+    angleDegrees: -90.55449
+    surfaceOffset: -0.22461638
+    surfaceRotation: {x: -0.09641071, y: 0.18727678, z: -0.05975084, w: 0.9757368}
+    scale: 2.443962
+    zoneId: Z3
+  - id: a6c63a297a0746fc92b596f1aaa4265b
+    paletteId: DarkRockSpike
+    routeId: MainRoute
+    routeDistance: 149.47598
+    angleDegrees: 61.25324
+    surfaceOffset: -0.13817622
+    surfaceRotation: {x: -0.050432745, y: 0.99870753, z: 0.006163566, w: -0.0013884079}
+    scale: 3.3946648
+    zoneId: Z3
+  - id: 2b29a655c0334695bae6d0b46d46b111
+    paletteId: StylizedGreenSeaweed
+    routeId: MainRoute
+    routeDistance: 239.25832
+    angleDegrees: -101.34667
+    surfaceOffset: -0.3064435
+    surfaceRotation: {x: 0.042108554, y: 0.70389366, z: 0.07903948, w: -0.70463705}
+    scale: 3.1342282
+    zoneId: Z3
+  - id: 502346f055bd4051ac12d07ca7caa91f
+    paletteId: StylizedGreenSeaweed
+    routeId: MainRoute
+    routeDistance: 169.0517
+    angleDegrees: 210.43661
+    surfaceOffset: -0.27839583
+    surfaceRotation: {x: -0.011892568, y: 0.15835159, z: 0.050324798, w: 0.98602784}
+    scale: 2.4977927
+    zoneId: Z3
+  - id: 00d86b1fa7c649908543cdd055c2d20e
+    paletteId: StylizedGreenSeaweed
+    routeId: MainRoute
+    routeDistance: 210.47572
+    angleDegrees: -62.376305
+    surfaceOffset: -0.28905934
+    surfaceRotation: {x: 0.016661974, y: 0.8643225, z: 0.015138988, w: 0.50243413}
+    scale: 3.028268
+    zoneId: Z3
+  - id: a6ada5e2fe274621b2d31a74683dd681
+    paletteId: StylizedGreenSeaweed
+    routeId: MainRoute
+    routeDistance: 224.03261
+    angleDegrees: 218.3365
+    surfaceOffset: -0.11701322
+    surfaceRotation: {x: -0.030809565, y: 0.16117552, z: -0.0854613, w: -0.9827358}
+    scale: 1.5023342
+    zoneId: Z3
+  - id: de1a9d902e434f3cb92baec566dda567
+    paletteId: StylizedGreenSeaweed
+    routeId: MainRoute
+    routeDistance: 229.94203
+    angleDegrees: 85.37128
+    surfaceOffset: -0.2855726
+    surfaceRotation: {x: 0.006214403, y: 0.9724421, z: -0.05126062, w: -0.22735447}
+    scale: 1.9417387
+    zoneId: Z3
+  - id: cf1cc8fbbb684533b61b3b11545c6c05
+    paletteId: StylizedRedSeaweed
+    routeId: MainRoute
+    routeDistance: 163.45944
+    angleDegrees: -125.37081
+    surfaceOffset: -0.13592999
+    surfaceRotation: {x: -0.06959483, y: 0.99202806, z: 0.02168921, w: -0.10279286}
+    scale: 1.2738569
+    zoneId: Z3
+  - id: c43279ca122647e7b6e0719cfe6308ef
+    paletteId: StylizedRedSeaweed
+    routeId: MainRoute
+    routeDistance: 192.00494
+    angleDegrees: 118.86278
+    surfaceOffset: -0.19208893
+    surfaceRotation: {x: 0.030131757, y: 0.32720125, z: 0.010419309, w: -0.94441664}
+    scale: 1.5993704
+    zoneId: Z3
+  - id: 978f42c48900455fbdb9edc52d9a7328
+    paletteId: StylizedRedSeaweed
+    routeId: MainRoute
+    routeDistance: 246.79329
+    angleDegrees: 198.93045
+    surfaceOffset: -0.08926772
+    surfaceRotation: {x: -0.035911255, y: 0.9540304, z: -0.08350448, w: 0.28559315}
+    scale: 1.8061981
+    zoneId: Z3
+  - id: 8b9394929f364178a97adea80c3fdddc
+    paletteId: StylizedRedSeaweed
+    routeId: MainRoute
+    routeDistance: 147.31502
+    angleDegrees: 125.00881
+    surfaceOffset: -0.107247956
+    surfaceRotation: {x: -0.080507636, y: 0.83971536, z: 0.003213403, w: -0.5370162}
+    scale: 1.7287709
+    zoneId: Z3
+  - id: 4fd16ed0136c4f72aa0b9c0d1047dda3
+    paletteId: StylizedRedSeaweed
+    routeId: MainRoute
+    routeDistance: 185.47433
+    angleDegrees: 175.94106
+    surfaceOffset: -0.1321561
+    surfaceRotation: {x: 0.028483719, y: 0.2826445, z: -0.098383166, w: 0.9537407}
+    scale: 2.7907424
+    zoneId: Z3
+  - id: 10881927299b40db9515a599df663a7c
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 184.04945
+    angleDegrees: 161.78749
+    surfaceOffset: -0.21757202
+    surfaceRotation: {x: 0.022639953, y: 0.7244664, z: 0.014607138, w: -0.6887834}
+    scale: 2.1198504
+    zoneId: Z3
+  - id: 1170a1ba993543f78c68f3ef4c721c18
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 262.8948
+    angleDegrees: 150.09038
+    surfaceOffset: -0.16296269
+    surfaceRotation: {x: 0.036270276, y: 0.24265686, z: -0.09090805, w: -0.96516216}
+    scale: 2.2506034
+    zoneId: Z3
+  - id: b8944b94ea944932a0cbf0c2573eec21
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 162.51256
+    angleDegrees: 159.35138
+    surfaceOffset: -0.24343053
+    surfaceRotation: {x: 0.09602334, y: 0.100540265, z: 0.022040548, w: 0.9900431}
+    scale: 2.225812
+    zoneId: Z3
+  - id: cf02997f4fb0439a86793be629afab2b
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 228.93567
+    angleDegrees: 148.9474
+    surfaceOffset: -0.15554248
+    surfaceRotation: {x: 0.059047483, y: 0.9567835, z: -0.023779633, w: -0.28374866}
+    scale: 2.3615324
+    zoneId: Z3
+  - id: 725276788b9f45599647a754f6525bfc
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 156.43082
+    angleDegrees: 225.66052
+    surfaceOffset: -0.2988446
+    surfaceRotation: {x: 0.10393618, y: 0.60692656, z: 0.027916184, w: -0.7874376}
+    scale: 2.4921174
+    zoneId: Z3
+  - id: c367cf0aec2e49cea4b3f2182d548ebe
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 256.81845
+    angleDegrees: 156.1909
+    surfaceOffset: -0.18342654
+    surfaceRotation: {x: 0.03853446, y: 0.91798556, z: -0.07853617, w: 0.38684568}
+    scale: 2.4441273
+    zoneId: Z3
+  - id: 0b8664a216bc4deebfc43bc5eb0ab638
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 169.18512
+    angleDegrees: 166.22542
+    surfaceOffset: -0.21197815
+    surfaceRotation: {x: -0.018383859, y: 0.95814526, z: 0.024423497, w: 0.2846458}
+    scale: 2.0537088
+    zoneId: Z3
+  - id: d87b2b6f5f184b8e81609818d20696a3
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 192.89249
+    angleDegrees: 173.4742
+    surfaceOffset: -0.2551364
+    surfaceRotation: {x: -0.08931517, y: 0.46591648, z: 0.026026586, w: 0.87992454}
+    scale: 2.4791307
+    zoneId: Z3
+  - id: 6d6c46225fab4dea8b513bdb82fb61d0
+    paletteId: LowPolyGreenPlant
+    routeId: MainRoute
+    routeDistance: 204.5547
+    angleDegrees: 171.13832
+    surfaceOffset: -0.18058152
+    surfaceRotation: {x: 0.0037373262, y: 0.7556574, z: 0.0020586299, w: -0.65495324}
+    scale: 1.2166431
+    zoneId: Z3
+  - id: 53eb0fcc37014516bccf2108fa7a61f9
+    paletteId: LowPolyGreenPlant
+    routeId: MainRoute
+    routeDistance: 238.12914
+    angleDegrees: -120.648605
+    surfaceOffset: -0.10663384
+    surfaceRotation: {x: -0.014965524, y: 0.5842684, z: -0.061484285, w: -0.80908966}
+    scale: 2.0669658
+    zoneId: Z3
+  - id: 93b120b3cc444635a3085955edd1cb1d
+    paletteId: LowPolyGreenPlant
+    routeId: MainRoute
+    routeDistance: 219.54597
+    angleDegrees: 196.21524
+    surfaceOffset: -0.11766534
+    surfaceRotation: {x: 0.0024935338, y: 0.99880475, z: -0.026019847, w: 0.04130053}
+    scale: 2.2451515
+    zoneId: Z3
+  - id: 75e36f7fdd6f446ca68f33755676917d
+    paletteId: LowPolyGreenPlant
+    routeId: MainRoute
+    routeDistance: 193.52415
+    angleDegrees: 70.48464
+    surfaceOffset: -0.18507527
+    surfaceRotation: {x: -0.06416175, y: 0.9877371, z: -0.096895434, w: 0.1042587}
+    scale: 2.2458322
+    zoneId: Z3
+  - id: f841516138ce4f9fa745170054d79e56
+    paletteId: LowPolyGreenPlant
+    routeId: MainRoute
+    routeDistance: 151.05884
+    angleDegrees: 123.16845
+    surfaceOffset: -0.104153655
+    surfaceRotation: {x: 0.08312697, y: 0.9780316, z: -0.007932718, w: 0.19100045}
+    scale: 1.882368
+    zoneId: Z3
+  - id: 5edf2656bda04c2faafd562f0d2d5890
+    paletteId: GreenStylizedPlant
+    routeId: MainRoute
+    routeDistance: 203.2139
+    angleDegrees: -104.14766
+    surfaceOffset: -0.33786762
+    surfaceRotation: {x: -0.043168623, y: 0.48064214, z: 0.018036004, w: 0.87566817}
+    scale: 2.6746225
+    zoneId: Z3
+  - id: 62126c0a1a1c41aeb5c242b7b5212e61
+    paletteId: GreenStylizedPlant
+    routeId: MainRoute
+    routeDistance: 153.4384
+    angleDegrees: 54.91666
+    surfaceOffset: -0.0912008
+    surfaceRotation: {x: -0.06176342, y: 0.054983962, z: 0.0457184, w: 0.995526}
+    scale: 1.8267226
+    zoneId: Z3
+  - id: 9ac397d7a926497f9a39f6b803c8b00d
+    paletteId: GreenStylizedPlant
+    routeId: MainRoute
+    routeDistance: 264.29135
+    angleDegrees: 75.80715
+    surfaceOffset: -0.18250829
+    surfaceRotation: {x: -0.07696987, y: 0.734607, z: -0.063390814, w: -0.6711258}
+    scale: 2.7118418
+    zoneId: Z3
+  - id: 890a19ac09364345bd0d1f65f132412d
+    paletteId: GreenStylizedPlant
+    routeId: MainRoute
+    routeDistance: 250.37198
+    angleDegrees: 160.52779
+    surfaceOffset: -0.34837812
+    surfaceRotation: {x: 0.073706105, y: 0.46225974, z: 0.04464014, w: -0.88254786}
+    scale: 2.488172
+    zoneId: Z3
+  - id: 0c8ae6c99f8b4335bbd7852da73f525f
+    paletteId: GreenStylizedPlant
+    routeId: MainRoute
+    routeDistance: 215.83809
+    angleDegrees: -118.50812
+    surfaceOffset: -0.284468
+    surfaceRotation: {x: 0.09934212, y: 0.0025268865, z: -0.007798049, w: 0.99501956}
+    scale: 2.2447834
+    zoneId: Z3
+  - id: f0dc80dd84024633bc23603c67ac9ac8
+    paletteId: BlueGeometricRocks
+    routeId: MainRoute
+    routeDistance: 334.61816
+    angleDegrees: 204.45253
+    surfaceOffset: -0.09186221
+    surfaceRotation: {x: 0.09743457, y: 0.8828981, z: 0.06891309, w: 0.45414573}
+    scale: 2.1037335
+    zoneId: Z4
+  - id: 4b8ed5a9c5bb473383f1cd89e62b3141
+    paletteId: BlueGeometricRocks
+    routeId: MainRoute
+    routeDistance: 294.4718
+    angleDegrees: 88.86935
+    surfaceOffset: -0.29293978
+    surfaceRotation: {x: 0.1541301, y: -0.8661581, z: 0.0891813, w: 0.46696976}
+    scale: 3.1855917
+    zoneId: Z4
+  - id: eb8c6a4e500b412abc20e0e453b04e52
+    paletteId: BlueGeometricRocks
+    routeId: MainRoute
+    routeDistance: 344.2184
+    angleDegrees: 194.53857
+    surfaceOffset: -0.35613218
+    surfaceRotation: {x: 0.03352195, y: 0.8019073, z: 0.07600673, w: 0.59164506}
+    scale: 2.6311898
+    zoneId: Z4
+  - id: 7dc2ae1800954793bcf0f549120ff219
+    paletteId: BlueGeometricRocks
+    routeId: MainRoute
+    routeDistance: 324.0091
+    angleDegrees: -97.64328
+    surfaceOffset: -0.30023018
+    surfaceRotation: {x: -0.014873238, y: 0.30933493, z: 0.21668935, w: -0.9258168}
+    scale: 2.2760391
+    zoneId: Z4
+  - id: 51a28b7a554b402386bc68d04bb1414f
+    paletteId: DarkRockSpike
+    routeId: MainRoute
+    routeDistance: 303.48016
+    angleDegrees: 62.16777
+    surfaceOffset: -0.22119212
+    surfaceRotation: {x: 0.046808768, y: -0.975895, z: -0.06964057, w: 0.20146522}
+    scale: 3.2636611
+    zoneId: Z4
+  - id: 173d3b47793247689aa8446ceeccfb4c
+    paletteId: DarkRockSpike
+    routeId: MainRoute
+    routeDistance: 279.67352
+    angleDegrees: -91.26845
+    surfaceOffset: -0.31605417
+    surfaceRotation: {x: -0.020424156, y: 0.015408862, z: -0.050764136, w: -0.99838287}
+    scale: 2.5264685
+    zoneId: Z4
+  - id: 803ed8d90910406483efda784b3cc994
+    paletteId: DarkRockSpike
+    routeId: MainRoute
+    routeDistance: 316.65848
+    angleDegrees: -65.90542
+    surfaceOffset: -0.2539622
+    surfaceRotation: {x: -0.08209121, y: 0.31830245, z: -0.0038960297, w: 0.9444203}
+    scale: 2.317579
+    zoneId: Z4
+  - id: 0daccbc4f2fb432eb00b16cf6e547a54
+    paletteId: DarkRockSpike
+    routeId: MainRoute
+    routeDistance: 288.89166
+    angleDegrees: -44.89267
+    surfaceOffset: -0.5252596
+    surfaceRotation: {x: 0.024253357, y: 0.8458219, z: 0.003301624, w: 0.5329038}
+    scale: 3.9134293
+    zoneId: Z4
+  - id: f4a882da3f2d4dfd80beea6dfd78616c
+    paletteId: DarkCrystalCluster
+    routeId: MainRoute
+    routeDistance: 336.9686
+    angleDegrees: -107.34483
+    surfaceOffset: -0.1999553
+    surfaceRotation: {x: -0.0020720232, y: 0.54072046, z: 0.03739352, w: -0.84036833}
+    scale: 2.020451
+    zoneId: Z4
+  - id: e62759c952e54ab08953e92f1c522335
+    paletteId: DarkCrystalCluster
+    routeId: MainRoute
+    routeDistance: 303.57333
+    angleDegrees: -100.82507
+    surfaceOffset: -0.40607464
+    surfaceRotation: {x: 0.021742523, y: 0.96836054, z: 0.010288957, w: -0.24839334}
+    scale: 3.0528655
+    zoneId: Z4
+  - id: 61792643b2814cc2b283acb2f37f1504
+    paletteId: DarkCrystalCluster
+    routeId: MainRoute
+    routeDistance: 315.48444
+    angleDegrees: -100.66151
+    surfaceOffset: -0.1511473
+    surfaceRotation: {x: 0.06266828, y: 0.4666234, z: 0.13701123, w: -0.87152934}
+    scale: 2.5379174
+    zoneId: Z4
+  - id: 2276436421f2451dbaf36316af052821
+    paletteId: DarkCrystalCluster
+    routeId: MainRoute
+    routeDistance: 310.47513
+    angleDegrees: 229.33058
+    surfaceOffset: -0.2782877
+    surfaceRotation: {x: -0.048751146, y: 0.36902732, z: 0.011681363, w: 0.9280655}
+    scale: 2.9866939
+    zoneId: Z4
+  - id: 6e7216a96e2c44e9b41b3be2a59baf7d
+    paletteId: StylizedVeinedRock
+    routeId: MainRoute
+    routeDistance: 367.96384
+    angleDegrees: -61.49168
+    surfaceOffset: -0.3185587
+    surfaceRotation: {x: 0.14488348, y: 0.9878667, z: 0.055923056, w: -0.0009457057}
+    scale: 2.7148707
+    zoneId: Z5
+  - id: 4b66eae8590148a5aa39d39ec990118d
+    paletteId: StylizedVeinedRock
+    routeId: MainRoute
+    routeDistance: 357.6794
+    angleDegrees: 135.08206
+    surfaceOffset: -0.52850056
+    surfaceRotation: {x: 0.019031066, y: 0.5996103, z: 0.018029775, w: 0.7998627}
+    scale: 4.009912
+    zoneId: Z5
+  - id: d825206ceaf94c23b9e452e54d27a2e7
+    paletteId: StylizedVeinedRock
+    routeId: MainRoute
+    routeDistance: 376.8015
+    angleDegrees: -112.3559
+    surfaceOffset: -0.29213923
+    surfaceRotation: {x: 0.17203458, y: 0.9850002, z: -0.0048617944, w: 0.012461883}
+    scale: 3.086049
+    zoneId: Z5
+  - id: 19f40658c38c4575b2ae9bc2d8e421e7
+    paletteId: StylizedVeinedRock
+    routeId: MainRoute
+    routeDistance: 386.66418
+    angleDegrees: 59.982536
+    surfaceOffset: -0.15424168
+    surfaceRotation: {x: 0.19409466, y: -0.79441655, z: 0.06603572, w: 0.57172424}
+    scale: 2.6942139
+    zoneId: Z5
+  - id: c634ada4eb78445da34a785ebf5a9147
+    paletteId: GlowingStoneStack
+    routeId: MainRoute
+    routeDistance: 366.091
+    angleDegrees: 129.33446
+    surfaceOffset: -0.24793094
+    surfaceRotation: {x: -0.14858223, y: 0.5901644, z: 0.10955094, w: -0.78589296}
+    scale: 1.8335683
+    zoneId: Z5
+  - id: 9508c41748d1423ebdcbf04df0110456
+    paletteId: GlowingStoneStack
+    routeId: MainRoute
+    routeDistance: 457.47253
+    angleDegrees: 139.88667
+    surfaceOffset: -0.24877748
+    surfaceRotation: {x: -0.12998982, y: 0.01673735, z: -0.14992183, w: -0.97997236}
+    scale: 1.789893
+    zoneId: Z5
+  - id: f13c6dbe0d0c4579ae2f12956a3ffc51
+    paletteId: BlueBandedPedestal
+    routeId: MainRoute
+    routeDistance: 410.0709
+    angleDegrees: 166.30899
+    surfaceOffset: -0.5464772
+    surfaceRotation: {x: -0.07546159, y: 0.041867327, z: -0.230156, w: -0.96932}
+    scale: 5.5362954
+    zoneId: Z5
+  - id: 2360a612652e4407aef2f994c44ba854
+    paletteId: BlueBandedPedestal
+    routeId: MainRoute
+    routeDistance: 351.291
+    angleDegrees: 232.64992
+    surfaceOffset: -0.29225078
+    surfaceRotation: {x: 0.038690586, y: 0.66432065, z: 0.020606883, w: 0.74616116}
+    scale: 3.4312503
+    zoneId: Z5
+  - id: 43ca534112a842faa25a62a139a23bc2
+    paletteId: StylizedRedSeaweed
+    routeId: MainRoute
+    routeDistance: 375.233
+    angleDegrees: 223.60394
+    surfaceOffset: -0.1788411
+    surfaceRotation: {x: -0.02667076, y: 0.5049101, z: 0.019397551, w: 0.86254156}
+    scale: 1.2103689
+    zoneId: Z5
+  - id: 6e090ef071804cbda6c969b5586ef267
+    paletteId: StylizedRedSeaweed
+    routeId: MainRoute
+    routeDistance: 378.46832
+    angleDegrees: -98.96668
+    surfaceOffset: -0.20771287
+    surfaceRotation: {x: 0.024500424, y: 0.20788616, z: 0.06517909, w: -0.97567147}
+    scale: 1.8826922
+    zoneId: Z5
+  - id: 29d0ffc687294da398dbc11fc904ae9a
+    paletteId: StylizedRedSeaweed
+    routeId: MainRoute
+    routeDistance: 403.98447
+    angleDegrees: 108.80607
+    surfaceOffset: -0.16904888
+    surfaceRotation: {x: 0.01923333, y: 0.98352534, z: 0.085886315, w: 0.15789747}
+    scale: 2.0031056
+    zoneId: Z5
+  - id: a7f5b12be78e42499ef09345745f4d6d
+    paletteId: StylizedRedSeaweed
+    routeId: MainRoute
+    routeDistance: 363.78336
+    angleDegrees: -107.743546
+    surfaceOffset: -0.14109653
+    surfaceRotation: {x: -0.044314723, y: 0.6453131, z: -0.035068795, w: 0.76182514}
+    scale: 1.2422808
+    zoneId: Z5
+  - id: dfacba91e85f4cd3957325337621b96f
+    paletteId: StylizedRedSeaweed
+    routeId: MainRoute
+    routeDistance: 418.29626
+    angleDegrees: 83.77387
+    surfaceOffset: -0.28290638
+    surfaceRotation: {x: -0.01178917, y: 0.99670714, z: 0.05510675, w: -0.058300838}
+    scale: 2.2337284
+    zoneId: Z5
+  - id: c487e436b13f4290a99655365c9b1e93
+    paletteId: BlueLayeredRock
+    routeId: MainRoute
+    routeDistance: 557.02747
+    angleDegrees: 145.68245
+    surfaceOffset: -0.17699054
+    surfaceRotation: {x: -0.041400686, y: 0.8057736, z: 0.016635956, w: 0.5905405}
+    scale: 2.7986197
+    zoneId: Z6
+  - id: 68c34d1ad90d4bd5933ea111e12fb52a
+    paletteId: BlueLayeredRock
+    routeId: MainRoute
+    routeDistance: 534.7681
+    angleDegrees: 175.8334
+    surfaceOffset: -0.5680869
+    surfaceRotation: {x: 0.10403294, y: 0.24587221, z: 0.048398037, w: 0.96248716}
+    scale: 3.931223
+    zoneId: Z6
+  - id: d5f7ce1ce0594fc7a15351b133aaccde
+    paletteId: BlueLayeredRock
+    routeId: MainRoute
+    routeDistance: 518.8803
+    angleDegrees: 138.6632
+    surfaceOffset: -0.33944228
+    surfaceRotation: {x: -0.020320814, y: 0.9888721, z: -0.037442204, w: -0.14253828}
+    scale: 2.7860565
+    zoneId: Z6
+  - id: 42c3c47d87c34d0d8c2a0ad94a7f3272
+    paletteId: BlueLayeredRock
+    routeId: MainRoute
+    routeDistance: 496.6643
+    angleDegrees: 198.39037
+    surfaceOffset: -0.20503294
+    surfaceRotation: {x: 0.007730064, y: 0.99620545, z: -0.05304329, w: 0.06856612}
+    scale: 2.8177052
+    zoneId: Z6
+  - id: b7d874b789e14d47b7a695bc75860647
+    paletteId: BlueLayeredRock
+    routeId: MainRoute
+    routeDistance: 570.65607
+    angleDegrees: 234.47607
+    surfaceOffset: -0.6094068
+    surfaceRotation: {x: 0.010241167, y: 0.9261442, z: -0.08495506, w: -0.3673348}
+    scale: 4.1857142
+    zoneId: Z6
+  - id: e2592c679c8a449c9e798fb6694f400c
+    paletteId: FacetedIceStone
+    routeId: MainRoute
+    routeDistance: 482.52017
+    angleDegrees: -102.062675
+    surfaceOffset: -0.37940806
+    surfaceRotation: {x: -0.060845323, y: 0.27660778, z: -0.09360972, w: 0.9544755}
+    scale: 3.5718033
+    zoneId: Z6
+  - id: 382c51ab212a430d97c474518365c1fe
+    paletteId: FacetedIceStone
+    routeId: MainRoute
+    routeDistance: 470.37653
+    angleDegrees: -102.55426
+    surfaceOffset: -0.13692267
+    surfaceRotation: {x: 0.17740975, y: 0.80701506, z: 0.04227928, w: -0.5616629}
+    scale: 2.117701
+    zoneId: Z6
+  - id: 6a182376a96a4fb3961a4bc292ff09a1
+    paletteId: FacetedIceStone
+    routeId: MainRoute
+    routeDistance: 494.70456
+    angleDegrees: 133.35425
+    surfaceOffset: -0.44132045
+    surfaceRotation: {x: -0.018127806, y: 0.99845314, z: 0.0414431, w: 0.032330707}
+    scale: 3.642416
+    zoneId: Z6
+  - id: bb30a375580c4586af72493cf9eb95fb
+    paletteId: FacetedIceStone
+    routeId: MainRoute
+    routeDistance: 505.21765
+    angleDegrees: 107.05852
+    surfaceOffset: -0.4592456
+    surfaceRotation: {x: -0.037812322, y: 0.46104124, z: -0.028775316, w: -0.8861058}
+    scale: 3.750441
+    zoneId: Z6
+  - id: 998cbd28fd414eb4b872a75f0eccad04
+    paletteId: FacetedIceStone
+    routeId: MainRoute
+    routeDistance: 490.11597
+    angleDegrees: -73.360115
+    surfaceOffset: -0.27666888
+    surfaceRotation: {x: 0.058655728, y: 0.33532974, z: -0.15837099, w: 0.9268398}
+    scale: 2.9083114
+    zoneId: Z6
+  - id: feedc6dcad124ba180b817392409cfe0
+    paletteId: BlueFacetedStone
+    routeId: MainRoute
+    routeDistance: 540.3358
+    angleDegrees: 209.93684
+    surfaceOffset: -0.2615696
+    surfaceRotation: {x: -0.10747604, y: 0.9074961, z: 0.11349339, w: -0.38989583}
+    scale: 3.8686843
+    zoneId: Z6
+  - id: 4649b44a970b49588208e14347b0105a
+    paletteId: BlueFacetedStone
+    routeId: MainRoute
+    routeDistance: 496.75027
+    angleDegrees: 215.48723
+    surfaceOffset: -0.2259695
+    surfaceRotation: {x: 0.13462321, y: 0.18946002, z: 0.088327385, w: -0.9685969}
+    scale: 4.025774
+    zoneId: Z6
+  - id: a56d26ecbcc04ae6a66d17604778ccce
+    paletteId: BlueFacetedStone
+    routeId: MainRoute
+    routeDistance: 470.99365
+    angleDegrees: 163.87169
+    surfaceOffset: -0.4583563
+    surfaceRotation: {x: 0.05968919, y: 0.3932258, z: 0.31120363, w: 0.86311245}
+    scale: 4.435264
+    zoneId: Z6
+  - id: d3159efeeaa2495d87240f8601ea042d
+    paletteId: BlueBandedPedestal
+    routeId: MainRoute
+    routeDistance: 514.8069
+    angleDegrees: 231.20724
+    surfaceOffset: -0.31813028
+    surfaceRotation: {x: 0.26763678, y: 0.74737304, z: 0.10661478, w: 0.5986965}
+    scale: 4.5451927
+    zoneId: Z6
+  - id: d39242a9a28c4d38b572f3ca029e6937
+    paletteId: BlueBandedPedestal
+    routeId: MainRoute
+    routeDistance: 564.32153
+    angleDegrees: 211.3907
+    surfaceOffset: -0.56464964
+    surfaceRotation: {x: -0.11170946, y: 0.34989125, z: -0.06788409, w: 0.92762536}
+    scale: 5.2928286
+    zoneId: Z6
+  - id: b402b942bc77441eb17e48654374e45a
+    paletteId: BlueBandedPedestal
+    routeId: MainRoute
+    routeDistance: 521.1154
+    angleDegrees: 183.90341
+    surfaceOffset: -0.59226567
+    surfaceRotation: {x: 0.07028487, y: 0.46186852, z: -0.120920405, w: -0.8758514}
+    scale: 4.5297265
+    zoneId: Z6
+  - id: 7e718448e61e4781b36317cc6d73e9af
+    paletteId: StylizedRockArch
+    routeId: MainRoute
+    routeDistance: 578.9949
+    angleDegrees: 173.37053
+    surfaceOffset: -1.2350209
+    surfaceRotation: {x: 0.039353188, y: 0.9512182, z: 0.16702706, w: 0.2563929}
+    scale: 12.540513
+    zoneId: Z6
+  - id: e78083e06e2746b7bfad6f4b1ab88eaa
+    paletteId: StylizedRockArch
+    routeId: MainRoute
+    routeDistance: 556.7862
+    angleDegrees: 208.57893
+    surfaceOffset: -0.58850074
+    surfaceRotation: {x: -0.11195512, y: 0.89409447, z: -0.12016109, w: 0.4166805}
+    scale: 8.0976
+    zoneId: Z6
+  - id: 8565d540bc0944aebdc94b8e9c41d280
+    paletteId: BlueStoneCavern
+    routeId: MainRoute
+    routeDistance: 573.0973
+    angleDegrees: 153.81186
+    surfaceOffset: -0.69340783
+    surfaceRotation: {x: -0.16148035, y: 0.4408842, z: -0.00012698348, w: -0.8829186}
+    scale: 8.280506
+    zoneId: Z6
+  - id: e9f7d23c8e594209ae61fcf8dd4eb874
+    paletteId: BlueStoneCavern
+    routeId: MainRoute
+    routeDistance: 517.3047
+    angleDegrees: 223.67598
+    surfaceOffset: -0.92376834
+    surfaceRotation: {x: 0.060041588, y: 0.85923314, z: -0.01380801, w: 0.507861}
+    scale: 11.483477
+    zoneId: Z6
+  - id: f8ac1be5f9114395902b65d3f5ac18aa
+    paletteId: BlueCrystalSeaweed
+    routeId: MainRoute
+    routeDistance: 552.01843
+    angleDegrees: -99.931046
+    surfaceOffset: -0.30788028
+    surfaceRotation: {x: 0.0067176786, y: 0.6630033, z: 0.041473035, w: 0.74743676}
+    scale: 2.9693482
+    zoneId: Z6
+  - id: 4231b4d090664ec9a58893ef26f69907
+    paletteId: BlueCrystalSeaweed
+    routeId: MainRoute
+    routeDistance: 548.0141
+    angleDegrees: -96.20192
+    surfaceOffset: -0.19120017
+    surfaceRotation: {x: -0.002757974, y: 0.9653035, z: -0.067567036, w: 0.25222227}
+    scale: 2.5762105
+    zoneId: Z6
+  - id: 4a5adead15f14c67af1cc751559b8119
+    paletteId: BlueCrystalSeaweed
+    routeId: MainRoute
+    routeDistance: 493.9417
+    angleDegrees: -83.61453
+    surfaceOffset: -0.19450754
+    surfaceRotation: {x: -0.050910134, y: 0.81490684, z: 0.041307926, w: -0.5758722}
+    scale: 1.7983037
+    zoneId: Z6
+  - id: 3158704123d14bd4a0cf91417c3b3e30
+    paletteId: BlueCrystalSeaweed
+    routeId: MainRoute
+    routeDistance: 517.8316
+    angleDegrees: -81.19357
+    surfaceOffset: -0.09124608
+    surfaceRotation: {x: -0.06251214, y: 0.34177625, z: -0.018622555, w: -0.937515}
+    scale: 2.1974652
+    zoneId: Z6
+  - id: cdec6f257e0e4879ae8129d4226a7987
+    paletteId: BlueCrystalSeaweed
+    routeId: MainRoute
+    routeDistance: 481.39752
+    angleDegrees: 212.52478
+    surfaceOffset: -0.16770779
+    surfaceRotation: {x: 0.03370433, y: 0.59870803, z: 0.023338076, w: -0.79991764}
+    scale: 2.8760314
+    zoneId: Z6
+  - id: 10f966a6d1884fe29ef853f573171b64
+    paletteId: BlueCrystalSeaweed
+    routeId: MainRoute
+    routeDistance: 544.9841
+    angleDegrees: 85.045166
+    surfaceOffset: -0.287745
+    surfaceRotation: {x: -0.057223246, y: 0.23533107, z: -0.0083322, w: 0.97019356}
+    scale: 3.453555
+    zoneId: Z6
+  - id: 4602ae9fe1d742458f632a131ffe1dca
+    paletteId: BlueCrystalSeaweed
+    routeId: MainRoute
+    routeDistance: 481.6174
+    angleDegrees: 183.25551
+    surfaceOffset: -0.18360408
+    surfaceRotation: {x: 0.028680278, y: 0.9719138, z: -0.012548673, w: 0.2332455}
+    scale: 3.4935899
+    zoneId: Z6
+  - id: 8303e252bb7e4371af430f64201e4078
+    paletteId: BlueCrystalSeaweed
+    routeId: MainRoute
+    routeDistance: 574.09406
+    angleDegrees: 90.66872
+    surfaceOffset: -0.3549558
+    surfaceRotation: {x: -0.06227656, y: 0.12235568, z: -0.030626476, w: -0.990057}
+    scale: 2.8602684
+    zoneId: Z6
+  - id: d27d636ad6d347c58ea8b52f69c285db
+    paletteId: ColorfulStylizedCoral
+    routeId: MainRoute
+    routeDistance: 507.2245
+    angleDegrees: -84.40871
+    surfaceOffset: -0.23032506
+    surfaceRotation: {x: -0.014243708, y: 0.94377226, z: -0.046896722, w: -0.32694346}
+    scale: 1.7138357
+    zoneId: Z6
+  - id: 3b87154c73304e65a025bb3a26bb8c1e
+    paletteId: ColorfulStylizedCoral
+    routeId: MainRoute
+    routeDistance: 487.66385
+    angleDegrees: 110.689186
+    surfaceOffset: -0.16011661
+    surfaceRotation: {x: -0.022379873, y: 0.9366225, z: 0.0148143675, w: 0.34931114}
+    scale: 2.1859012
+    zoneId: Z6
+  - id: c99ab01f3e0d4faa8435ab5645fc3c3c
+    paletteId: ColorfulStylizedCoral
+    routeId: MainRoute
+    routeDistance: 534.038
+    angleDegrees: 83.14548
+    surfaceOffset: -0.13092344
+    surfaceRotation: {x: -0.005206065, y: 0.78675264, z: -0.005545506, w: 0.6172216}
+    scale: 2.5041692
+    zoneId: Z6
+  - id: e2a4479abb5b4bd6a6bb0e05014c5e70
+    paletteId: ColorfulStylizedCoral
+    routeId: MainRoute
+    routeDistance: 572.22345
+    angleDegrees: 61.785454
+    surfaceOffset: -0.21571751
+    surfaceRotation: {x: 0.027879076, y: -0.9967551, z: -0.034366924, w: -0.06724032}
+    scale: 2.659628
+    zoneId: Z6
+  - id: a37302d7388c478d87f72609513df9ab
+    paletteId: ColorfulStylizedCoral
+    routeId: MainRoute
+    routeDistance: 574.5571
+    angleDegrees: 135.86044
+    surfaceOffset: -0.1942222
+    surfaceRotation: {x: 0.0476508, y: 0.64328563, z: -0.017487997, w: -0.763942}
+    scale: 2.920161
+    zoneId: Z6
+  - id: 62dc160118b04015bffcf40b80f3e1f8
+    paletteId: ColorfulStylizedCoral
+    routeId: MainRoute
+    routeDistance: 497.151
+    angleDegrees: -122.8053
+    surfaceOffset: -0.112188116
+    surfaceRotation: {x: -0.048741423, y: 0.9380761, z: -0.0027351454, w: -0.34297225}
+    scale: 1.9502451
+    zoneId: Z6
+  - id: 75aa7d7c72ac4c5f981daac9600e4c34
+    paletteId: ColorfulStylizedCoral
+    routeId: MainRoute
+    routeDistance: 485.89023
+    angleDegrees: -91.92205
+    surfaceOffset: -0.27208763
+    surfaceRotation: {x: 0.044153232, y: 0.4636317, z: 0.023972033, w: -0.8846024}
+    scale: 1.8585067
+    zoneId: Z6
+  - id: 2e377161d60b40428a9f6623d3ba0241
+    paletteId: ColorfulStylizedCoral
+    routeId: MainRoute
+    routeDistance: 510.4188
+    angleDegrees: 202.07997
+    surfaceOffset: -0.1550085
+    surfaceRotation: {x: 0.037229802, y: 0.7641151, z: 0.02116704, w: -0.64365673}
+    scale: 1.8670554
+    zoneId: Z6
+  - id: ca39ddcf4d9f459eb1b51d70dff39290
+    paletteId: StylizedGreenSeaweed
+    routeId: MainRoute
+    routeDistance: 496.07083
+    angleDegrees: 96.08477
+    surfaceOffset: -0.08947563
+    surfaceRotation: {x: 0.0044006263, y: 0.75841314, z: -0.056014735, w: -0.64934766}
+    scale: 1.885032
+    zoneId: Z6
+  - id: 689401fbba7c4b1e833cf227bb7748ea
+    paletteId: StylizedGreenSeaweed
+    routeId: MainRoute
+    routeDistance: 508.34927
+    angleDegrees: 65.01989
+    surfaceOffset: -0.20397244
+    surfaceRotation: {x: -0.07380627, y: -0.9852478, z: 0.08318181, w: 0.13007762}
+    scale: 1.8215543
+    zoneId: Z6
+  - id: 282685944df94f5c8ba3b14d423d0cff
+    paletteId: StylizedGreenSeaweed
+    routeId: MainRoute
+    routeDistance: 495.5069
+    angleDegrees: 64.65046
+    surfaceOffset: -0.32541516
+    surfaceRotation: {x: -0.00528805, y: 0.18703677, z: 0.01910637, w: -0.982153}
+    scale: 2.4142747
+    zoneId: Z6
+  - id: 7bd0734c6d01455b8b2cdb27b842871e
+    paletteId: StylizedGreenSeaweed
+    routeId: MainRoute
+    routeDistance: 573.87994
+    angleDegrees: 116.33744
+    surfaceOffset: -0.22525205
+    surfaceRotation: {x: 0.062397122, y: 0.0010296234, z: -0.05712366, w: -0.9964148}
+    scale: 2.266888
+    zoneId: Z6
+  - id: c65061e384e242dda1160b11cdc38a6d
+    paletteId: StylizedGreenSeaweed
+    routeId: MainRoute
+    routeDistance: 526.1587
+    angleDegrees: 150.7314
+    surfaceOffset: -0.15301175
+    surfaceRotation: {x: 0.06309603, y: 0.000045648907, z: -0.075396, w: -0.99515545}
+    scale: 1.7354544
+    zoneId: Z6
+  - id: 69fc3deec68f403b9c1fa2148908c5c1
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 551.2351
+    angleDegrees: 188.02237
+    surfaceOffset: -0.45484698
+    surfaceRotation: {x: 0.02761705, y: 0.30577934, z: -0.043497007, w: -0.95070726}
+    scale: 3.4987965
+    zoneId: Z6
+  - id: 50041251749f4256b4daa3058e9c1381
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 513.5854
+    angleDegrees: 208.30438
+    surfaceOffset: -0.40022287
+    surfaceRotation: {x: -0.054647572, y: 0.6788963, z: 0.0809693, w: 0.72770715}
+    scale: 2.7780728
+    zoneId: Z6
+  - id: 15475067766d4de3ad1e08dd8ed90733
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 504.43146
+    angleDegrees: 149.14047
+    surfaceOffset: -0.49824944
+    surfaceRotation: {x: 0.06064438, y: 0.95586956, z: -0.025164733, w: -0.28636047}
+    scale: 3.3664804
+    zoneId: Z6
+  - id: 115a2eb2de8f41fab928569d3ef87a05
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 468.61194
+    angleDegrees: 182.70125
+    surfaceOffset: -0.29999578
+    surfaceRotation: {x: -0.03877959, y: 0.8838709, z: -0.080147006, w: 0.45917866}
+    scale: 3.671002
+    zoneId: Z6
+  - id: a77e8d2597c54dc297802e7dd3c359ea
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 530.1129
+    angleDegrees: 150.07578
+    surfaceOffset: -0.29290158
+    surfaceRotation: {x: 0.020566188, y: 0.052613735, z: 0.055255566, w: -0.99687296}
+    scale: 3.9549441
+    zoneId: Z6
+  - id: 5897245da74e4255bc5da7e88e5bf917
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 459.824
+    angleDegrees: 147.49852
+    surfaceOffset: -0.28913146
+    surfaceRotation: {x: 0.020798253, y: 0.82883614, z: 0.045707703, w: 0.55723345}
+    scale: 2.3072343
+    zoneId: Z6
+  - id: b1f6ed6dfaac498688d77c7cb5198aa1
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 499.45114
+    angleDegrees: 172.87875
+    surfaceOffset: -0.28835782
+    surfaceRotation: {x: 0.07084092, y: 0.9947658, z: 0.054014012, w: 0.050051775}
+    scale: 2.434523
+    zoneId: Z6
+  - id: 6f0726dbb27e402485e986010f293c0f
+    paletteId: StylizedGrassPatch
+    routeId: MainRoute
+    routeDistance: 499.48703
+    angleDegrees: 229.8297
+    surfaceOffset: -0.27147436
+    surfaceRotation: {x: -0.0696857, y: 0.1193403, z: 0.09321795, w: 0.98600835}
+    scale: 2.3221104
+    zoneId: Z6
+  - id: 05aec286689244b7938d983ff924a713
+    paletteId: LowPolyGreenPlant
+    routeId: MainRoute
+    routeDistance: 549.0883
+    angleDegrees: -102.25492
+    surfaceOffset: -0.27315748
+    surfaceRotation: {x: 0.026164789, y: 0.024773046, z: -0.029988829, w: -0.9989007}
+    scale: 2.0892117
+    zoneId: Z6
+  - id: a92a59b6cff24d7d8d457b5b32514816
+    paletteId: LowPolyGreenPlant
+    routeId: MainRoute
+    routeDistance: 538.22107
+    angleDegrees: -128.43773
+    surfaceOffset: -0.20048462
+    surfaceRotation: {x: -0.0952952, y: 0.108590916, z: -0.035062503, w: 0.98888695}
+    scale: 1.463153
+    zoneId: Z6
+  - id: 96823dd0e10341a184e708f0a433e088
+    paletteId: LowPolyGreenPlant
+    routeId: MainRoute
+    routeDistance: 569.33813
+    angleDegrees: 117.425606
+    surfaceOffset: -0.20211999
+    surfaceRotation: {x: 0.02432585, y: 0.43775627, z: 0.10287931, w: -0.8928571}
+    scale: 2.4790041
+    zoneId: Z6
+  - id: b42eccf66c7942db945a504d233c49bb
+    paletteId: LowPolyGreenPlant
+    routeId: MainRoute
+    routeDistance: 504.89908
+    angleDegrees: 176.59738
+    surfaceOffset: -0.12722223
+    surfaceRotation: {x: 0.034739017, y: 0.54243475, z: -0.05262516, w: 0.8377282}
+    scale: 2.0746417
+    zoneId: Z6
+  - id: 9df2542237c1425ca57fa6840b0235f4
+    paletteId: LowPolyGreenPlant
+    routeId: MainRoute
+    routeDistance: 504.84418
+    angleDegrees: 64.65576
+    surfaceOffset: -0.1995083
+    surfaceRotation: {x: -0.0466534, y: -0.22618005, z: 0.024092332, w: 0.9726693}
+    scale: 2.1716042
+    zoneId: Z6
+  - id: 157fcba359b2460cb3d61552ee2f9d57
+    paletteId: GreenStylizedPlant
+    routeId: MainRoute
+    routeDistance: 558.7056
+    angleDegrees: -121.25771
+    surfaceOffset: -0.1338557
+    surfaceRotation: {x: -0.08366103, y: 0.98363054, z: -0.024580045, w: -0.15769464}
+    scale: 2.9524348
+    zoneId: Z6
+  - id: 912e690f59c448af8c7b94d70993ac65
+    paletteId: GreenStylizedPlant
+    routeId: MainRoute
+    routeDistance: 540.32227
+    angleDegrees: 126.4541
+    surfaceOffset: -0.23787865
+    surfaceRotation: {x: -0.008959255, y: 0.6918363, z: -0.12241284, w: -0.7115458}
+    scale: 1.7805712
+    zoneId: Z6
+  - id: d0d1c3f9089f41958feb460013d2bc8c
+    paletteId: GreenStylizedPlant
+    routeId: MainRoute
+    routeDistance: 538.56915
+    angleDegrees: 222.69658
+    surfaceOffset: -0.09267172
+    surfaceRotation: {x: 0.012050462, y: 0.076631844, z: -0.030389259, w: 0.9965234}
+    scale: 1.9543011
+    zoneId: Z6
+  - id: 26e1d036d100497e90e3d4113d8d03c2
+    paletteId: GreenStylizedPlant
+    routeId: MainRoute
+    routeDistance: 494.74554
+    angleDegrees: 72.61435
+    surfaceOffset: -0.28375632
+    surfaceRotation: {x: 0.064827934, y: 0.23164588, z: 0.033991672, w: -0.9700423}
+    scale: 2.4995835
+    zoneId: Z6
+  - id: e9804375d95042958515daf60e250cdc
+    paletteId: GreenStylizedPlant
+    routeId: MainRoute
+    routeDistance: 526.3956
+    angleDegrees: 154.33662
+    surfaceOffset: -0.34679818
+    surfaceRotation: {x: 0.071039096, y: 0.6250321, z: -0.0013131825, w: 0.7773587}
+    scale: 2.4641435
+    zoneId: Z6
+  - id: 85ddc24f7e7844cfa9d7c6819cb26c40
+    paletteId: LowPolyYellowPlant
+    routeId: MainRoute
+    routeDistance: 574.12964
+    angleDegrees: 186.05128
+    surfaceOffset: -0.18084595
+    surfaceRotation: {x: -0.05616443, y: 0.40178818, z: 0.07729167, w: 0.9107349}
+    scale: 1.5812079
+    zoneId: Z6
+  - id: 9bcd393b18da4b46bb6796c9fef5d071
+    paletteId: LowPolyYellowPlant
+    routeId: MainRoute
+    routeDistance: 565.4104
+    angleDegrees: 125.688705
+    surfaceOffset: -0.23771182
+    surfaceRotation: {x: -0.10190757, y: 0.6346899, z: 0.020699013, w: -0.76573837}
+    scale: 1.6563512
+    zoneId: Z6
+  - id: 0d8b6ffd8d5f48d2bbaf7c5c62b02103
+    paletteId: LowPolyYellowPlant
+    routeId: MainRoute
+    routeDistance: 487.07773
+    angleDegrees: 175.1048
+    surfaceOffset: -0.14943384
+    surfaceRotation: {x: 0.05351272, y: 0.36996314, z: 0.080871, w: -0.92397165}
+    scale: 1.4865968
+    zoneId: Z6
+  - id: fca539362069403da3b3ecc731bf4642
+    paletteId: LowPolyYellowPlant
+    routeId: MainRoute
+    routeDistance: 550.2214
+    angleDegrees: 205.47984
+    surfaceOffset: -0.10617081
+    surfaceRotation: {x: -0.069121435, y: 0.19095737, z: 0.00395111, w: 0.9791537}
+    scale: 1.2673028
+    zoneId: Z6
+  - id: c19139ce775d4c088acb44d40125f501
+    paletteId: LowPolyYellowPlant
+    routeId: MainRoute
+    routeDistance: 551.6167
+    angleDegrees: 181.8662
+    surfaceOffset: -0.09779531
+    surfaceRotation: {x: 0.08539955, y: 0.92794096, z: -0.05820712, w: 0.35811266}
+    scale: 1.2962395
+    zoneId: Z6
+  minCorridorRadius: 5
+  autoScatterDensity: 2
+  autoScatterSeed: 20260810
+  autoScatterAttempts: 12

@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Varco.Underwater
 {
     /// <summary>
-    /// The Z1..Z7 atmosphere profiles for the deep-sea cave. Defaults come from
+    /// The Z1..Z6 atmosphere profiles for the deep-sea cave. Defaults come from
     /// UnderwaterCaveLevelGuide/03_art_lighting_guide.png (visibility ranges) and MAP_GUIDE.md
     /// (per-zone colour rules); <see cref="ResetToGuideDefaults"/> restores them at any time.
     /// </summary>
@@ -185,39 +185,10 @@ namespace Varco.Underwater
                     bioluminescenceTint = Color.black
                 },
 
-                // Z5 침몰 시설·상점 - 18-24m, 제한된 따뜻한 녹황색 빛 (국소광은 후속 작업)
+                // Z5 열수 굴뚝 - 10-15m, 검은 화산암, 백색 열수, 붉은 광물선
                 new UnderwaterZoneProfile
                 {
                     zoneId = "Z5",
-                    visibilityMeters = 21f,
-                    fogColor = new Color(0.0389f, 0.2007f, 0.3124f),
-                    backgroundColor = new Color(0.1406f, 0.6686f, 1.0155f),
-                    ambientSky = new Color(1.2499f, 5.1710f, 6.2493f),
-                    ambientEquator = new Color(0.6874f, 3.1206f, 3.8277f),
-                    ambientGround = new Color(0.2186f, 1.1590f, 1.2499f),
-                    ambientIntensity = 1.05f,
-                    directionalIntensity = 1.40f,
-                    extinctionTint = new Vector3(3.1f, 1.02f, 1.0f),
-                    refraction = 0.0018f,
-                    refractionSpeed = 0.55f,
-                    causticStrength = 0.14f,
-                    postExposure = 0.50f,
-                    contrast = 10f,
-                    saturation = 4f,
-                    colorFilter = new Color(0.86f, 0.98f, 0.96f),
-                    bloomIntensity = 0.45f,
-                    vignetteIntensity = 0.24f,
-                    whiteBalanceTemperature = -10f,
-                    whiteBalanceTint = 2f,
-                    particleDensityScale = 1.00f,
-                    shaftIntensity = 0.25f,
-                    bioluminescenceTint = new Color(0.75f, 0.70f, 0.30f)
-                },
-
-                // Z6 열수 굴뚝 - 10-15m, 검은 화산암, 백색 열수, 붉은 광물선
-                new UnderwaterZoneProfile
-                {
-                    zoneId = "Z6",
                     visibilityMeters = 12.5f,
                     fogColor = new Color(0.0439f, 0.2462f, 0.3966f),
                     backgroundColor = new Color(0.1709f, 1.0191f, 1.4641f),
@@ -243,10 +214,10 @@ namespace Varco.Underwater
                     bioluminescenceTint = new Color(0.85f, 0.20f, 0.12f)
                 },
 
-                // Z7 출구 목구멍 - 35-45m, 작은 수면광 출구, 대형 상어
+                // Z6 출구 목구멍 - 35-45m, 작은 수면광 출구, 대형 상어
                 new UnderwaterZoneProfile
                 {
-                    zoneId = "Z7",
+                    zoneId = "Z6",
                     visibilityMeters = 40f,
                     fogColor = new Color(0.0258f, 0.1387f, 0.1784f),
                     backgroundColor = new Color(0.1297f, 0.5253f, 0.5947f),

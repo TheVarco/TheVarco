@@ -4,4 +4,5 @@ Assets/04.Materials/MapMaterial/dark_rock_02_8k/textures/*.jpg filter=lfs diff=l
 Assets/04.Materials/MapMaterial/dark_rock_02_8k/textures/*.png filter=lfs diff=lfs merge=lfs -text
 Assets/04.Materials/MapMaterial/dark_rock_02_8k/textures/*.exr filter=lfs diff=lfs merge=lfs -text
 Assets/99.Resources/Map/CaveAsset/*.fbx filter=lfs diff=lfs merge=lfs -text
+Assets/99.Resources/Map/CaveAsset/**/*.fbx filter=lfs diff=lfs merge=lfs -text
 Assets/99.Resources/Map/CaveAsset/**/*.png filter=lfs diff=lfs merge=lfs -text
