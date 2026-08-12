@@ -1,18 +1,21 @@
 using System.Collections;
 using UnityEngine;
 
-[RequireComponent(typeof(SharkTargeting))]
+/// <summary>
+/// 상어의 최초 타깃 탐지 표시.
+/// </summary>
+[RequireComponent(typeof(EnemyTargeting))]
 public class SharkDetectionIndicator : MonoBehaviour
 {
-    [SerializeField] private GameObject detectObject;
-    [SerializeField, Min(0f)] private float visibleDuration = 3f;
+    [SerializeField] private GameObject detectObject;                 // 감지 표시 오브젝트.
+    [SerializeField, Min(0f)] private float visibleDuration = 3f;    // 표시 유지 시간.
 
-    private SharkTargeting targeting;
-    private Coroutine hideCoroutine;
+    private EnemyTargeting targeting; // 공통 타겟팅 컴포넌트.
+    private Coroutine hideCoroutine;  // 표시 종료 코루틴.
 
     private void Awake()
     {
-        targeting = GetComponent<SharkTargeting>();
+        targeting = GetComponent<EnemyTargeting>();
 
         if (detectObject != null)
             detectObject.SetActive(false);
@@ -21,7 +24,7 @@ public class SharkDetectionIndicator : MonoBehaviour
     private void OnEnable()
     {
         if (targeting == null)
-            targeting = GetComponent<SharkTargeting>();
+            targeting = GetComponent<EnemyTargeting>();
 
         targeting.OnTargetDetected += Show;
     }
@@ -33,6 +36,9 @@ public class SharkDetectionIndicator : MonoBehaviour
         HideImmediately();
     }
 
+    /// <summary>
+    /// 감지 표시 즉시 숨김.
+    /// </summary>
     public void HideImmediately()
     {
         if (hideCoroutine != null)
@@ -45,6 +51,9 @@ public class SharkDetectionIndicator : MonoBehaviour
             detectObject.SetActive(false);
     }
 
+    /// <summary>
+    /// 감지 표시 활성화 및 종료 타이머 시작.
+    /// </summary>
     private void Show(Transform detectedTarget)
     {
         if (detectObject == null)

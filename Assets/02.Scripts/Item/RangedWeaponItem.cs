@@ -1,3 +1,4 @@
+using Fusion;
 using UnityEngine;
 
 // 원거리 무기 아이템. CarryableItem의 좌/우클릭 기본 동작을 재정의해서,
@@ -7,8 +8,10 @@ public class RangedWeaponItem : CarryableItem
 {
     [Header("발사 설정 (밸런싱용)")]
     public GameObject projectilePrefab;
+    [Tooltip("네트워크 스폰용 총알 프리팹. 비어있으면 위의 projectilePrefab으로 로컬 생성 (러너 없는 씬용)")]
+    public NetworkPrefabRef projectilePrefabRef;
     [Tooltip("다시 발사 가능해지기까지 걸리는 시간(초)")]
-    public float fireCooldown = 0.3f;
+    public float fireCooldown = 0.5f;
     [Tooltip("총구가 실제로 태어나는 위치를 지정하고 싶으면 이 무기 모델의 자식으로 만들어 연결. 비워두면 조준 기준점(카메라) 위치에서 발사됨")]
     public Transform muzzlePoint;
     [Tooltip("muzzlePoint를 안 정했을 때, 조준 기준점에서 얼마나 앞에서 발사할지")]
@@ -22,22 +25,89 @@ public class RangedWeaponItem : CarryableItem
             cooldownTimer -= Time.deltaTime;
     }
 
-    // 좌클릭 = 발사. CarryableItem의 기본 동작(OnUse 호출)을 완전히 대체함
+    // 좌클릭 = 1초 딜레이 후 발사 및 원거리 공격 모션 실행
     public override bool OnPrimaryAction(GameObject user, Transform aimReference)
     {
-        if (cooldownTimer > 0f) return false; // 쿨타임 중이면 아무 일도 안 함, 소모(제거)도 안 됨
+        if (cooldownTimer > 0f) return false; // 쿨타임 중이면 아무 일도 안 함
 
+        // 클릭 직후 회전 및 공격 모션(Ranged) 즉시 시작
+        RotatePlayerToTarget(user, aimReference);
+
+        if (user != null)
+        {
+            Animator anim = user.GetComponentInChildren<Animator>();
+            if (anim == null) anim = user.GetComponentInParent<Animator>();
+            if (anim == null) anim = user.GetComponent<Animator>();
+
+            if (anim != null)
+            {
+                anim.SetTrigger("Ranged");
+                Debug.Log($"[RangedWeaponItem] SetTrigger('Ranged') 실행됨! (1초 후 발사 예정)");
+            }
+        }
+
+        // 1초 딜레이 후 실제 총알 발사 실행
+        if (user != null && user.activeInHierarchy)
+        {
+            MonoBehaviour runner = user.GetComponent<MonoBehaviour>();
+            if (runner != null)
+            {
+                runner.StartCoroutine(DelayedFireRoutine(user, aimReference, 1.0f));
+            }
+            else
+            {
+                StartCoroutine(DelayedFireRoutine(user, aimReference, 1.0f));
+            }
+        }
+
+        cooldownTimer = fireCooldown; // 딜레이 시간(1초) 포함 쿨타임 처리
+        return false;
+    }
+
+    private System.Collections.IEnumerator DelayedFireRoutine(GameObject user, Transform aimReference, float delay)
+    {
+        yield return new WaitForSeconds(delay);
         Fire(user, aimReference);
-        cooldownTimer = fireCooldown;
-        return false; // 총은 한 발 쐈다고 핫바에서 사라지지 않음 (소모품 아님)
     }
 
     // 우클릭 홀드 = 조준(줌 + 몸 정렬). CarryableItem의 기본(아무것도 안 함)을 대체함
     public override void OnSecondaryHeld(GameObject user, Transform aimReference, bool isHeld)
     {
-        // aimReference는 보통 CameraRig 오브젝트 자체를 가리키므로, 거기서 바로 컴포넌트를 찾음
         PlayerCameraRig cameraRig = aimReference != null ? aimReference.GetComponent<PlayerCameraRig>() : null;
         if (cameraRig != null) cameraRig.SetAiming(isHeld);
+    }
+
+    private void RotatePlayerToTarget(GameObject user, Transform aimReference)
+    {
+        if (user == null || aimReference == null) return;
+
+        Vector3 targetPoint = GetTargetPointIgnoringUser(user, aimReference);
+        Vector3 lookDir = targetPoint - user.transform.position;
+        if (lookDir.sqrMagnitude > 0.001f)
+        {
+            Vector3 euler = Quaternion.LookRotation(lookDir).eulerAngles;
+            user.transform.rotation = Quaternion.Euler(euler.x, euler.y, 0f);
+        }
+    }
+
+    private Vector3 GetTargetPointIgnoringUser(GameObject user, Transform aimReference)
+    {
+        Ray ray = new Ray(aimReference.position, aimReference.forward);
+        float maxDistance = 150f;
+        RaycastHit[] hits = Physics.RaycastAll(ray, maxDistance, ~0, QueryTriggerInteraction.Ignore);
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        foreach (var hit in hits)
+        {
+            // 플레이어 본인 및 자식 콜라이더인 경우 레이캐스트 대상에서 무시
+            if (user != null && hit.collider != null &&
+                (hit.collider.gameObject == user || hit.collider.transform.IsChildOf(user.transform)))
+            {
+                continue;
+            }
+            return hit.point;
+        }
+        return ray.GetPoint(maxDistance);
     }
 
     // 실제로 투사체를 만들어내는 부분. 다른 발사 방식이 필요한 무기는 이 함수만 재정의하면 됨
@@ -49,14 +119,44 @@ public class RangedWeaponItem : CarryableItem
             return;
         }
 
-        Vector3 spawnPosition = muzzlePoint != null
-            ? muzzlePoint.position
-            : aimReference.position + aimReference.forward * muzzleForwardOffset;
+        // 1. 플레이어 본인 제외 레이캐스트 조준점 계산
+        Vector3 targetPoint = GetTargetPointIgnoringUser(user, aimReference);
+
+        // 2. 발사 순간 플레이어 로테이션 재조정
+        if (user != null)
+        {
+            Vector3 lookDir = targetPoint - user.transform.position;
+            if (lookDir.sqrMagnitude > 0.001f)
+            {
+                Vector3 euler = Quaternion.LookRotation(lookDir).eulerAngles;
+                user.transform.rotation = Quaternion.Euler(euler.x, euler.y, 0f);
+            }
+        }
+
+        // 3. 총알 발사 시작 지점 = 플레이어 위치
+        Vector3 spawnPosition = user != null
+            ? user.transform.position + user.transform.forward * 0.5f + Vector3.up * 1.0f
+            : aimReference.position;
+
+        if (muzzlePoint != null)
+        {
+            spawnPosition = muzzlePoint.position;
+        }
+
+        Vector3 fireDirection = (targetPoint - spawnPosition).normalized;
+
+        // 네트워크 세션이면 호스트가 총알을 스폰하고 판정까지 담당한다
+        PlayerHotbar userHotbar = user != null ? user.GetComponent<PlayerHotbar>() : null;
+        if (userHotbar != null && userHotbar.Object != null && projectilePrefabRef.IsValid)
+        {
+            userHotbar.SpawnProjectile(projectilePrefabRef, spawnPosition, fireDirection);
+            return;
+        }
 
         GameObject spawned = Instantiate(
             projectilePrefab,
             spawnPosition,
-            Quaternion.LookRotation(aimReference.forward)
+            Quaternion.LookRotation(fireDirection)
         );
 
         Projectile projectile = spawned.GetComponent<Projectile>();

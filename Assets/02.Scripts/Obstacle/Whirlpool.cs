@@ -1,84 +1,51 @@
+using System.Collections.Generic;
 using UnityEngine;
 
-// 씬에 배치하는 회오리. 주변 플레이어를 감지해서 중심으로 끌어당기고,
-// 안쪽 반경(innerRadius)에 들어오면 "갇힘" 상태로 표시한다.
-// 조작을 강제로 끄지는 않고, 당기는 힘 자체가 세게 설계되어 있어서 물리적으로 혼자 못 빠져나가는 방식.
+// 씬에 배치하는 회오리. 스스로 플레이어를 찾아 힘을 주지 않고,
+// "어디에 얼마나 센 회오리가 있는지"만 들고 있는다.
+// 실제로 당기는 건 각 플레이어의 PlayerWhirlpoolState가 자기 네트워크 틱에서 처리한다.
+// (Unity FixedUpdate에서 힘을 주면 Fusion이 굴리는 틱과 어긋나서, 클라이언트 예측이
+//  되감길 때 회오리 힘만 다시 계산되지 않아 호스트와 위치가 벌어진다)
 public class Whirlpool : MonoBehaviour
 {
+    // 플레이어가 매 틱 OverlapSphere를 돌리지 않도록 씬의 회오리를 여기 모아둠 (몇 개 안 됨)
+    public static readonly List<Whirlpool> Active = new List<Whirlpool>();
+
     [Header("범위 설정")]
-    [Tooltip("이 반경 밖에 있으면 회오리 영향을 아예 안 받음. 이 반경 안으로 들어오면 거리에 비례해서 서서히 당겨지기 시작함")]
+    [Tooltip("이 반경 밖에 있으면 회오리 영향을 아예 안 받음. 안으로 들어오면 거리에 비례해 서서히 당겨짐")]
     public float outerRadius = 10f;
-    [Tooltip("이 반경보다 안쪽으로 들어오면 '갇힘' 상태가 됨. 밧줄에 끌려서 이 반경을 다시 벗어나면 그 순간 풀려남")]
+    [Tooltip("이 반경보다 안쪽이면 '갇힘' 상태. 밧줄에 끌려 이 반경을 다시 벗어나면 그 순간 풀려남")]
     public float innerRadius = 2f;
 
     [Header("힘 설정 (밸런싱용)")]
-    [Tooltip("안쪽 반경(Inner Radius) 안에서는 항상 이 힘으로 고정 당김. 이 값이 Rope Pull Force보다 세면 혼자 못 버티고, 밧줄 구조 시 이 값 대 Rope Pull Force가 그대로 힘겨루기가 됨")]
+    [Tooltip("안쪽 반경 안에서는 항상 이 힘으로 고정 당김. 밧줄 힘과 이 값이 그대로 힘겨루기가 됨")]
     public float maxPullForce = 20f;
 
-    [Tooltip("어떤 대상을 회오리 영향 대상으로 볼지 (Player 전용 레이어로 좁혀두면 다른 오브젝트까지 끌려오는 걸 방지)")]
-    public LayerMask playerLayer = ~0;
+    [Tooltip("바깥쪽 감쇠 곡선. 1이면 직선, 클수록 가장자리가 헐렁하고 중심 근처에서만 세짐")]
+    [Range(1f, 4f)] public float falloffExponent = 2f;
 
-    void FixedUpdate()
+    [Tooltip("회오리 안에서 받는 물의 저항. 이게 없으면 중심을 관통해 왔다 갔다 진동한다")]
+    public float pullDamping = 5f;
+
+    void OnEnable() => Active.Add(this);
+    void OnDisable() => Active.Remove(this);
+
+    // 거리에 따른 당기는 힘. 안쪽 반경 안에서는 항상 최대 (밧줄 힘과 숫자 그대로 겨루게)
+    public float GetPullForce(float distance)
     {
-        Collider[] candidates = Physics.OverlapSphere(transform.position, outerRadius, playerLayer);
+        if (distance <= innerRadius) return maxPullForce;
 
-        foreach (Collider col in candidates)
-        {
-            Rigidbody rb = col.attachedRigidbody;
-            if (rb == null) continue;
+        // 두 반경이 같거나 뒤집히면 0으로 나눠 NaN이 나온다. Mathf.Clamp01은 NaN 비교가 전부
+        // false라 그대로 통과시키고, 그 값이 AddForce로 들어가면 Rigidbody 위치가 NaN이 되어
+        // 플레이어가 월드에서 사라진다 (세션 중 복구 불가). 인스펙터 실수 한 번으로 나는 사고
+        float range = outerRadius - innerRadius;
+        if (range <= 0.001f) return maxPullForce;
 
-            Vector3 toCenter = transform.position - rb.position;
-            float dist = toCenter.magnitude;
-            if (dist < 0.01f) continue;
-
-            // 안쪽 반경(innerRadius) 안에서는 항상 최대 힘으로 고정 - "갇힌 동안은 일정하게 강한 저항"을 만들어서,
-            // Rope Pull Force랑 이 Max Pull Force가 숫자 그대로 정직하게 겨루게 함.
-            // innerRadius ~ outerRadius 사이에서만 거리에 따라 서서히 약해짐
-            float pullForce;
-            if (dist <= innerRadius)
-            {
-                pullForce = maxPullForce;
-            }
-            else
-            {
-                float t = Mathf.Clamp01((outerRadius - dist) / (outerRadius - innerRadius));
-                pullForce = maxPullForce * t;
-            }
-
-            rb.AddForce(toCenter.normalized * pullForce, ForceMode.Acceleration);
-
-            PlayerWhirlpoolState trapState = col.GetComponentInParent<PlayerWhirlpoolState>();
-
-            // 테스트용: 갇혀있는 동안 1초에 한 번씩 실제 힘/거리 확인
-            if (trapState != null && trapState.IsTrapped)
-            {
-                logTimer += Time.fixedDeltaTime;
-                if (logTimer >= 1f)
-                {
-                    logTimer = 0f;
-                    Debug.Log($"[Whirlpool] {col.gameObject.name} 갇힌 거리={dist:F2}, 회오리 힘={pullForce:F1}");
-                }
-            }
-
-            // 안쪽 반경에 아직 없으면 가두고, 이미 갇혀있었는데 벗어났으면 풀어줌
-            // (밧줄에 끌려 나오다가 반경을 벗어나는 순간이 바로 "진짜로 탈출한" 순간)
-            if (trapState != null)
-            {
-                if (dist <= innerRadius && !trapState.IsTrapped)
-                {
-                    trapState.Trap(transform);
-                }
-                else if (dist > innerRadius && trapState.IsTrapped)
-                {
-                    trapState.Release();
-                }
-            }
-        }
+        float t = Mathf.Clamp01((outerRadius - distance) / range);
+        return maxPullForce * Mathf.Pow(t, falloffExponent);
     }
 
-    private float logTimer = 0f;
-
-    // 디버그용: 씬 뷰에서 바깥/안쪽 범위를 눈으로 확인하기 위함
+    // 디버그용: 씬 뷰에서 바깥/안쪽 범위를 눈으로 확인
     void OnDrawGizmosSelected()
     {
         Gizmos.color = new Color(0.2f, 0.6f, 1f, 0.6f);

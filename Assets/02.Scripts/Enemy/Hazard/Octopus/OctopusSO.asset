@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d6f38e29dedf5544b61d8032bbd78ea, type: 3}
+  m_Name: OctopusSO
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyData
+  moveSpeed: 2
+  rotateSpeed: 1
+  ProximityDetectRadius: 3
+  ForwardDetectRadius: 3
+  loseTargetRadius: 3
+  damageTargetLockDuration: 1.5
+  retargetInterval: 0.25
+  targetSwitchDistanceMargin: 1
+  viewAngle: 90
+  patrolRadius: 3
+  patrolArriveDistance: 0.5
+  idleWaitMin: 1
+  idleWaitMax: 3
+  patrolProbeRadius: 1
+  patrolWallBuffer: 1.5
+  patrolStuckTime: 2
+  attackRange: 0.75
+  attackCooldown: 0
+  attackDamage: 0

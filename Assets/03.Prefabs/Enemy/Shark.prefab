@@ -691,6 +691,10 @@ GameObject:
   - component: {fileID: 8010080037413460847}
   - component: {fileID: 3206915547288056510}
   - component: {fileID: 6849271053184672901}
+  - component: {fileID: 911000000000000003}
+  - component: {fileID: 912000000000000001}
+  - component: {fileID: 912000000000000002}
+  - component: {fileID: 912000000000000003}
   m_Layer: 0
   m_Name: Shark
   m_TagString: Untagged
@@ -740,9 +744,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 4880988355093290315}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a13369ad3d9b468e9219fda67cd7d905, type: 3}
+  m_Script: {fileID: 11500000, guid: 2b3db0606f8f4634b8cb8f775762c2ef, type: 3}
   m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::SharkTargeting
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyTargeting
   enemyData: {fileID: 11400000, guid: 619bb3a7a9cc80e458b1a78eb38f50f0, type: 2}
   targetLayer:
     serializedVersion: 2
@@ -759,10 +763,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 4880988355093290315}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: aaeeb60229aa40f8afd064dac2390fe1, type: 3}
+  m_Script: {fileID: 11500000, guid: 85b9ea3045fe4323b72dc102ad6a8881, type: 3}
   m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::SharkNavigator
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyNavigator
   enemyData: {fileID: 11400000, guid: 619bb3a7a9cc80e458b1a78eb38f50f0, type: 2}
+  obstacleLayer:
+    serializedVersion: 2
+    m_Bits: 0
 --- !u!114 &4816400313698311707
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -776,6 +783,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Health
   maxHealth: 100
+  hitAnimationCooldown: 0.5
   OnHealthChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -785,6 +793,7 @@ MonoBehaviour:
   OnRevived:
     m_PersistentCalls:
       m_Calls: []
+  animator: {fileID: 0}
 --- !u!136 &8010080037413460847
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -845,10 +854,74 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b7d9e1c64f874a7aa13d6cf49a3d8e21, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::SharkDetectionIndicator
   detectObject: {fileID: 346449191806589132}
   visibleDuration: 3
+--- !u!114 &911000000000000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4880988355093290315}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f2e5c90963840a3a39a4b3264392991, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::SonarTarget
+  category: 0
+  detectionPoint: {fileID: 0}
+--- !u!114 &912000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4880988355093290315}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 188808956
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 912000000000000002}
+  - {fileID: 912000000000000003}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &912000000000000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4880988355093290315}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkTransform
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 0
+  _interpolationTarget: {fileID: 0}
+  _autoAOIOverride: 1
+  DisableSharedModeInterpolation: 0
+--- !u!114 &912000000000000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4880988355093290315}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6b28fb6446b4a969b6765382d9fae01, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHealthNetworkSync
 --- !u!1 &5092862414123845241
 GameObject:
   m_ObjectHideFlags: 0

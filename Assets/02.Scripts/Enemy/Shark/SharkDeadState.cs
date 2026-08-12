@@ -25,8 +25,8 @@ public class SharkDeadState : ISharkState
         if (shark.AttackHitbox != null)
             shark.AttackHitbox.EndBite();
 
-        // 일정 시간 뒤 오브젝트 제거
-        Object.Destroy(shark.gameObject, DestroyDelay);
+        // 체크포인트에서 취소할 수 있는 지연 제거 예약
+        shark.ScheduleDestroyAfterDeath(DestroyDelay);
     }
 
     public void Update()

@@ -13,6 +13,8 @@ GameObject:
   - component: {fileID: 4717488503125905340}
   - component: {fileID: 1790637974770456348}
   - component: {fileID: 5303959029185062594}
+  - component: {fileID: 903412007100000004}
+  - component: {fileID: -1458918587860876138}
   m_Layer: 7
   m_Name: RopeItem
   m_TagString: Untagged
@@ -42,7 +44,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3834630700010999236}
-  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: -2432090755550338912, guid: d80dcd8a73a49574cb806bac7d7e2522, type: 3}
 --- !u!23 &4717488503125905340
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -68,7 +70,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 8b18a42b30d9b1e4db3550fcb39dea69, type: 2}
+  - {fileID: 2100000, guid: 28b3d724a4d22214da6593e7b32e58c8, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -111,7 +113,7 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.5
+  m_Radius: 0.7
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
@@ -130,10 +132,46 @@ MonoBehaviour:
   itemName: "\uBC27\uC904"
   isConsumable: 1
   icon: {fileID: 0}
+  giveActionName: "\uC0AC\uC6A9\uD574\uC8FC\uAE30"
   holdPositionOffset: {x: 0, y: 0, z: 0}
   holdRotationOffset: {x: 0, y: 0, z: 0}
   ropeProjectilePrefab: {fileID: 3498688313566668995, guid: 3d362de4b0fe3814ea68f3993b74549d, type: 3}
-  ropeVisualPrefab: {fileID: 5811950906510464521, guid: cb8acdc333f11fd4ea6500cf985f9dbd, type: 3}
+  ropeProjectilePrefabRef:
+    RawGuidValue: 3d362de4b0fe3814ea68f3993b74549d
+  throwDelay: 0.5
   throwCooldown: 1
   muzzlePoint: {fileID: 0}
   muzzleForwardOffset: 1
+--- !u!114 &903412007100000004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3834630700010999236}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f2e5c90963840a3a39a4b3264392991, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SonarTarget
+  category: 1
+  detectionPoint: {fileID: 0}
+--- !u!114 &-1458918587860876138
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3834630700010999236}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 3304633767
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 5303959029185062594}
+  ForceRemoteRenderTimeframe: 0

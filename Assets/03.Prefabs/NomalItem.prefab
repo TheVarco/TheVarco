@@ -11,8 +11,10 @@ GameObject:
   - component: {fileID: 6800865464644984752}
   - component: {fileID: 1527098989307774964}
   - component: {fileID: 5226237020376369950}
-  - component: {fileID: 5218171438353217112}
-  - component: {fileID: 4810876736771655386}
+  - component: {fileID: 2992046803541010456}
+  - component: {fileID: 9218813463295739997}
+  - component: {fileID: 903412007100000003}
+  - component: {fileID: -6732476939766284223}
   m_Layer: 7
   m_Name: NomalItem
   m_TagString: Untagged
@@ -42,7 +44,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3442563439716620189}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: -2432090755550338912, guid: 0fe2aa764b4bbf84e91d5a12af2712bc, type: 3}
 --- !u!23 &5226237020376369950
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -68,7 +70,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: -2840136634868304333, guid: 0fe2aa764b4bbf84e91d5a12af2712bc, type: 3}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -92,8 +94,8 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &5218171438353217112
-BoxCollider:
+--- !u!136 &2992046803541010456
+CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -110,10 +112,12 @@ BoxCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &4810876736771655386
+  serializedVersion: 2
+  m_Radius: 0.23661
+  m_Height: 0.985693
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.4928465, z: 0}
+--- !u!114 &9218813463295739997
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -122,10 +126,46 @@ MonoBehaviour:
   m_GameObject: {fileID: 3442563439716620189}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: de8fb6f142695f8439868bed00c2ecb8, type: 3}
+  m_Script: {fileID: 11500000, guid: a4fd13e5bd32d2941aa1cc197ca4a73d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CarryableItem
+  m_EditorClassIdentifier: Assembly-CSharp::OxygenTankItem
   itemName: "\uC0B0\uC18C\uD1B5"
   isConsumable: 1
-  holdPositionOffset: {x: 0, y: 0, z: 0}
-  holdRotationOffset: {x: 0, y: 0, z: 0}
+  icon: {fileID: 0}
+  giveActionName: "\uC0AC\uC6A9\uD574\uC8FC\uAE30"
+  holdPositionOffset: {x: 0, y: 0.01, z: 0.001}
+  holdRotationOffset: {x: 0, y: 0, z: 180}
+  refillAmount: 50
+--- !u!114 &903412007100000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3442563439716620189}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f2e5c90963840a3a39a4b3264392991, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SonarTarget
+  category: 1
+  detectionPoint: {fileID: 0}
+--- !u!114 &-6732476939766284223
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3442563439716620189}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 557059651
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 9218813463295739997}
+  ForceRemoteRenderTimeframe: 0

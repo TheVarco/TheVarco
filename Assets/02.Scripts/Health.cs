@@ -28,18 +28,68 @@ public class Health : MonoBehaviour, Damageable
     public bool IsDead { get; private set; }
 
     private static readonly int HitHash = Animator.StringToHash("Hit");
+    private static readonly int HPHash = Animator.StringToHash("HP");
     private float lastHitAnimationTime = -999f;
+
+    // 공용 Health가 다른 Animator 파라미터를 잘못 호출하지 않도록 지원 여부 저장 서영 추가
+    private bool supportsHitParameter;
+    private bool supportsHPParameter;
+
+    // 네트워크 동기화 등으로 데미지 처리를 다른 곳에 넘겨야 하는 경우에만 존재 (없으면 예전과 동일하게 동작)
+    private IDamageRouter damageRouter;
 
     void Awake()
     {
         CurrentHealth = maxHealth;
-        if (animator == null)
+        damageRouter = GetComponent<IDamageRouter>();
+        if (animator == null || animator.runtimeAnimatorController == null)
         {
-            animator = GetComponent<Animator>();
-            if (animator == null)
+            Animator[] anims = GetComponentsInChildren<Animator>(true);
+            foreach (var a in anims)
             {
-                animator = GetComponentInChildren<Animator>();
+                if (a.runtimeAnimatorController != null)
+                {
+                    animator = a;
+                    break;
+                }
             }
+            if (animator == null) animator = GetComponent<Animator>();
+        }
+        CacheAnimatorParameterSupport();
+        UpdateAnimatorHP();
+    }
+
+    // 상어와 잠수함처럼 다른 Controller를 사용하는 대상의 해시 경고를 막기 위해 파라미터 검사 서영 추가
+    private void CacheAnimatorParameterSupport()
+    {
+        supportsHitParameter = false;
+        supportsHPParameter = false;
+
+        if (animator == null || animator.runtimeAnimatorController == null)
+            return;
+
+        // 이름과 타입이 모두 맞는 파라미터만 Health 애니메이션 호출 대상으로 인정 서영 추가
+        foreach (AnimatorControllerParameter parameter in animator.parameters)
+        {
+            if (parameter.nameHash == HitHash
+                && parameter.type == AnimatorControllerParameterType.Trigger)
+            {
+                supportsHitParameter = true;
+            }
+            else if (parameter.nameHash == HPHash
+                && parameter.type == AnimatorControllerParameterType.Float)
+            {
+                supportsHPParameter = true;
+            }
+        }
+    }
+
+    private void UpdateAnimatorHP()
+    {
+        // HP Float가 있는 플레이어 Animator에만 현재 체력 전달 서영 추가
+        if (animator != null && supportsHPParameter)
+        {
+            animator.SetFloat(HPHash, CurrentHealth);
         }
     }
 
@@ -60,12 +110,17 @@ public class Health : MonoBehaviour, Damageable
         if (IsDead || damageInfo.RequestedAmount <= 0f)
             return 0f;
 
+        // 네트워크 동기화 대상이면 여기서 직접 깎지 않고 권한자(호스트)에게 넘김
+        if (damageRouter != null && damageRouter.RouteDamage(damageInfo))
+            return 0f;
+
         float appliedAmount = Mathf.Min(damageInfo.RequestedAmount, CurrentHealth); // 실제 남은 체력보다 더 많은 데미지가 들어가는 거 방지용
         if (appliedAmount <= 0f)
             return 0f;
 
         // if (playHitAnimation && animator != null)
-        if (damageInfo.PlayHitAnimation && animator != null) // 서영 변경
+        // Hit Trigger가 없는 상어와 잠수함 Animator에는 피격 트리거를 보내지 않음 서영 추가
+        if (damageInfo.PlayHitAnimation && animator != null && supportsHitParameter) // 서영 변경
         {
             if (Time.time - lastHitAnimationTime >= hitAnimationCooldown)
             {
@@ -84,6 +139,8 @@ public class Health : MonoBehaviour, Damageable
             ? damageInfo.Source.name
             : "알 수 없는 대상";
         Debug.Log($"[Health] {gameObject.name}이(가) {sourceName}에게 {appliedAmount} 데미지를 받음. 남은 체력: {CurrentHealth}/{maxHealth}");
+
+        UpdateAnimatorHP();
 
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
         OnDamaged?.Invoke(appliedAmount, damageInfo.Source); // 서영 추가
@@ -111,6 +168,7 @@ public class Health : MonoBehaviour, Damageable
 
         // CurrentHealth = Mathf.Min(maxHealth, CurrentHealth + amount);
         CurrentHealth += appliedAmount;
+        UpdateAnimatorHP();
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
         return appliedAmount;
     }
@@ -122,7 +180,22 @@ public class Health : MonoBehaviour, Damageable
 
         IsDead = false;
         CurrentHealth = maxHealth * Mathf.Clamp01(ratio);
+        UpdateAnimatorHP();
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
         OnRevived?.Invoke();
+    }
+
+    // 외부(네트워크 동기화 등)에서 권위 있는 값으로 그대로 맞출 때 사용.
+    // 데미지/회복 판정 없이 값만 반영하고, 사망/부활 전이 시 기존 이벤트를 그대로 발생시킴.
+    public void SyncFrom(float syncedHealth, bool syncedIsDead)
+    {
+        bool wasDead = IsDead;
+        CurrentHealth = Mathf.Clamp(syncedHealth, 0f, maxHealth);
+        IsDead = syncedIsDead;
+        UpdateAnimatorHP();
+        OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
+
+        if (!wasDead && IsDead) OnDeath?.Invoke();
+        else if (wasDead && !IsDead) OnRevived?.Invoke();
     }
 }
