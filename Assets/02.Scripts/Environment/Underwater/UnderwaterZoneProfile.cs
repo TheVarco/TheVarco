@@ -5,7 +5,7 @@ namespace Varco.Underwater
 {
     /// <summary>
     /// Atmosphere settings for one cave zone. <see cref="zoneId"/> matches
-    /// CaveBlockout.CaveZoneMarker.zoneId and CaveBlockout.CaveRouteSection.zoneId ("Z1".."Z7").
+    /// CaveBlockout.CaveZoneMarker.zoneId and CaveBlockout.CaveRouteSection.zoneId ("Z1".."Z6").
     ///
     /// Colours here are LINEAR radiance, not sRGB. Measured behaviour: scaling
     /// RenderSettings.ambientSkyColor by 8 raised the rendered mean luminance by ~8.8x, so the engine
@@ -67,7 +67,7 @@ namespace Varco.Underwater
         [Range(0f, 4f)] public float particleDensityScale = 1f;
 
         [Header("Reserved For Follow-Up Lighting Work")]
-        [Tooltip("Not consumed yet. Volumetric god-ray intensity for Z2/Z3/Z7 when light shafts are added.")]
+        [Tooltip("Not consumed yet. Volumetric god-ray intensity for Z2/Z3/Z6 when light shafts are added.")]
         [Range(0f, 2f)] public float shaftIntensity;
         [Tooltip("Not consumed yet. Bioluminescent accent colour for Z2 coral and Z6 mineral veins.")]
         [ColorUsage(false)] public Color bioluminescenceTint = Color.black;

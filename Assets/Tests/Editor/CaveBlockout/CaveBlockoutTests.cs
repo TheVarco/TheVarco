@@ -24,7 +24,7 @@ namespace CaveBlockout.Tests
             FindRoutes(out CaveRoute mainRoute, out CaveRoute branches);
             CaveValidationResult result = CaveBlockoutValidator.Validate(mainRoute, branches);
 
-            Assert.That(result.routeLength, Is.InRange(650f, 700f));
+            Assert.That(result.routeLength, Is.InRange(550f, 600f));
             Assert.That(result.totalRise, Is.InRange(259f, 261f));
             Assert.That(result.minimumWidth, Is.GreaterThanOrEqualTo(10f));
             Assert.That(result.minimumHeight, Is.GreaterThanOrEqualTo(8f));
@@ -41,7 +41,7 @@ namespace CaveBlockout.Tests
             FindRoutes(out CaveRoute mainRoute, out CaveRoute branches);
             Spline mainSpline = mainRoute.Container[0];
             AssertEmbeddedData(mainSpline, true);
-            Assert.That(mainRoute.Portals.Select(portal => portal.zoneId), Is.EquivalentTo(new[] { "Z2", "Z4", "Z6" }));
+            Assert.That(mainRoute.Portals.Select(portal => portal.zoneId), Is.EquivalentTo(new[] { "Z2", "Z4", "Z5" }));
             Assert.That(mainRoute.NoiseSettings.enabled, Is.True);
             Assert.That(mainRoute.NoiseSettings.amplitudeMeters, Is.EqualTo(3.2f).Within(0.001f));
             Assert.That(mainRoute.NoiseSettings.strengthGain, Is.EqualTo(1.5f).Within(0.001f));
@@ -56,6 +56,37 @@ namespace CaveBlockout.Tests
             Assert.That(branches.NoiseSettings.enabled, Is.False);
             Assert.That(branches.NoiseSettings.amplitudeMeters, Is.Zero.Within(0.001f));
             Assert.That(branches.NoiseSettings.visualDetailEnabled, Is.False);
+        }
+
+        [Test]
+        public void MainRoute_IsOneContinuousZ1ToZ6Centerline()
+        {
+            FindRoutes(out CaveRoute mainRoute, out _);
+            CaveRouteSplineDefinition definition = mainRoute.Definitions.Single(route => route.isMainRoute);
+
+            Assert.That(definition.sections.Count, Is.EqualTo(6));
+            for (int i = 0; i < definition.sections.Count; i++)
+            {
+                CaveRouteSection section = definition.sections[i];
+                Assert.That(section.zoneId, Is.EqualTo("Z" + (i + 1)));
+                Assert.That(section.startKnot, Is.EqualTo(i == 0 ? 0 : definition.sections[i - 1].endKnot));
+                Assert.That(section.endDistanceMeters, Is.GreaterThan(section.startDistanceMeters));
+                if (i > 0)
+                    Assert.That(section.startDistanceMeters, Is.EqualTo(definition.sections[i - 1].endDistanceMeters).Within(0.05f));
+            }
+            Assert.That(definition.sections.Last().endKnot, Is.EqualTo(mainRoute.Container[0].Count - 1));
+        }
+
+        [Test]
+        public void ResourceBranches_HaveNoTrimmedCentrelineGapAtTheirPortals()
+        {
+            FindRoutes(out _, out CaveRoute branches);
+            foreach (CaveRouteSplineDefinition definition in branches.Definitions)
+            {
+                Assert.That(definition.startTrimMeters, Is.Zero.Within(0.001f), definition.routeId);
+                Assert.That(definition.sections.Single().startKnot, Is.Zero, definition.routeId);
+                Assert.That(definition.sections.Single().endKnot, Is.EqualTo(branches.Container[definition.splineIndex].Count - 1), definition.routeId);
+            }
         }
 
         [Test]
@@ -97,7 +128,7 @@ namespace CaveBlockout.Tests
                 triangles += visual.triangles.Length / 3;
 
                 CaveMeshTopologyReport topology = CaveMeshTopologyAnalyzer.Analyze(visual);
-                Assert.That(topology.boundaryLoopCount, Is.EqualTo(1), "Only the Z7 exit may remain open.");
+                Assert.That(topology.boundaryLoopCount, Is.EqualTo(1), "Only the Z6 exit may remain open.");
                 Assert.That(topology.boundaryEdgeCount, Is.EqualTo(CaveMeshGenerator.Sides));
                 Assert.That(topology.nonManifoldEdgeCount, Is.Zero);
                 Assert.That(topology.windingMismatchCount, Is.Zero);
@@ -435,7 +466,7 @@ namespace CaveBlockout.Tests
         {
             FindRoutes(out CaveRoute mainRoute, out CaveRoute branches);
             List<CaveReviewViewpoint> viewpoints = CaveReviewCapture.BuildViewpoints(mainRoute, branches);
-            Assert.That(viewpoints.Count, Is.EqualTo(39));
+            Assert.That(viewpoints.Count, Is.EqualTo(36));
             Assert.That(viewpoints.Select(view => view.name), Is.Unique);
 
             bool wasDirty = EditorSceneManager.GetActiveScene().isDirty;

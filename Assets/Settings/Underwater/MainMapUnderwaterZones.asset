@@ -115,31 +115,6 @@ MonoBehaviour:
     shaftIntensity: 0
     bioluminescenceTint: {r: 0, g: 0, b: 0, a: 1}
   - zoneId: Z5
-    visibilityMeters: 21
-    fogColor: {r: 0.0389, g: 0.2007, b: 0.3124, a: 1}
-    backgroundColor: {r: 0.1406, g: 0.6686, b: 1.0155, a: 1}
-    ambientSky: {r: 1.2499, g: 5.171, b: 6.2493, a: 1}
-    ambientEquator: {r: 0.6874, g: 3.1206, b: 3.8277, a: 1}
-    ambientGround: {r: 0.2186, g: 1.159, b: 1.2499, a: 1}
-    ambientIntensity: 1.05
-    directionalIntensity: 1.4
-    extinctionTint: {x: 3.1, y: 1.02, z: 1}
-    refraction: 0.0018
-    refractionSpeed: 0.55
-    causticStrength: 0.14
-    screenStrength: 1
-    postExposure: 0.5
-    contrast: 10
-    saturation: 4
-    colorFilter: {r: 0.86, g: 0.98, b: 0.96, a: 1}
-    bloomIntensity: 0.45
-    vignetteIntensity: 0.24
-    whiteBalanceTemperature: -10
-    whiteBalanceTint: 2
-    particleDensityScale: 1
-    shaftIntensity: 0.25
-    bioluminescenceTint: {r: 0.75, g: 0.7, b: 0.3, a: 1}
-  - zoneId: Z6
     visibilityMeters: 12.5
     fogColor: {r: 0.0439, g: 0.2462, b: 0.3966, a: 1}
     backgroundColor: {r: 0.1709, g: 1.0191, b: 1.4641, a: 1}
@@ -164,7 +139,7 @@ MonoBehaviour:
     particleDensityScale: 1.25
     shaftIntensity: 0.2
     bioluminescenceTint: {r: 0.85, g: 0.2, b: 0.12, a: 1}
-  - zoneId: Z7
+  - zoneId: Z6
     visibilityMeters: 40
     fogColor: {r: 0.0258, g: 0.1387, b: 0.1784, a: 1}
     backgroundColor: {r: 0.1297, g: 0.5253, b: 0.5947, a: 1}
