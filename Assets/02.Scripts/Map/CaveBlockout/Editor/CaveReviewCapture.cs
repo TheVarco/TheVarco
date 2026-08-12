@@ -318,7 +318,7 @@ namespace CaveBlockout.Editor
                 views.Add(DeadEndView(branches, branchDefinition, branchDefinition.routeId + "_DeadEnd"));
                 views.Add(DeadEndView(branches, branchDefinition, branchDefinition.routeId + "_DeadEnd_Wire", true));
             }
-            views.Add(InsideSpline(mainRoute, mainDefinition.splineIndex, 0.985f, "Z7_OpenExit"));
+            views.Add(InsideSpline(mainRoute, mainDefinition.splineIndex, 0.985f, "Z6_OpenExit"));
             return views;
         }
 

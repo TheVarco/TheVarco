@@ -12,7 +12,7 @@ namespace Varco.Underwater.EditorTools
     /// <summary>
     /// Renders one frame per cave zone with the underwater atmosphere evaluated at that position, for
     /// side-by-side comparison against UnderwaterCaveLevelGuide/04_zone_01_deep_start.png through
-    /// 10_zone_07_exit_throat.png.
+    /// 09_zone_06_exit_throat.png.
     ///
     /// CaveReviewCapture cannot be reused for this: it attaches its own bright directional light to the
     /// capture camera and renders with HDR and post-processing off, because its job is to make blockout

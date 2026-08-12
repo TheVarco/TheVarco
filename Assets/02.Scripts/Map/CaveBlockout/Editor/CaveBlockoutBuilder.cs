@@ -13,6 +13,12 @@ namespace CaveBlockout.Editor
     public static class CaveBlockoutBuilder
     {
         public const string MainMapPath = "Assets/01.Scenes/MainMap.unity";
+        private static readonly string[] CaveScenePaths =
+        {
+            MainMapPath,
+            "Assets/01.Scenes/YoungTest.unity",
+            "Assets/_Recovery/0.unity"
+        };
         public const string RootName = "CaveBlockout";
         private const string CaveMaterialPath = "Assets/04.Materials/MapMaterial/dark_rock_02_8k/DarkRock_Cave_Triplanar.mat";
         private const string ProxyMaterialPath = "Assets/Generated/CaveBlockout/SubmarineProxy.mat";
@@ -35,6 +41,19 @@ namespace CaveBlockout.Editor
             Debug.Log($"CAVE_BLOCKOUT_BUILD {(result.Passed ? "PASS" : "WARN")} length={result.routeLength:F1}m rise={result.totalRise:F1}m slope={result.maximumSlope:F1} radius={result.minimumTurnRadius:F1}");
             foreach (string issue in result.issues)
                 Debug.LogWarning("CAVE_BLOCKOUT: " + issue);
+        }
+
+        [MenuItem("Tools/Underwater Cave/Build All Cave Scenes")]
+        public static void BuildAllCaveScenesBatch()
+        {
+            foreach (string scenePath in CaveScenePaths)
+            {
+                EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+                CaveValidationResult result = BuildDefaultInCurrentScene(true);
+                Debug.Log($"CAVE_BLOCKOUT_BUILD scene={scenePath} {(result.Passed ? "PASS" : "WARN")} length={result.routeLength:F1}m rise={result.totalRise:F1}m slope={result.maximumSlope:F1} radius={result.minimumTurnRadius:F1}");
+                foreach (string issue in result.issues)
+                    Debug.LogWarning("CAVE_BLOCKOUT: " + issue);
+            }
         }
 
         public static void RegenerateMainMapBatch()
@@ -60,6 +79,43 @@ namespace CaveBlockout.Editor
             CaveValidationResult result = RegenerateCurrentScene(true);
             Debug.Log($"CAVE_STRONG_NOISE {(result.Passed ? "PASS" : "WARN")} amplitude={mainRoute.NoiseSettings.amplitudeMeters:F2} " +
                       $"gain={mainRoute.NoiseSettings.strengthGain:F2} ratio={mainRoute.NoiseSettings.maximumDisplacementRatio:F2}");
+        }
+
+        /// <summary>
+        /// Puts both routes into the noise state the blockout is specified to ship in: strong surface
+        /// noise on the main tunnel, none on the resource branches.
+        ///
+        /// CreateRoutes leaves both at the CaveNoiseSettings field defaults, and
+        /// ApplyStrongNoiseMainMapBatch only touches the main route, so a fresh build followed by that
+        /// method leaves the branches noisy - which CaveBlockoutTests asserts against. Doing both here
+        /// removes the ordering trap of "disable all noise, then re-apply strong to main only".
+        /// </summary>
+        public static void ApplyAuthoredNoiseMainMapBatch()
+        {
+            EditorSceneManager.OpenScene(MainMapPath, OpenSceneMode.Single);
+            CaveRoute[] routes = UnityEngine.Object.FindObjectsByType<CaveRoute>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            CaveRoute mainRoute = routes.FirstOrDefault(route => route.Definitions.Any(definition => definition.isMainRoute));
+            if (mainRoute == null)
+                throw new InvalidOperationException("Main cave route was not found.");
+
+            foreach (CaveRoute route in routes)
+            {
+                if (route == mainRoute)
+                    route.NoiseSettings.ApplyStrongPreset();
+                else
+                    route.NoiseSettings.ApplySmoothPreset();
+                EditorUtility.SetDirty(route);
+            }
+
+            EditorSceneManager.MarkSceneDirty(mainRoute.gameObject.scene);
+            CaveValidationResult result = RegenerateCurrentScene(true);
+            Debug.Log($"CAVE_AUTHORED_NOISE {(result.Passed ? "PASS" : "WARN")} " +
+                      $"main(amplitude={mainRoute.NoiseSettings.amplitudeMeters:F2} gain={mainRoute.NoiseSettings.strengthGain:F2} " +
+                      $"ratio={mainRoute.NoiseSettings.maximumDisplacementRatio:F2} detail={mainRoute.NoiseSettings.visualDetailAmplitude:F2}) " +
+                      $"branches(enabled={routes.Where(r => r != mainRoute).All(r => r.NoiseSettings.enabled)}) " +
+                      $"length={result.routeLength:F1}m slope={result.maximumSlope:F1} radius={result.minimumTurnRadius:F1}");
+            foreach (string issue in result.issues)
+                Debug.LogWarning("CAVE_BLOCKOUT: " + issue);
         }
 
         public static void ValidateMainMapBatch()
@@ -115,7 +171,7 @@ namespace CaveBlockout.Editor
             EditorSceneManager.MarkSceneDirty(scene);
             if (saveScene)
             {
-                EditorSceneManager.SaveScene(scene, MainMapPath);
+                EditorSceneManager.SaveScene(scene);
                 EditorSceneManager.SaveOpenScenes();
             }
             AssetDatabase.SaveAssets();
