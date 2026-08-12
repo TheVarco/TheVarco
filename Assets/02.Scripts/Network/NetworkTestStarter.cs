@@ -2,7 +2,9 @@ using System.Collections.Generic;
 using Fusion;
 using Fusion.Addons.Physics;
 using Fusion.Sockets;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 // 네트워크 테스트 세션 시작
 // Host Client Single 실행 모드 생성
@@ -14,6 +16,7 @@ using UnityEngine;
 // playerPrefab을 스폰한다. NetworkManager 오브젝트에 부착.
 public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
 {
+    [Header("Network Prefabs & Scene")]
     [Tooltip("접속 시 스폰할 플레이어 프리팹 (Network Object + Network Transform 붙어있어야 함)")]
     public NetworkPrefabRef playerPrefab;
     [Tooltip("시작 시 불러올 게임 씬 경로 (Build Settings에 포함되어 있어야 함).\n" +
@@ -26,6 +29,27 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
     [Tooltip("여러 명이 겹쳐서 스폰되지 않게 이 반지름으로 원형 배치")]
     public float spawnSpreadRadius = 2f;
 
+    [Header("UI Settings")]
+    [Tooltip("시작 UI 패널 (StartPanel). 비워두면 씬에서 자동으로 검색합니다.")]
+    public GameObject startPanel;
+    [Tooltip("startPanel이 비어있을 때 씬에서 검색할 패널의 이름")]
+    public string startPanelName = "StartPanel";
+
+    [Tooltip("Host 시작 버튼 이름 (기본값: Host)")]
+    public string hostButtonName = "Host";
+    [Tooltip("Client/Guest 참가 버튼 이름 (기본값: Guest)")]
+    public string clientButtonName = "Guest";
+    [Tooltip("Single 플레이 버튼 이름 (기본값: Single)")]
+    public string singleButtonName = "Single";
+    [Tooltip("방 이름 입력 필드 이름 (기본값: InputField)")]
+    public string sessionNameInputName = "InputField";
+
+    [Header("Gameplay HUD Settings (게임 시작 전 숨김 대상)")]
+    [Tooltip("게임 시작 전 숨길 UI 오브젝트 목록. 비워두면 씬에서 기본 이름으로 자동 탐색합니다.")]
+    public List<GameObject> gameplayUIElements = new List<GameObject>();
+    [Tooltip("자동 탐색할 인게임 UI 오브젝트 이름 목록 (HealthBar, OxygenBar, HotBarUI 등)")]
+    public string[] defaultGameplayUINames = new string[] { "HealthBar", "OxygenBar", "HotBarUI", "HotbarUI" };
+
     private NetworkRunner runner;
     private PlayerCameraRig localCameraRig;
 
@@ -35,35 +59,209 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
     private readonly Dictionary<PlayerRef, int> assignedSpawnSlots = new Dictionary<PlayerRef, int>();
     private SubmarinePlayerSpawnPoints submarineSpawnPoints;
 
-    // 화면에 임시로 띄울 시작 버튼 (테스트용, 나중에 제대로 된 UI로 교체)
-    void OnGUI()
+    private void Awake()
     {
-        // Runner 시작 전 방 이름과 실행 모드 선택 버튼 표시
-        if (runner != null) return; // 이미 시작했으면 버튼 숨김
+        BindStartPanelUI();
+        InitializeGameplayUI();
+    }
 
-        // 방 이름을 실행 중에 바꿀 수 있게 함 (씬을 고쳐 저장하지 않고도 서로 이름을 맞출 수 있음)
-        GUI.Label(new Rect(20, 175, 200, 20), "방 이름");
-        sessionName = GUI.TextField(new Rect(20, 195, 200, 25), sessionName);
+    private void InitializeGameplayUI()
+    {
+        if (gameplayUIElements == null)
+            gameplayUIElements = new List<GameObject>();
 
-        if (GUI.Button(new Rect(20, 20, 200, 40), "Host로 시작"))
+        // 씬에서 해당 이름의 UI 오브젝트들을 탐색하여 등록
+        foreach (string uiName in defaultGameplayUINames)
         {
-            StartGame(GameMode.Host);
+            if (string.IsNullOrEmpty(uiName)) continue;
+            GameObject found = FindObjectInScene(uiName);
+            if (found != null && !gameplayUIElements.Contains(found))
+            {
+                gameplayUIElements.Add(found);
+            }
         }
 
-        if (GUI.Button(new Rect(20, 70, 200, 40), "참가로 시작"))
-        {
-            StartGame(GameMode.Client);
-        }
+        // 게임 시작 전이므로 숨김
+        SetGameplayUIVisible(false);
+    }
 
-        if (GUI.Button(new Rect(20, 120, 200, 40), "싱글플레이로 시작"))
+    public void SetGameplayUIVisible(bool visible)
+    {
+        if (gameplayUIElements == null) return;
+        foreach (GameObject ui in gameplayUIElements)
         {
-            StartGame(GameMode.Single);
+            if (ui != null)
+            {
+                ui.SetActive(visible);
+            }
         }
     }
+
+    private void BindStartPanelUI()
+    {
+        // 1. startPanel이 할당되지 않은 경우 씬에서 이름으로 검색 (비활성 오브젝트 포함)
+        if (startPanel == null)
+        {
+            startPanel = FindObjectInScene(startPanelName);
+        }
+
+        if (startPanel == null)
+        {
+            Debug.LogWarning($"[NetworkTestStarter] '{startPanelName}'을(를) 씬에서 찾을 수 없습니다.");
+            return;
+        }
+
+        // 2. StartPanel 내부의 버튼들을 이름으로 검색 후 이벤트 연결
+        Button hostBtn = FindButtonInPanel(startPanel, hostButtonName, "Host", "HostButton", "BtnHost", "StartHost");
+        if (hostBtn != null)
+        {
+            hostBtn.onClick.RemoveListener(OnClickStartHost);
+            hostBtn.onClick.AddListener(OnClickStartHost);
+        }
+        else
+        {
+            Debug.LogWarning($"[NetworkTestStarter] Host 버튼을 '{startPanel.name}' 내부에서 찾지 못했습니다.");
+        }
+
+        Button clientBtn = FindButtonInPanel(startPanel, clientButtonName, "Guest", "GuestButton", "Client", "ClientButton", "BtnClient", "Join", "JoinButton", "StartClient");
+        if (clientBtn != null)
+        {
+            clientBtn.onClick.RemoveListener(OnClickStartClient);
+            clientBtn.onClick.AddListener(OnClickStartClient);
+        }
+        else
+        {
+            Debug.LogWarning($"[NetworkTestStarter] Guest/Client 버튼을 '{startPanel.name}' 내부에서 찾지 못했습니다.");
+        }
+
+        Button singleBtn = FindButtonInPanel(startPanel, singleButtonName, "Single", "SingleButton", "BtnSingle", "SinglePlayer", "StartSingle");
+        if (singleBtn != null)
+        {
+            singleBtn.onClick.RemoveListener(OnClickStartSingle);
+            singleBtn.onClick.AddListener(OnClickStartSingle);
+        }
+        else
+        {
+            Debug.LogWarning($"[NetworkTestStarter] Single 버튼을 '{startPanel.name}' 내부에서 찾지 못했습니다.");
+        }
+
+        // 3. StartPanel 내부의 InputField(방 이름 입력) 검색 및 연결
+        BindInputFieldInPanel(startPanel);
+    }
+
+    private GameObject FindObjectInScene(string objName)
+    {
+        if (string.IsNullOrEmpty(objName)) return null;
+
+        // 활성 오브젝트 우선 검색
+        GameObject found = GameObject.Find(objName);
+        if (found != null) return found;
+
+        // 비활성 오브젝트 포함 전체 검색
+        Transform[] allTransforms = FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (Transform t in allTransforms)
+        {
+            if (t != null && t.name.Equals(objName, System.StringComparison.OrdinalIgnoreCase))
+            {
+                return t.gameObject;
+            }
+        }
+
+        return null;
+    }
+
+    private Button FindButtonInPanel(GameObject panel, params string[] candidateNames)
+    {
+        if (panel == null) return null;
+
+        Button[] buttons = panel.GetComponentsInChildren<Button>(true);
+
+        // 1순위: 후보 이름들과 정확히 일치(대소문자 무시)하는 버튼
+        foreach (string targetName in candidateNames)
+        {
+            if (string.IsNullOrEmpty(targetName)) continue;
+            foreach (Button btn in buttons)
+            {
+                if (btn != null && btn.name.Equals(targetName, System.StringComparison.OrdinalIgnoreCase))
+                    return btn;
+            }
+        }
+
+        // 2순위: 후보 이름이 버튼 이름에 포함되어 있는 버튼 (예: "Btn_Host", "Host_Btn")
+        foreach (string targetName in candidateNames)
+        {
+            if (string.IsNullOrEmpty(targetName)) continue;
+            foreach (Button btn in buttons)
+            {
+                if (btn != null && btn.name.IndexOf(targetName, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    return btn;
+            }
+        }
+
+        return null;
+    }
+
+    private void BindInputFieldInPanel(GameObject panel)
+    {
+        if (panel == null) return;
+
+        // 1. UnityEngine.UI.InputField
+        InputField[] legacyInputs = panel.GetComponentsInChildren<InputField>(true);
+        foreach (InputField input in legacyInputs)
+        {
+            if (input != null && (string.IsNullOrEmpty(sessionNameInputName) || input.name.IndexOf(sessionNameInputName, System.StringComparison.OrdinalIgnoreCase) >= 0 || legacyInputs.Length == 1))
+            {
+                if (string.IsNullOrEmpty(input.text))
+                    input.text = sessionName;
+                else
+                    sessionName = input.text;
+
+                input.onValueChanged.RemoveListener(OnSessionNameChanged);
+                input.onValueChanged.AddListener(OnSessionNameChanged);
+                return;
+            }
+        }
+
+        // 2. TMPro.TMP_InputField
+        TMP_InputField[] tmpInputs = panel.GetComponentsInChildren<TMP_InputField>(true);
+        foreach (TMP_InputField input in tmpInputs)
+        {
+            if (input != null && (string.IsNullOrEmpty(sessionNameInputName) || input.name.IndexOf(sessionNameInputName, System.StringComparison.OrdinalIgnoreCase) >= 0 || tmpInputs.Length == 1))
+            {
+                if (string.IsNullOrEmpty(input.text))
+                    input.text = sessionName;
+                else
+                    sessionName = input.text;
+
+                input.onValueChanged.RemoveListener(OnSessionNameChanged);
+                input.onValueChanged.AddListener(OnSessionNameChanged);
+                return;
+            }
+        }
+    }
+
+    private void OnSessionNameChanged(string newName)
+    {
+        sessionName = newName;
+    }
+
+    // UI 버튼에서 직접 호출할 수 있는 public 메서드들
+    public void OnClickStartHost() => StartGame(GameMode.Host);
+    public void OnClickStartClient() => StartGame(GameMode.Client);
+    public void OnClickStartSingle() => StartGame(GameMode.Single);
 
     // 선택한 모드로 Runner와 물리 예측과 씬 관리자를 구성
     async void StartGame(GameMode mode)
     {
+        // 게임 시작 시 StartPanel 비활성화
+        if (startPanel != null)
+        {
+            startPanel.SetActive(false);
+        }
+
+        // 게임 시작 시 인게임 HUD(체력바, 산소바, 핫바 등) 활성화
+        SetGameplayUIVisible(true);
+
         // 입력 제공이 가능한 NetworkRunner를 현재 오브젝트에 생성
         runner = gameObject.AddComponent<NetworkRunner>();
         runner.ProvideInput = true; // 이 클라이언트가 입력을 보낼 수 있게 함
