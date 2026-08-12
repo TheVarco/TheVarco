@@ -100,8 +100,14 @@ public class SharkController : MonoBehaviour
 
     private void Start()
     {
-        // 프록시의 독립 초기 상태 전환 차단
-        if (!HasSimulationAuthority)
+        TryStartSimulation();
+    }
+
+    // Fusion이 State Authority를 부여한 뒤에만 AI를 시작한다.
+    // NetworkObject가 없는 로컬 전용 상어는 기존처럼 즉시 시작한다.
+    internal void TryStartSimulation()
+    {
+        if (!HasSimulationAuthority || currentState != null || IsDead)
             return;
 
         ChangeState(SharkStateType.Idle);
@@ -335,7 +341,7 @@ public class SharkController : MonoBehaviour
 
     // 로컬 실행 또는 State Authority 여부
     private bool HasSimulationAuthority =>
-        networkObject == null || !networkObject.IsValid || networkObject.HasStateAuthority;
+        networkObject == null || (networkObject.IsValid && networkObject.HasStateAuthority);
 
     private void OnDrawGizmosSelected()
     {

@@ -9,6 +9,7 @@ public abstract class ObstaclePatternBase : MonoBehaviour
     private readonly List<IPatternTarget> runtimeGroupA = new List<IPatternTarget>(); // 실제 제어권을 확보한 첫 그룹
     private readonly List<IPatternTarget> runtimeCrossGroupB = new List<IPatternTarget>(); // 제어권 확보 Cross 두 번째 그룹
     private Coroutine patternRoutine; // 현재 실행 중인 공용 시간표 코루틴
+    private Coroutine startupRoutine; // 네트워크 권위 준비 대기 코루틴
 
     public bool IsRunning { get; private set; } // 공용 시간표 실행 여부
     public int CurrentGroupIndex { get; private set; } = -1; // 현재 활성 명령을 받은 그룹 번호
@@ -27,14 +28,52 @@ public abstract class ObstaclePatternBase : MonoBehaviour
     // 오브젝트 활성화와 동시에 등록된 패턴 시작
     protected virtual void OnEnable()
     {
-        StartPattern();
+        startupRoutine = StartCoroutine(StartPatternWhenReady());
     }
 
     // 비활성화 시 코루틴과 대상 상태 정리 후 제어권 반환
     protected virtual void OnDisable()
     {
+        if (startupRoutine != null)
+        {
+            StopCoroutine(startupRoutine);
+            startupRoutine = null;
+        }
+
         StopAndReset();
         ReleasePatternControl();
+    }
+
+    // 씬 NetworkObject는 Fusion이 권위를 부여하기 전에도 활성화된다.
+    // 호스트 시작 전 로비에서는 위험 패턴을 실행하지 않고 권위 확정을 기다린다.
+    private IEnumerator StartPatternWhenReady()
+    {
+        while (isActiveAndEnabled && !HasRequiredAuthorityTargets())
+            yield return null;
+
+        startupRoutine = null;
+        if (isActiveAndEnabled)
+            StartPattern();
+    }
+
+    private bool HasRequiredAuthorityTargets()
+    {
+        return HasAuthorityTarget(ConfiguredGroupA)
+            && (!UsesCrossPattern || HasAuthorityTarget(ConfiguredCrossGroupB));
+    }
+
+    private static bool HasAuthorityTarget(IReadOnlyList<IPatternTarget> group)
+    {
+        if (group == null)
+            return false;
+
+        foreach (IPatternTarget target in group)
+        {
+            if (IsValidTarget(target) && target.HasPatternAuthority)
+                return true;
+        }
+
+        return false;
     }
 
     // 설정 그룹에서 제어 가능한 대상만 확보해 선택된 시간표 시작

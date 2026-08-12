@@ -89,8 +89,14 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
 
     private void Start()
     {
-        // 프록시의 독립 초기 상태 전환 차단
-        if (!HasSimulationAuthority)
+        TryStartSimulation();
+    }
+
+    // Fusion이 State Authority를 부여한 뒤에만 AI를 시작한다.
+    // NetworkObject가 없는 로컬 전용 문어는 기존처럼 즉시 시작한다.
+    internal void TryStartSimulation()
+    {
+        if (!HasSimulationAuthority || currentState != null)
             return;
 
         bool isAttached = harvestable != null && harvestable.Phase == HarvestableCreature.CreaturePhase.Attached;
@@ -251,5 +257,5 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
 
     // 로컬 실행 또는 State Authority 여부
     private bool HasSimulationAuthority =>
-        networkObject == null || !networkObject.IsValid || networkObject.HasStateAuthority;
+        networkObject == null || (networkObject.IsValid && networkObject.HasStateAuthority);
 }

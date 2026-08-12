@@ -49,6 +49,10 @@ public sealed class EnemyHealthNetworkSync : NetworkBehaviour, IDamageRouter
 
         if (Object.HasStateAuthority)
         {
+            // 씬 로드 때 대기하던 적 AI를 호스트 시작 완료 시점에 활성화
+            shark?.TryStartSimulation();
+            octopus?.TryStartSimulation();
+
             // 로컬 체력을 Host 초기값으로 게시
             NetworkedHealth = health.CurrentHealth;
             NetworkedIsDead = health.IsDead;
