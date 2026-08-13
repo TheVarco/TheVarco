@@ -45,6 +45,7 @@ public sealed class VentController : NetworkBehaviour, IPatternTarget
     private bool hasStarted; // Start 호출 완료 여부
     private VentState renderedNetworkState = (VentState)(-1); // 마지막으로 적용한 복제 상태
     private NetworkObject networkObject; // Runner 시작 전 로컬 권위 오판 방지용
+    private AudioSource ventAudioSource;
 
     // 호스트 기준 분출 상태
     [Networked] private int NetworkedState { get; set; }
@@ -127,6 +128,10 @@ public sealed class VentController : NetworkBehaviour, IPatternTarget
 
         ConfigureEffectCollider();
         ResetVent();
+        VarcoAudioLibrary library = VarcoAudioLibrary.Instance;
+        if (library != null)
+            ventAudioSource = VarcoAudio.EnsureLoop(
+                transform, "Vent Bubble Audio", library.ventBubbles, true, 0f, 2f, 28f);
     }
 
     // 권위 분출 상태 초기화
@@ -313,6 +318,15 @@ public sealed class VentController : NetworkBehaviour, IPatternTarget
 
         CurrentState = nextState;
 
+        if (ventAudioSource != null)
+        {
+            if (!ventAudioSource.isPlaying)
+                ventAudioSource.Play();
+            ventAudioSource.volume = nextState == VentState.Active
+                ? 0.58f
+                : nextState == VentState.Warning ? 0.16f : 0f;
+        }
+
         switch (nextState)
         {
             case VentState.Inactive: // 모든 분출 판정 정지
@@ -354,6 +368,8 @@ public sealed class VentController : NetworkBehaviour, IPatternTarget
             NetworkedState = (int)VentState.Inactive;
 
         CurrentState = VentState.Inactive;
+        if (ventAudioSource != null)
+            ventAudioSource.volume = 0f;
         SetEffectVolumeEnabled(false);
         ClearContactHistory();
         StopParticles(warningParticleSystems, ParticleSystemStopBehavior.StopEmittingAndClear);

@@ -301,6 +301,8 @@ public sealed class FallingRock : NetworkBehaviour
         if (owner != null)
             owner.PlayImpactDust(point, normal);
 
+        PlayImpactAudio();
+
         // 충돌 즉시 바위의 물리 및 충돌 비활성화 및 바위 메쉬 숨김
         body.linearVelocity = Vector3.zero;
         body.angularVelocity = Vector3.zero;
@@ -417,6 +419,14 @@ public sealed class FallingRock : NetworkBehaviour
         ResolveNetworkOwner();
         owner?.PlayImpactDust(NetworkedImpactPoint, NetworkedImpactNormal);
         PlaySmokeVisualOnly();
+        PlayImpactAudio();
+    }
+
+    private void PlayImpactAudio()
+    {
+        VarcoAudioLibrary library = VarcoAudioLibrary.Instance;
+        if (library != null)
+            VarcoAudio.PlayOneShotAt(transform, library.caveRockImpact, 0.8f, 2f, 38f);
     }
 
     // 생성 스포너 복원

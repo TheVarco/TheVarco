@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24f29bc591c64ea4b5d8bdca0243f4e9, type: 3}
+  m_Name: VarcoAudioLibrary
+  m_EditorClassIdentifier: Assembly-CSharp::VarcoAudioLibrary
+  bubbleGunShot: {fileID: 8300000, guid: 60293a260ffb5a84b6c3aa00af9684b6, type: 3}
+  caveRockImpact: {fileID: 8300000, guid: 297088e0b72859d7a07da2a08488eaa6, type: 3}
+  sharkBite: {fileID: 8300000, guid: d0322d7f895d52c78a1d27578ceebe34, type: 3}
+  sonarPing: {fileID: 8300000, guid: 0fca6ed14d0c58dc818cb56f6a7016a0, type: 3}
+  submarineExit: {fileID: 8300000, guid: eae95381c03c5568bb1fc0474046a6b4, type: 3}
+  submarineHum: {fileID: 8300000, guid: 94b053afdc8350d0b0e4c33c64ec7d8b, type: 3}
+  oxygenTankUse: {fileID: 8300000, guid: b6cf1b7821de5d0ebc6747bb59d4ad95, type: 3}
+  underwaterAmbience: {fileID: 8300000, guid: 3e25dfd4bbb55ad08c539270fc62c98d, type: 3}
+  underwaterSwim: {fileID: 8300000, guid: 1fb841e64452509dbf55dac7e8fd495f, type: 3}
+  underwaterTornado: {fileID: 8300000, guid: 032f9693719f57a68a5b857f118d98e0, type: 3}
+  ventBubbles: {fileID: 8300000, guid: 344c843764a85d3ea250611a2d5a50a0, type: 3}
+  itemEat: {fileID: 8300000, guid: 8e1b102695c55c6bb2ec23238093e51d, type: 3}
+  submarineHatch: {fileID: 8300000, guid: df9f5c6cf3d5547dbe6e7f73b47aa43f, type: 3}
+  hammerMotion: {fileID: 8300000, guid: 9ada842da0375b0abe78a7900d9b761a, type: 3}
+  hammerMetalImpact: {fileID: 8300000, guid: 4e09f96da2dc5caf9d6db897212fa85c, type: 3}
+  submarineImpacts:
+  - {fileID: 8300000, guid: 963d8cc26bb850dcb886cbce316bb344, type: 3}
+  - {fileID: 8300000, guid: c61f78cecc3c5049bec73e1125d32103, type: 3}
+  - {fileID: 8300000, guid: 7cca8f10015854b0841f134a3e6ae39e, type: 3}
+  - {fileID: 8300000, guid: 13f6b6c1652e5867bc7a19b7a14fee22, type: 3}
+  - {fileID: 8300000, guid: 6afd4db46b5d57c59f793e43ba5a4697, type: 3}
+  - {fileID: 8300000, guid: 7c80194be1d45ba0870b34a5eb70807f, type: 3}
+  - {fileID: 8300000, guid: db3e766232ca599f9b5b1050f65a8d6e, type: 3}
+  - {fileID: 8300000, guid: 34ddef9105d05116a8c6f5a72b864afb, type: 3}
+  - {fileID: 8300000, guid: bcc0502539b9532c949338c4ce1a17c4, type: 3}
+  - {fileID: 8300000, guid: 7d74b7e9638f56499cfb45ef56fe3baf, type: 3}

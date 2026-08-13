@@ -153,6 +153,7 @@ public class PlayerController : NetworkBehaviour
     }
 
     private HashSet<int> animatorParameterHashes;
+    private AudioSource swimAudioSource;
 
     // 애니메이터 컨트롤러에 실제로 존재하는 파라미터만 기억해둔다.
     // (컨트롤러에서 파라미터가 빠져도 매 프레임 "Parameter does not exist" 경고가 쏟아지지 않게)
@@ -218,6 +219,7 @@ public class PlayerController : NetworkBehaviour
     void Update()
     {
         UpdateAnimator(); // 순수 시각 동기화라 모든 인스턴스에서 실행 (원격 캐릭터도 애니메이션 정상 표시되게)
+        UpdateSwimAudio();
 
         if (Object != null && !Object.HasInputAuthority) return;
 
@@ -303,6 +305,107 @@ public class PlayerController : NetworkBehaviour
     {
         if (animator != null && animator.HasState(0, stateHash))
             animator.Play(stateHash, 0, 0f);
+    }
+
+    // Fixing 애니메이션의 실제 타격 프레임에서 PlayerAnimationAudioEvents가 호출한다.
+    // 입력 권한자만 이벤트를 전송하고 모든 피어는 자기 화면의 장착 해머에서 같은 소리를 낸다.
+    public void OnRepairHammerImpact()
+    {
+        if (Object != null && !Object.HasInputAuthority)
+            return;
+
+        HammerItem hammer = FindEquippedHammer();
+        if (hammer == null || !hammer.HasActiveRepairTarget)
+            return;
+
+        if (Object == null)
+        {
+            hammer.PlayRepairImpactAudio();
+            return;
+        }
+
+        RPC_PlayRepairHammerImpact();
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.All)]
+    private void RPC_PlayRepairHammerImpact()
+    {
+        FindEquippedHammer()?.PlayRepairImpactAudio();
+    }
+
+    private HammerItem FindEquippedHammer()
+    {
+        if (hotbar != null && hotbar.GetActiveItem() is HammerItem activeHammer)
+            return activeHammer;
+
+        // 원격 피어의 핫바 슬롯 배열은 채워지지 않으므로, 손 아래로 복제된 아이템을 찾는다.
+        HammerItem[] hammers = GetComponentsInChildren<HammerItem>(true);
+        foreach (HammerItem hammer in hammers)
+        {
+            if (hammer == null)
+                continue;
+            if (Object == null || hammer.IsEquippedBy(Object))
+                return hammer;
+        }
+
+        return null;
+    }
+
+    // 아이템 사용자는 한 번만 요청하고 모든 피어가 해당 플레이어 위치에서 재생한다.
+    public void RequestPlayerAudio(PlayerAudioCue cue)
+    {
+        if (Object != null && Object.IsValid)
+        {
+            if (!Object.HasInputAuthority)
+                return;
+            RPC_PlayPlayerAudio((int)cue);
+            return;
+        }
+
+        PlayPlayerAudio(cue);
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.All)]
+    private void RPC_PlayPlayerAudio(int cue)
+    {
+        PlayPlayerAudio((PlayerAudioCue)cue);
+    }
+
+    private void PlayPlayerAudio(PlayerAudioCue cue)
+    {
+        VarcoAudioLibrary library = VarcoAudioLibrary.Instance;
+        if (library != null)
+            VarcoAudio.PlayOneShotAt(transform, library.GetPlayerCue(cue), 0.9f, 1f, 25f);
+    }
+
+    private void UpdateSwimAudio()
+    {
+        VarcoAudioLibrary library = VarcoAudioLibrary.Instance;
+        if (library == null || library.underwaterSwim == null)
+            return;
+
+        if (swimAudioSource == null)
+            swimAudioSource = VarcoAudio.EnsureLoop(
+                transform,
+                "Underwater Swim Loop",
+                library.underwaterSwim,
+                true,
+                0f,
+                1.5f,
+                22f);
+
+        if (swimAudioSource != null && !swimAudioSource.isPlaying)
+            swimAudioSource.Play();
+
+        if (swimAudioSource == null)
+            return;
+
+        bool movingInWater = IsSwimMode && GetAnimationSpeed() > 0.25f;
+        float targetVolume = movingInWater ? 0.42f : 0f;
+        swimAudioSource.volume = Mathf.MoveTowards(
+            swimAudioSource.volume,
+            targetVolume,
+            Time.deltaTime * 1.8f);
     }
 
     private float GetAnimationSpeed()

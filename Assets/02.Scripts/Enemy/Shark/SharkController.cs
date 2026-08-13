@@ -267,6 +267,10 @@ public class SharkController : MonoBehaviour
     public void PlayAttackAnimation()
     {
         animator.SetTrigger(AttackHash);
+        // 네트워크 상어는 AttackSequence가 모든 피어(권위자 포함)에 한 번씩 재생한다.
+        // 로컬 전용 상어만 여기서 즉시 재생한다.
+        if (networkObject == null || !networkObject.IsValid)
+            PlayBiteAudio();
         // 공격 연출 번호 게시
         networkSync?.PublishSharkAttack();
     }
@@ -276,6 +280,14 @@ public class SharkController : MonoBehaviour
     {
         if (animator != null)
             animator.SetTrigger(AttackHash);
+        PlayBiteAudio();
+    }
+
+    private void PlayBiteAudio()
+    {
+        VarcoAudioLibrary library = VarcoAudioLibrary.Instance;
+        if (library != null)
+            VarcoAudio.PlayOneShotAt(transform, library.sharkBite, 0.85f, 1.5f, 28f);
     }
 
     // Applies the local question indicator and publishes it for proxies.

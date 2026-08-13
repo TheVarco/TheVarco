@@ -30,6 +30,8 @@ public class OxygenItem : CarryableItem
         }
 
         oxygen.Refill(refillAmount);
+        user?.GetComponentInParent<PlayerController>()
+            ?.RequestPlayerAudio(PlayerAudioCue.OxygenTankUse);
         Debug.Log($"[OxygenItem] {target.name}의 산소 {refillAmount} 회복함");
     }
 

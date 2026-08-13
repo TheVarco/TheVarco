@@ -20,6 +20,14 @@ public class SubmarineDoor : NetworkBehaviour, Interactable
     [SerializeField] private Transform obstructionCenter;
     [SerializeField] private Vector3 obstructionHalfExtents = new Vector3(0.75f, 1f, 0.5f);
 
+    [Header("퇴장 감지 및 오디오")]
+    [SerializeField] private Transform insidePoint;
+    [SerializeField] private Transform outsidePoint;
+    [SerializeField, Min(0.01f)] private float passageSideThreshold = 0.05f;
+    [SerializeField] private AudioSource exitAudioSource;
+    [SerializeField] private AudioClip exitWaterClip;
+    [SerializeField] private Vector3 exitTriggerSize = new Vector3(2.5f, 3f, 0.8f);
+
     // 모든 피어가 공유하는 권위 상태
     [Networked] private NetworkBool NetworkedIsOpen { get; set; }
     [Networked] private TickTimer AutoCloseTimer { get; set; }
@@ -31,6 +39,9 @@ public class SubmarineDoor : NetworkBehaviour, Interactable
     private Coroutine autoCloseRoutine;
     private bool lastAppliedOpen;
     private bool hasAppliedState;
+    private Vector3 passageCenter;
+    private Vector3 passageDirection;
+    private Transform passageFrame;
 
     private bool IsNetworkActive => Object != null && Object.IsValid && Runner != null && Runner.IsRunning;
     public bool IsOpen => IsNetworkActive ? NetworkedIsOpen : localIsOpen;
@@ -42,6 +53,9 @@ public class SubmarineDoor : NetworkBehaviour, Interactable
         doorAnimator = GetComponent<Animator>();
         if (obstructionCenter == null)
             obstructionCenter = transform;
+        CacheExitAudioSource();
+        CachePassageAxis();
+        EnsureExitTrigger();
     }
 
     // 호스트 초기값 기록과 첫 애니메이션 적용
@@ -202,6 +216,7 @@ public class SubmarineDoor : NetworkBehaviour, Interactable
     {
         // 복제 상태 변화 여부를 확인하고 전환 틱 기반 진행률 계산
         bool open = IsOpen;
+        bool shouldPlayHatch = hasAppliedState && lastAppliedOpen != open;
         if (!force && hasAppliedState && lastAppliedOpen == open)
             return;
 
@@ -211,6 +226,8 @@ public class SubmarineDoor : NetworkBehaviour, Interactable
             return;
 
         doorAnimator.SetBool(doorOpen, open);
+        if (shouldPlayHatch && open)
+            PlayHatchAudio();
         if (!IsNetworkActive)
             return;
 
@@ -241,6 +258,137 @@ public class SubmarineDoor : NetworkBehaviour, Interactable
                 return true;
         }
         return false;
+    }
+
+    // InsidePoint에서 OutsidePoint로 향하는 문의 통과 축을 기준으로 위치의 부호를 반환한다.
+    internal float GetPassageSide(Vector3 worldPosition)
+    {
+        if (insidePoint != null && outsidePoint != null)
+        {
+            Vector3 liveDirection = outsidePoint.position - insidePoint.position;
+            if (liveDirection.sqrMagnitude <= 0.0001f)
+                return 0f;
+
+            Vector3 liveCenter = (insidePoint.position + outsidePoint.position) * 0.5f;
+            return Vector3.Dot(worldPosition - liveCenter, liveDirection.normalized);
+        }
+
+        // 런타임 감지 프레임은 잠수함 루트의 자식이라 이동·회전을 그대로 따라간다.
+        if (passageFrame != null)
+            return Vector3.Dot(worldPosition - passageFrame.position, passageFrame.forward);
+
+        if (passageDirection.sqrMagnitude <= 0.0001f)
+            return 0f;
+
+        return Vector3.Dot(worldPosition - passageCenter, passageDirection);
+    }
+
+    internal bool CanProcessExitDetection =>
+        !IsNetworkActive || Object.HasStateAuthority;
+
+    internal float PassageSideThreshold => passageSideThreshold;
+
+    // 방향 감지기는 권위 피어에서만 이 메서드를 호출한다.
+    // 네트워크 세션에서는 한 번의 RPC로 모든 피어의 문 오디오를 동기화한다.
+    internal void NotifyPlayerExited()
+    {
+        if (!IsOpen || !CanProcessExitDetection)
+            return;
+
+        if (IsNetworkActive)
+        {
+            RPC_PlayExitWaterAudio();
+            return;
+        }
+
+        PlayExitWaterAudio();
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_PlayExitWaterAudio()
+    {
+        PlayExitWaterAudio();
+    }
+
+    private void PlayExitWaterAudio()
+    {
+        CacheExitAudioSource();
+        if (exitAudioSource != null && exitWaterClip != null)
+            exitAudioSource.PlayOneShot(exitWaterClip);
+    }
+
+    private void CacheExitAudioSource()
+    {
+        VarcoAudioLibrary library = VarcoAudioLibrary.Instance;
+        if (exitWaterClip == null && library != null)
+            exitWaterClip = library.submarineExit;
+
+        if (exitAudioSource == null)
+            exitAudioSource = GetComponent<AudioSource>();
+        if (exitAudioSource == null)
+            exitAudioSource = gameObject.AddComponent<AudioSource>();
+
+        exitAudioSource.playOnAwake = false;
+        exitAudioSource.loop = false;
+        exitAudioSource.spatialBlend = 1f;
+        exitAudioSource.minDistance = 1.5f;
+        exitAudioSource.maxDistance = 25f;
+    }
+
+    private void PlayHatchAudio()
+    {
+        VarcoAudioLibrary library = VarcoAudioLibrary.Instance;
+        if (library != null)
+            VarcoAudio.PlayOneShotAt(transform, library.submarineHatch, 0.72f, 1.5f, 26f);
+    }
+
+    private void CachePassageAxis()
+    {
+        if (insidePoint != null && outsidePoint != null)
+        {
+            passageCenter = (insidePoint.position + outsidePoint.position) * 0.5f;
+            passageDirection = (outsidePoint.position - insidePoint.position).normalized;
+            return;
+        }
+
+        // 별도 기준점이 없는 기존 프리팹은 내부 WalkZone의 중심에서 문 쪽을 향하는 방향을
+        // Inside -> Outside 축으로 사용한다. 문 애니메이션으로 Transform이 회전하기 전에 캐시한다.
+        PlayerWalkZone walkZone = GetComponentInParent<SubmarineController>()
+            ?.GetComponentInChildren<PlayerWalkZone>(true);
+        Collider walkCollider = walkZone != null ? walkZone.GetComponent<Collider>() : null;
+        Vector3 insidePosition = walkCollider != null
+            ? walkCollider.bounds.center
+            : transform.position - transform.forward;
+
+        passageCenter = transform.position;
+        passageDirection = (transform.position - insidePosition).normalized;
+        if (passageDirection.sqrMagnitude <= 0.0001f)
+            passageDirection = transform.forward;
+    }
+
+    private void EnsureExitTrigger()
+    {
+        if (GetComponentInChildren<SubmarineExitAudioTrigger>(true) != null)
+            return;
+
+        SubmarineController submarine = GetComponentInParent<SubmarineController>();
+        Transform triggerParent = submarine != null ? submarine.transform : transform.parent;
+        GameObject triggerObject = new GameObject("Submarine Exit Audio Trigger");
+        triggerObject.layer = gameObject.layer;
+        triggerObject.transform.SetParent(triggerParent, true);
+        triggerObject.transform.position = passageCenter;
+        triggerObject.transform.rotation = Quaternion.LookRotation(
+            passageDirection,
+            triggerParent != null ? triggerParent.up : Vector3.up);
+        passageFrame = triggerObject.transform;
+
+        BoxCollider trigger = triggerObject.AddComponent<BoxCollider>();
+        trigger.isTrigger = true;
+        trigger.size = exitTriggerSize;
+
+        SubmarineExitAudioTrigger detector =
+            triggerObject.AddComponent<SubmarineExitAudioTrigger>();
+        detector.Initialize(this);
     }
 
     // 로컬 테스트 자동 닫힘 처리
