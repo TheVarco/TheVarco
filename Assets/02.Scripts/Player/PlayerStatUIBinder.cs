@@ -27,21 +27,27 @@ public class PlayerStatUIBinder : NetworkBehaviour
 
         BindStats();
 
-        // 상호작용 프롬프트 UI: 내 PlayerInteractor의 신호를 받도록 등록
+        // 상호작용 프롬프트 UI: 내 PlayerInteractor의 신호를 받도록 등록 (비활성 오브젝트 포함 탐색)
         PlayerInteractor myInteractor = GetComponent<PlayerInteractor>();
-        InteractionPromptUI promptUI = FindFirstObjectByType<InteractionPromptUI>();
+        InteractionPromptUI promptUI = FindFirstObjectByType<InteractionPromptUI>(FindObjectsInactive.Include);
         if (myInteractor != null && promptUI != null)
+        {
+            promptUI.gameObject.SetActive(true);
             promptUI.SetInteractor(myInteractor);
+        }
 
-        // 핫바 UI: 아무 플레이어나 잡지 않도록 내 핫바로 덮어씀
+        // 핫바 UI: 아무 플레이어나 잡지 않도록 내 핫바로 덮어씀 (비활성 오브젝트 포함 탐색)
         PlayerHotbar myHotbar = GetComponent<PlayerHotbar>();
-        HotbarUI hotbarUI = FindFirstObjectByType<HotbarUI>();
+        HotbarUI hotbarUI = FindFirstObjectByType<HotbarUI>(FindObjectsInactive.Include);
         if (myHotbar != null && hotbarUI != null)
+        {
+            hotbarUI.gameObject.SetActive(true);
             hotbarUI.hotbar = myHotbar;
+        }
 
         // 무기 조준 기준점: 프리팹은 씬의 CameraRig를 참조할 수 없어서 스폰 시 코드로 연결
         // (RangedWeaponItem이 이걸로 조준 방향과 줌을 계산하고, 비어있으면 발사 자체가 막힘)
-        PlayerCameraRig aimRig = FindFirstObjectByType<PlayerCameraRig>();
+        PlayerCameraRig aimRig = FindFirstObjectByType<PlayerCameraRig>(FindObjectsInactive.Include);
         if (myHotbar != null && aimRig != null)
             myHotbar.aimReference = aimRig.transform;
     }
@@ -55,6 +61,7 @@ public class PlayerStatUIBinder : NetworkBehaviour
             StatBarUI healthBar = FindStatBar(healthBarObjectName);
             if (healthBar != null)
             {
+                healthBar.gameObject.SetActive(true);
                 health.OnHealthChanged.RemoveListener(healthBar.UpdateBar);
                 health.OnHealthChanged.AddListener(healthBar.UpdateBar);
                 healthBar.UpdateBar(health.CurrentHealth, health.maxHealth); // 초기값 즉시 반영
@@ -70,6 +77,7 @@ public class PlayerStatUIBinder : NetworkBehaviour
             StatBarUI oxygenBar = FindStatBar(oxygenBarObjectName);
             if (oxygenBar != null)
             {
+                oxygenBar.gameObject.SetActive(true);
                 oxygenBar.oxygenStat = oxygen;
                 oxygenBar.hungerStat = hunger;
                 oxygen.OnValueChanged.RemoveListener(oxygenBar.UpdateBar);
@@ -78,16 +86,38 @@ public class PlayerStatUIBinder : NetworkBehaviour
             }
 
             // SegmentedStatBarUI도 함께 붙어있다면 호환성을 위해 stat 참조 전달
-            GameObject oxygenBarObj = GameObject.Find(oxygenBarObjectName);
+            GameObject oxygenBarObj = FindUIObject(oxygenBarObjectName);
             SegmentedStatBarUI segmentedBar = oxygenBarObj != null ? oxygenBarObj.GetComponent<SegmentedStatBarUI>() : null;
             if (segmentedBar != null)
+            {
+                segmentedBar.gameObject.SetActive(true);
                 segmentedBar.stat = oxygen;
+            }
         }
     }
 
     private StatBarUI FindStatBar(string objectName)
     {
-        GameObject obj = GameObject.Find(objectName);
+        GameObject obj = FindUIObject(objectName);
         return obj != null ? obj.GetComponent<StatBarUI>() : null;
+    }
+
+    private GameObject FindUIObject(string objectName)
+    {
+        if (string.IsNullOrEmpty(objectName)) return null;
+
+        GameObject obj = GameObject.Find(objectName);
+        if (obj != null) return obj;
+
+        Transform[] allTransforms = FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (Transform t in allTransforms)
+        {
+            if (t != null && t.name.Equals(objectName, System.StringComparison.OrdinalIgnoreCase))
+            {
+                return t.gameObject;
+            }
+        }
+
+        return null;
     }
 }
