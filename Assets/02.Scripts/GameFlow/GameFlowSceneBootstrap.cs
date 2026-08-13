@@ -5,11 +5,28 @@ using UnityEngine.SceneManagement;
 
 namespace Varco.GameFlow
 {
-    // MainScene_young 전용 게임 흐름 런타임 설치기
+    // 플레이 씬 전용 게임 흐름 런타임 설치기
     public static class GameFlowSceneBootstrap
     {
-        // 다른 팀원 씬에 영향을 주지 않는 대상 씬 이름
-        private const string TargetSceneName = "MainScene_final";
+        // 다른 팀원 씬에 영향을 주지 않는 대상 씬 이름.
+        // MainScene_young이 MainScene_final의 사본이 되면서 이름 하나로는 부족해졌다. 이름이
+        // 맞지 않으면 아래 설치기가 조용히 빠져나가므로, 사본 씬은 체크포인트도 구역 트리거도
+        // 목표 출구도 없이 멀쩡해 보이는 채로 돌아간다.
+        private static readonly string[] TargetSceneNames = { "MainScene_final", "MainScene_young" };
+
+        // 로그 문구용 - 대상이 여러 개여도 메시지는 실제로 걸린 씬을 가리켜야 한다
+        private static bool IsTargetScene(Scene scene)
+        {
+            if (!scene.IsValid())
+                return false;
+
+            foreach (string name in TargetSceneNames)
+            {
+                if (scene.name == name)
+                    return true;
+            }
+            return false;
+        }
 
         // 시작 화면 이후 대상 씬 로드도 감지하도록 이벤트 등록
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -25,7 +42,7 @@ namespace Varco.GameFlow
         {
             // 대상 씬이 아니면 아무 오브젝트도 생성하지 않음
             Scene scene = SceneManager.GetActiveScene();
-            if (!scene.IsValid() || scene.name != TargetSceneName)
+            if (!IsTargetScene(scene))
                 return;
             // 팀 네트워크 계층이 이미 설치한 조정자 보호
             if (Object.FindFirstObjectByType<GameFlowCoordinator>() != null)
@@ -35,7 +52,7 @@ namespace Varco.GameFlow
             SubmarineController submarine = Object.FindFirstObjectByType<SubmarineController>();
             if (submarine == null)
             {
-                Debug.LogError($"[GameFlow] {TargetSceneName} has no SubmarineController.");
+                Debug.LogError($"[GameFlow] {scene.name} has no SubmarineController.");
                 return;
             }
 
@@ -55,7 +72,7 @@ namespace Varco.GameFlow
             if (resultUI != null)
                 resultUI.Initialize(coordinator);
             else
-                Debug.LogError($"[GameFlow] {TargetSceneName} has no configured GameFlowResultUI.");
+                Debug.LogError($"[GameFlow] {scene.name} has no configured GameFlowResultUI.");
 
             coordinator.Initialize(submarine, bridge);
         }
@@ -88,7 +105,7 @@ namespace Varco.GameFlow
         // 추가로 로드된 대상 씬에 게임 흐름 설치
         private static void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            if (scene.name == TargetSceneName)
+            if (IsTargetScene(scene))
                 InstallForCurrentScene();
         }
 
