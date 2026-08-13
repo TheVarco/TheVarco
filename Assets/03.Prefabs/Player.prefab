@@ -755,7 +755,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OxygenStat
   maxValue: 100
-  depletionRatePerSecond: 1
+  depletionRatePerSecond: 0.5
   OnValueChanged:
     m_PersistentCalls:
       m_Calls:
