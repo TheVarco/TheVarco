@@ -571,7 +571,14 @@ namespace Varco.Underwater.EditorTools
         // Existing scene objects
         // ----------------------------------------------------------------------------------------
 
-        private static void ConfigureCamera()
+        /// <summary>
+        /// Internal rather than private so <see cref="UnderwaterBatch.FixPlaySceneCamera"/> can apply
+        /// just this one step to MainScene_final without running the whole builder.
+        ///
+        /// The full Apply() has only ever run on MainMap, so what it would rewrite in the play scene is
+        /// unknown; the camera settings below are the one part that scene is demonstrably missing.
+        /// </summary>
+        internal static void ConfigureCamera()
         {
             Camera camera = FindMainCamera();
             if (camera == null)
