@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 903412007100000003}
   - component: {fileID: -6732476939766284223}
   m_Layer: 7
-  m_Name: NomalItem
+  m_Name: OxygenItem
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -133,8 +133,8 @@ MonoBehaviour:
   isConsumable: 1
   icon: {fileID: 0}
   giveActionName: "\uC0AC\uC6A9\uD574\uC8FC\uAE30"
-  holdPositionOffset: {x: 0, y: 0.01, z: 0.001}
-  holdRotationOffset: {x: 0, y: 0, z: 180}
+  holdPositionOffset: {x: 0.00024, y: 0.00516, z: 0.0001}
+  holdRotationOffset: {x: -0.00005372759, y: 86.392784, z: 179.99997}
   refillAmount: 50
 --- !u!114 &903412007100000003
 MonoBehaviour:
