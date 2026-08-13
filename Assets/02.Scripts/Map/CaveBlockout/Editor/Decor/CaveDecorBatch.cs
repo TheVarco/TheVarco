@@ -18,6 +18,21 @@ namespace CaveBlockout.Editor.Decor
     {
         private const string MainMapPath = "Assets/01.Scenes/MainMap.unity";
 
+        /// <summary>
+        /// Every scene holding a copy of the cave, in the order they should be visited.
+        ///
+        /// MainMap is where the decor tools author; MainScene_final is where it is played. The two
+        /// carry separate baked copies of the same 392 instances, so anything that edits instances
+        /// rather than prefabs or materials has to visit both. MainScene_young was a third copy and
+        /// was archived to 01.Scenes/Old on 2026-08-13 - add a path here if another play scene ever
+        /// adopts the cave, or these passes will report on a scene nobody ships.
+        /// </summary>
+        private static readonly string[] CaveScenePaths =
+        {
+            MainMapPath,
+            "Assets/01.Scenes/MainScene_final.unity"
+        };
+
         public static void PrepareAssets()
         {
             // Batch mode starts on an untitled unsaved scene, and Unity will not add a scene next to
@@ -232,12 +247,7 @@ namespace CaveBlockout.Editor.Decor
         /// </summary>
         public static void ReportColliders()
         {
-            string[] scenes =
-            {
-                MainMapPath,
-                "Assets/01.Scenes/MainScene_final.unity",
-                "Assets/01.Scenes/MainScene_young.unity"
-            };
+            string[] scenes = CaveScenePaths;
 
             var report = new StringBuilder();
             report.AppendLine("===== CAVE DECOR COLLIDER COVERAGE =====");
@@ -296,8 +306,8 @@ namespace CaveBlockout.Editor.Decor
         ///
         /// Deleting the catalogue entry is not enough on its own, and neither is deleting the scene
         /// objects. The records in MainMapCaveDecor.asset would respawn the props on the next
-        /// RebuildFromData, and MainScene_final / MainScene_young hold their own baked copies that
-        /// inherit nothing from MainMap - a decor rebuild never touches them. All three have to go.
+        /// RebuildFromData, and MainScene_final holds its own baked copy that inherits nothing from
+        /// MainMap - a decor rebuild never touches it. All three have to go.
         ///
         /// Refuses to save any scene whose instance count does not match the records. A scene with
         /// fewer instances than records has diverged from MainMap, and quietly saving a partial
@@ -341,12 +351,7 @@ namespace CaveBlockout.Editor.Decor
             report.AppendLine($"decorSet: palette -{paletteRemoved}, placements -{placementsRemoved}, " +
                               $"placements kept={set.Placements.Count}");
 
-            string[] scenes =
-            {
-                MainMapPath,
-                "Assets/01.Scenes/MainScene_final.unity",
-                "Assets/01.Scenes/MainScene_young.unity"
-            };
+            string[] scenes = CaveScenePaths;
 
             bool allMatched = true;
             foreach (string scenePath in scenes)
