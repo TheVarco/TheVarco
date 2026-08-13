@@ -27,8 +27,23 @@ public class Whirlpool : MonoBehaviour
     [Tooltip("회오리 안에서 받는 물의 저항. 이게 없으면 중심을 관통해 왔다 갔다 진동한다")]
     public float pullDamping = 5f;
 
-    void OnEnable() => Active.Add(this);
-    void OnDisable() => Active.Remove(this);
+    private AudioSource tornadoAudioSource;
+
+    void OnEnable()
+    {
+        Active.Add(this);
+        VarcoAudioLibrary library = VarcoAudioLibrary.Instance;
+        if (library != null)
+            tornadoAudioSource = VarcoAudio.EnsureLoop(
+                transform, "Tornado Audio", library.underwaterTornado, true, 0.48f, 2f, outerRadius * 2.5f);
+    }
+
+    void OnDisable()
+    {
+        Active.Remove(this);
+        if (tornadoAudioSource != null)
+            tornadoAudioSource.Stop();
+    }
 
     // 거리에 따른 당기는 힘. 안쪽 반경 안에서는 항상 최대 (밧줄 힘과 숫자 그대로 겨루게)
     public float GetPullForce(float distance)

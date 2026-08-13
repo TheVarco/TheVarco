@@ -31,6 +31,8 @@ public class FoodItem : CarryableItem
         }
 
         hunger.Refill(hungerRestoreAmount);
+        user?.GetComponentInParent<PlayerController>()
+            ?.RequestPlayerAudio(PlayerAudioCue.Eat);
         Debug.Log($"[FoodItem] {target.name}의 배고픔 {hungerRestoreAmount} 회복함");
     }
 

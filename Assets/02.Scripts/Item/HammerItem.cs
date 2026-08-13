@@ -19,6 +19,11 @@ public class HammerItem : CarryableItem
     [Header("수리 진행 UI")]
     [SerializeField] private RepairProgressWorldUI progressUI;
 
+    [Header("수리 타격 오디오")]
+    [SerializeField] private AudioSource repairAudioSource;
+    [SerializeField] private AudioClip hammerMotionClip;
+    [SerializeField] private AudioClip metalImpactClip;
+
     private static readonly int IsFixingHash = Animator.StringToHash("IsFixing");
 
     // 현재 수리 대상과 사용자 표시 상태
@@ -30,6 +35,56 @@ public class HammerItem : CarryableItem
     private float nextNetworkRepairRefresh;
     private Vector3 currentRepairWorldPoint;
     private Vector3 currentRepairWorldNormal = Vector3.up;
+
+    // 애니메이션 이벤트가 빈 공간에서 발생해도 금속 타격음이 나지 않도록
+    // 현재 실제 수리 가능한 슬롯을 조준 중인지 외부에서 확인한다.
+    public bool HasActiveRepairTarget =>
+        currentStructure != null
+        && currentSlotIndex >= 0
+        && currentStructure.CanRepairSlot(currentSlotIndex);
+
+    protected override void Awake()
+    {
+        base.Awake();
+        CacheRepairAudioSource();
+    }
+
+    // 모든 피어에서 복제된 타격 이벤트를 받으면 두 레이어를 같은 프레임에 겹쳐 재생한다.
+    public void PlayRepairImpactAudio()
+    {
+        CacheRepairAudioSource();
+        if (repairAudioSource == null)
+            return;
+
+        if (hammerMotionClip != null)
+            repairAudioSource.PlayOneShot(hammerMotionClip);
+        if (metalImpactClip != null)
+            repairAudioSource.PlayOneShot(metalImpactClip);
+    }
+
+    private void CacheRepairAudioSource()
+    {
+        VarcoAudioLibrary library = VarcoAudioLibrary.Instance;
+        if (library != null)
+        {
+            if (hammerMotionClip == null)
+                hammerMotionClip = library.hammerMotion;
+            if (metalImpactClip == null)
+                metalImpactClip = library.hammerMetalImpact;
+        }
+
+        if (repairAudioSource == null)
+            repairAudioSource = GetComponent<AudioSource>();
+
+        if (repairAudioSource == null)
+            repairAudioSource = gameObject.AddComponent<AudioSource>();
+
+        repairAudioSource.playOnAwake = false;
+        repairAudioSource.loop = false;
+        repairAudioSource.spatialBlend = 1f;
+        repairAudioSource.minDistance = 1f;
+        repairAudioSource.maxDistance = 18f;
+    }
 
     // 좌클릭 클릭 시 해머 근접 공격 모션 실행
     // 근접 공격 애니메이션만 재생하고 해머 유지
@@ -70,13 +125,9 @@ public class HammerItem : CarryableItem
 
         if (!isHeld)
         {
-            if (currentStructure != null && currentSlotIndex >= 0)
-            {
-                currentStructure.RequestNetworkRepair(user, currentSlotIndex, false);
-                currentStructure.StopRepair(currentSlotIndex);
-            }
-            SetFixingAnimation(false);
-            if (progressUI != null) progressUI.Hide();
+            // 전환 중 남은 AnimationEvent가 실행돼도 타격음이 나지 않도록
+            // 입력 해제 프레임에 수리 대상 참조까지 함께 비운다.
+            ClearCurrentTarget();
             return;
         }
 

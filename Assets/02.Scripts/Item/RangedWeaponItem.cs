@@ -145,6 +145,9 @@ public class RangedWeaponItem : CarryableItem
 
         Vector3 fireDirection = (targetPoint - spawnPosition).normalized;
 
+        PlayerController player = user != null ? user.GetComponentInParent<PlayerController>() : null;
+        player?.RequestPlayerAudio(PlayerAudioCue.BubbleGunShot);
+
         // 네트워크 세션이면 호스트가 총알을 스폰하고 판정까지 담당한다
         PlayerHotbar userHotbar = user != null ? user.GetComponent<PlayerHotbar>() : null;
         if (userHotbar != null && userHotbar.Object != null && projectilePrefabRef.IsValid)

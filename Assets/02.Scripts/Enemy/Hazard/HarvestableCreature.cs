@@ -294,6 +294,9 @@ public class HarvestableCreature : CarryableItem
 
         if (hunger != null)
             hunger.Refill(hungerRestoreAmount);
+
+        user?.GetComponentInParent<PlayerController>()
+            ?.RequestPlayerAudio(PlayerAudioCue.Eat);
     }
 
     private void TriggerEatAnimation(GameObject character)

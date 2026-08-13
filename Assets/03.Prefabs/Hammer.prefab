@@ -140,6 +140,9 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   progressUI: {fileID: 0}
+  repairAudioSource: {fileID: 0}
+  hammerMotionClip: {fileID: 8300000, guid: 9ada842da0375b0abe78a7900d9b761a, type: 3}
+  metalImpactClip: {fileID: 8300000, guid: 4e09f96da2dc5caf9d6db897212fa85c, type: 3}
 --- !u!114 &903412007100000001
 MonoBehaviour:
   m_ObjectHideFlags: 0

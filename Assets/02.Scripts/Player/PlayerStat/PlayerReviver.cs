@@ -81,7 +81,12 @@ public class PlayerReviver : NetworkBehaviour
                 if (currentTarget.IsDowned)
                 {
                     currentTarget.RPC_RequestRevive();
-                    if (requireOxygenItem && hotbar != null) hotbar.RemoveActiveItem(); // 산소통 소모
+                    if (requireOxygenItem && hotbar != null)
+                    {
+                        GetComponentInParent<PlayerController>()
+                            ?.RequestPlayerAudio(PlayerAudioCue.OxygenTankUse);
+                        hotbar.RemoveActiveItem(); // 산소통 소모
+                    }
                 }
 
                 channelTimer = 0f;

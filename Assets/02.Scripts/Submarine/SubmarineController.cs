@@ -84,6 +84,13 @@ public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
     [Header("Seat Manager")]
     [SerializeField] private SubmarineSeatManager seatManager;
 
+    [Header("Bulb Emission")]
+    [Tooltip("Object_6 전구 메시 전체에 적용할 발광 머티리얼")]
+    [SerializeField] private Material bulbEmissionMaterial;
+    [SerializeField] private string bulbObjectName = "Object_6";
+
+    private AudioSource submarineHumSource;
+
     // 현재 조종 상태와 이동 상태를 읽을 때 사용하는 값들
     public bool HasDriver => seatManager != null && seatManager.HasDriver;
     public SubmarinePlayMode CurrentPlayMode => seatManager != null
@@ -268,6 +275,50 @@ public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
         body.isKinematic = true; // Rigidbody 키네마틱 사용
         body.interpolation = RigidbodyInterpolation.Interpolate;
         CacheRotationProbe();
+        ApplyBulbEmissionMaterial();
+        VarcoAudioLibrary library = VarcoAudioLibrary.Instance;
+        if (library != null)
+            submarineHumSource = VarcoAudio.EnsureLoop(
+                transform, "Submarine Hum Audio", library.submarineHum, true, 0.08f, 3f, 55f);
+    }
+
+    private void ApplyBulbEmissionMaterial()
+    {
+        if (bulbEmissionMaterial == null || string.IsNullOrEmpty(bulbObjectName))
+            return;
+
+        Renderer[] childRenderers = GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < childRenderers.Length; i++)
+        {
+            Renderer childRenderer = childRenderers[i];
+            if (childRenderer == null || childRenderer.gameObject.name != bulbObjectName)
+                continue;
+
+            Material[] materials = childRenderer.sharedMaterials;
+            if (materials.Length == 0)
+                materials = new Material[1];
+
+            materials[0] = bulbEmissionMaterial;
+            childRenderer.sharedMaterials = materials;
+        }
+    }
+
+    private void Update()
+    {
+        if (submarineHumSource == null)
+            return;
+
+        if (!submarineHumSource.isPlaying)
+            submarineHumSource.Play();
+
+        float inputAmount = Mathf.Max(
+            Mathf.Abs(ThrottleInput),
+            Mathf.Max(Mathf.Abs(SteeringInput), Mathf.Abs(VerticalInput)));
+        float targetVolume = HasDriver ? Mathf.Lerp(0.18f, 0.46f, inputAmount) : 0.08f;
+        submarineHumSource.volume = Mathf.MoveTowards(
+            submarineHumSource.volume,
+            targetVolume,
+            Time.deltaTime * 0.7f);
     }
 
     private void CacheRotationProbe()
@@ -1051,6 +1102,40 @@ public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
                 DamageType.Collision,
                 false);
         health.ApplyDamage(damageInfo);
+        PlayCollisionAudio(colliderId);
+    }
+
+    private void PlayCollisionAudio(int seed)
+    {
+        VarcoAudioLibrary library = VarcoAudioLibrary.Instance;
+        if (library == null)
+            return;
+
+        if (IsNetworkActive)
+        {
+            RPC_PlayCollisionAudio(seed);
+            return;
+        }
+
+        VarcoAudio.PlayOneShotAt(
+            transform,
+            library.GetSubmarineImpact(seed),
+            0.82f,
+            3f,
+            55f);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_PlayCollisionAudio(int seed)
+    {
+        VarcoAudioLibrary library = VarcoAudioLibrary.Instance;
+        if (library != null)
+            VarcoAudio.PlayOneShotAt(
+                transform,
+                library.GetSubmarineImpact(seed),
+                0.82f,
+                3f,
+                55f);
     }
 
     // 현재 속도를 목표 속도 쪽으로 일정한 비율로 이동

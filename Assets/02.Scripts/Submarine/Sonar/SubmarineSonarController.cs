@@ -205,6 +205,7 @@ public sealed class SubmarineSonarController : NetworkBehaviour
         }
 
         onPing.Invoke();
+        PlaySonarAudio();
     }
 
     // 호스트가 현재 소나 접촉점을 수집해 네트워크 배열 갱신
@@ -303,11 +304,21 @@ public sealed class SubmarineSonarController : NetworkBehaviour
         {
             lastRenderedPingSequence = NetworkedPingSequence;
             if (NetworkedPingSequence > 0)
+            {
                 onPing.Invoke();
+                PlaySonarAudio();
+            }
         }
 
         // 파동 진행률과 현재 시간과 접촉점 목록을 소나 UI에 전달
         display.SetFrame(normalizedPulse, now, echoes);
+    }
+
+    private void PlaySonarAudio()
+    {
+        VarcoAudioLibrary library = VarcoAudioLibrary.Instance;
+        if (library != null)
+            VarcoAudio.PlayOneShotAt(transform, library.sonarPing, 0.65f, 2f, 45f);
     }
 
     // 소나 대상이 현재 핑에 포함될 수 있는지 판정
