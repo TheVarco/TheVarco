@@ -50,8 +50,11 @@ namespace CaveBlockout.Editor
 
             // 애니메이션 클립 로드
             AnimationClip defaultClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(AnimFolderPath + "Default.anim");
+            AnimationClip submarineClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(AnimFolderPath + "SubmarineState.anim");
+            if (submarineClip == null) submarineClip = defaultClip;
             AnimationClip swim1Clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(AnimFolderPath + "Swim1.anim");
             AnimationClip swim2Clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(AnimFolderPath + "Swim2.anim");
+            AnimationClip walkClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(AnimFolderPath + "Walk.anim");
             AnimationClip noWeaponClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(AnimFolderPath + "NoWeapon.anim");
             AnimationClip meleeWeaponClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(AnimFolderPath + "MeleeWeapon.anim");
             AnimationClip fixingClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(AnimFolderPath + "Fixing.anim");
@@ -68,8 +71,10 @@ namespace CaveBlockout.Editor
             AnimatorState defaultState = GetOrAddState(rootStateMachine, "Default", defaultClip, new Vector3(300, 0, 0));
             if (rootStateMachine.defaultState == null) rootStateMachine.defaultState = defaultState;
 
+            AnimatorState submarineState = GetOrAddState(rootStateMachine, "SubmarineState", submarineClip, new Vector3(300, -100, 0));
             AnimatorState swim1State = GetOrAddState(rootStateMachine, "Swim1", swim1Clip, new Vector3(300, 100, 0));
             AnimatorState swim2State = GetOrAddState(rootStateMachine, "Swim2", swim2Clip, new Vector3(300, 200, 0));
+            AnimatorState walkState = GetOrAddState(rootStateMachine, "Walk", walkClip, new Vector3(300, 300, 0));
             AnimatorState noWeaponState = GetOrAddState(rootStateMachine, "NoWeapon", noWeaponClip, new Vector3(550, 0, 0));
             AnimatorState meleeWeaponState = GetOrAddState(rootStateMachine, "MeleeWeapon", meleeWeaponClip, new Vector3(550, 100, 0));
             AnimatorState fixingState = GetOrAddState(rootStateMachine, "Fixing", fixingClip, new Vector3(550, 200, 0));
@@ -84,18 +89,105 @@ namespace CaveBlockout.Editor
             AnimatorState deadState = GetOrAddState(rootStateMachine, "Dead", deadClip, new Vector3(550, 900, 0));
             deadState.speed = -1f;
 
-            // Movement transitions
+            // Movement transitions (수영 & 걷기 & 대기)
+            // Default <-> SubmarineState (수중 대기 <-> 잠수함 내부 대기)
+            AnimatorStateTransition defaultToSubmarine = AddTransitionIfNotExists(defaultState, submarineState);
+            SetTransitionConditions(defaultToSubmarine, 0.2f, false,
+                (AnimatorConditionMode.IfNot, 0, "IsMoving"),
+                (AnimatorConditionMode.IfNot, 0, "IsSwimming"));
+
+            AnimatorStateTransition submarineToDefault = AddTransitionIfNotExists(submarineState, defaultState);
+            SetTransitionConditions(submarineToDefault, 0.2f, false,
+                (AnimatorConditionMode.IfNot, 0, "IsMoving"),
+                (AnimatorConditionMode.If, 0, "IsSwimming"));
+
+            // SubmarineState <-> Walk (잠수함 대기 <-> 잠수함 걷기)
+            AnimatorStateTransition submarineToWalk = AddTransitionIfNotExists(submarineState, walkState);
+            SetTransitionConditions(submarineToWalk, 0.2f, false,
+                (AnimatorConditionMode.If, 0, "IsMoving"),
+                (AnimatorConditionMode.IfNot, 0, "IsSwimming"));
+
+            AnimatorStateTransition walkToSubmarine = AddTransitionIfNotExists(walkState, submarineState);
+            SetTransitionConditions(walkToSubmarine, 0.2f, false,
+                (AnimatorConditionMode.IfNot, 0, "IsMoving"),
+                (AnimatorConditionMode.IfNot, 0, "IsSwimming"));
+
+            // SubmarineState -> Swim1 (잠수함 대기 중 잠수함 밖으로 이동)
+            AnimatorStateTransition submarineToSwim = AddTransitionIfNotExists(submarineState, swim1State);
+            SetTransitionConditions(submarineToSwim, 0.2f, false,
+                (AnimatorConditionMode.If, 0, "IsMoving"),
+                (AnimatorConditionMode.If, 0, "IsSwimming"));
+
+            // Default -> Swim1 (수영 이동 시작)
             AnimatorStateTransition idleToSwim = AddTransitionIfNotExists(defaultState, swim1State);
-            EnsureSingleCondition(idleToSwim, AnimatorConditionMode.If, 0, "IsMoving", 0.2f, false);
+            SetTransitionConditions(idleToSwim, 0.2f, false,
+                (AnimatorConditionMode.If, 0, "IsMoving"),
+                (AnimatorConditionMode.If, 0, "IsSwimming"));
 
+            // Swim1 -> Default (수중 이동 정지)
             AnimatorStateTransition swimToIdle = AddTransitionIfNotExists(swim1State, defaultState);
-            EnsureSingleCondition(swimToIdle, AnimatorConditionMode.IfNot, 0, "IsMoving", 0.2f, false);
+            SetTransitionConditions(swimToIdle, 0.2f, false,
+                (AnimatorConditionMode.IfNot, 0, "IsMoving"),
+                (AnimatorConditionMode.If, 0, "IsSwimming"));
 
+            // Swim1 -> SubmarineState (수영 중 잠수함 안에서 정지)
+            AnimatorStateTransition swimToSubmarine = AddTransitionIfNotExists(swim1State, submarineState);
+            SetTransitionConditions(swimToSubmarine, 0.2f, false,
+                (AnimatorConditionMode.IfNot, 0, "IsMoving"),
+                (AnimatorConditionMode.IfNot, 0, "IsSwimming"));
+
+            // Default -> Walk (수중 대기 중 잠수함 안으로 걷기 시작)
+            AnimatorStateTransition idleToWalk = AddTransitionIfNotExists(defaultState, walkState);
+            SetTransitionConditions(idleToWalk, 0.2f, false,
+                (AnimatorConditionMode.If, 0, "IsMoving"),
+                (AnimatorConditionMode.IfNot, 0, "IsSwimming"));
+
+            // Walk -> Default (걷다가 잠수함 밖으로 나가 정지)
+            AnimatorStateTransition walkToIdle = AddTransitionIfNotExists(walkState, defaultState);
+            SetTransitionConditions(walkToIdle, 0.2f, false,
+                (AnimatorConditionMode.IfNot, 0, "IsMoving"),
+                (AnimatorConditionMode.If, 0, "IsSwimming"));
+
+            // Walk -> Swim1 (걷다가 잠수함 외부로 진입하여 수영)
+            AnimatorStateTransition walkToSwim = AddTransitionIfNotExists(walkState, swim1State);
+            SetTransitionConditions(walkToSwim, 0.2f, false,
+                (AnimatorConditionMode.If, 0, "IsMoving"),
+                (AnimatorConditionMode.If, 0, "IsSwimming"));
+
+            // Swim1 -> Walk (수영하다가 잠수함 내부로 진입하여 걷기)
+            AnimatorStateTransition swim1ToWalk = AddTransitionIfNotExists(swim1State, walkState);
+            SetTransitionConditions(swim1ToWalk, 0.2f, false,
+                (AnimatorConditionMode.If, 0, "IsMoving"),
+                (AnimatorConditionMode.IfNot, 0, "IsSwimming"));
+
+            // Swim1 -> Swim2 (대시 가속)
             AnimatorStateTransition swim1ToSwim2 = AddTransitionIfNotExists(swim1State, swim2State);
-            EnsureSingleCondition(swim1ToSwim2, AnimatorConditionMode.Greater, 3.0f, "Speed", 0.2f, false);
+            SetTransitionConditions(swim1ToSwim2, 0.2f, false,
+                (AnimatorConditionMode.Greater, 3.0f, "Speed"),
+                (AnimatorConditionMode.If, 0, "IsSwimming"));
 
+            // Swim2 -> Swim1 (감속)
             AnimatorStateTransition swim2ToSwim1 = AddTransitionIfNotExists(swim2State, swim1State);
-            EnsureSingleCondition(swim2ToSwim1, AnimatorConditionMode.Less, 3.0f, "Speed", 0.2f, false);
+            SetTransitionConditions(swim2ToSwim1, 0.2f, false,
+                (AnimatorConditionMode.Less, 3.0f, "Speed"));
+
+            // Swim2 -> Default (수중 고속 이동 정지)
+            AnimatorStateTransition swim2ToIdle = AddTransitionIfNotExists(swim2State, defaultState);
+            SetTransitionConditions(swim2ToIdle, 0.2f, false,
+                (AnimatorConditionMode.IfNot, 0, "IsMoving"),
+                (AnimatorConditionMode.If, 0, "IsSwimming"));
+
+            // Swim2 -> SubmarineState (고속 수영 중 잠수함 내부 정지)
+            AnimatorStateTransition swim2ToSubmarine = AddTransitionIfNotExists(swim2State, submarineState);
+            SetTransitionConditions(swim2ToSubmarine, 0.2f, false,
+                (AnimatorConditionMode.IfNot, 0, "IsMoving"),
+                (AnimatorConditionMode.IfNot, 0, "IsSwimming"));
+
+            // Swim2 -> Walk (고속 수영 중 잠수함 진입 걷기)
+            AnimatorStateTransition swim2ToWalk = AddTransitionIfNotExists(swim2State, walkState);
+            SetTransitionConditions(swim2ToWalk, 0.2f, false,
+                (AnimatorConditionMode.If, 0, "IsMoving"),
+                (AnimatorConditionMode.IfNot, 0, "IsSwimming"));
 
             // AnyState transitions
             AnimatorStateTransition anyToDead = AddAnyStateTransitionIfNotExists(rootStateMachine, deadState);
@@ -181,6 +273,21 @@ namespace CaveBlockout.Editor
             EditorUtility.SetDirty(controller);
             AssetDatabase.SaveAssets();
             Debug.Log("Player Animator Controller validated safely without overwriting manual setups.");
+        }
+
+        private static void SetTransitionConditions(AnimatorStateTransition transition, float duration, bool hasExitTime, params (AnimatorConditionMode mode, float threshold, string parameter)[] conditions)
+        {
+            while (transition.conditions != null && transition.conditions.Length > 0)
+            {
+                transition.RemoveCondition(transition.conditions[0]);
+            }
+
+            foreach (var cond in conditions)
+            {
+                transition.AddCondition(cond.mode, cond.threshold, cond.parameter);
+            }
+            transition.hasExitTime = hasExitTime;
+            transition.duration = duration;
         }
 
         private static void EnsureSingleCondition(AnimatorStateTransition transition, AnimatorConditionMode mode, float threshold, string parameter, float duration, bool hasExitTime)

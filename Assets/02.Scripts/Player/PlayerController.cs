@@ -57,12 +57,32 @@ public class PlayerController : NetworkBehaviour
     private bool jumpRequested;
     [SerializeField] private bool isSwimMode = true;
 
+    [Networked] private NetworkBool NetworkedIsSwimMode { get; set; } = true;
+
+    public bool IsSwimMode => (Object == null || Object.HasInputAuthority || Object.HasStateAuthority) ? isSwimMode : (bool)NetworkedIsSwimMode;
+
     // 잠수함 내부 등 "걸어야 하는 공간"에 들어오면 false로, 나가면 true로 호출됨 (PlayerWalkZone에서 호출)
     public void SetSwimMode(bool swimming)
     {
+        if (isSwimMode == swimming) return;
         isSwimMode = swimming;
-        rb.useGravity = !swimming;
+        if (rb != null) rb.useGravity = !swimming;
+
+        if (Object != null)
+        {
+            if (Object.HasStateAuthority)
+            {
+                NetworkedIsSwimMode = swimming;
+            }
+            else if (Object.HasInputAuthority)
+            {
+                RPC_SetSwimMode(swimming);
+            }
+        }
     }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_SetSwimMode(NetworkBool swimming) => NetworkedIsSwimMode = swimming;
 
     private static readonly int IsMovingHash = Animator.StringToHash("IsMoving");
     private static readonly int SpeedHash = Animator.StringToHash("Speed");
@@ -77,8 +97,10 @@ public class PlayerController : NetworkBehaviour
     private static readonly int ThrowHash = Animator.StringToHash("Throw");
     private static readonly int ThrowStateHash = Animator.StringToHash("Throw");
     private static readonly int DefaultStateHash = Animator.StringToHash("Default");
+    private static readonly int SubmarineStateHash = Animator.StringToHash("SubmarineState");
     private static readonly int Swim1StateHash = Animator.StringToHash("Swim1");
     private static readonly int Swim2StateHash = Animator.StringToHash("Swim2");
+    private static readonly int WalkStateHash = Animator.StringToHash("Walk");
 
     void Awake()
     {
@@ -306,7 +328,8 @@ public class PlayerController : NetworkBehaviour
 
         animator.SetBool(IsMovingHash, isMoving);
         animator.SetFloat(SpeedHash, currentSpeed);
-        animator.SetBool(IsSwimmingHash, true);
+        if (HasAnimatorParameter(IsSwimmingHash))
+            animator.SetBool(IsSwimmingHash, IsSwimMode);
 
         // 본인은 로컬 값이라 즉각 반응하고, 남의 캐릭터는 복제된 값을 쓴다
         bool pushPull = (Object == null || Object.HasInputAuthority) ? localPushPull : NetworkedPushPull;
@@ -398,22 +421,24 @@ public class PlayerController : NetworkBehaviour
 
     private void ApplyMovement()
     {
-        // 2개의 수영(Swim1, Swim2) 모션 재생 여부 판별
-        bool isSwimMotion = false;
+        // 이동(Swim1, Swim2, Walk) 모션 재생 여부 판별
+        bool isLocomotion = false;
         if (animator != null)
         {
             AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
-            isSwimMotion = stateInfo.shortNameHash == Swim1StateHash || stateInfo.shortNameHash == Swim2StateHash;
+            isLocomotion = stateInfo.shortNameHash == Swim1StateHash ||
+                           stateInfo.shortNameHash == Swim2StateHash ||
+                           stateInfo.shortNameHash == WalkStateHash;
         }
 
-        // 수영 모션이 아닌 다른 동작 모션(공격, 수리, 아이템 주움 등) 실행 중일 때는 속도 증가 및 가속도 제한
-        float activeSpeed = (IsDashing && isSwimMotion) ? dashSpeed : moveSpeed;
-        if (!isSwimMotion)
+        // 이동 모션이 아닌 다른 동작 모션(공격, 수리, 아이템 주움 등) 실행 중일 때는 속도 증가 및 가속도 제한
+        float activeSpeed = (IsDashing && isLocomotion) ? dashSpeed : moveSpeed;
+        if (!isLocomotion)
         {
-            activeSpeed = Mathf.Min(activeSpeed, moveSpeed * 0.4f); // 수영 모션이 아닐 때 이동 속도 40%로 상한 제한
+            activeSpeed = Mathf.Min(activeSpeed, moveSpeed * 0.4f); // 이동 모션이 아닐 때 이동 속도 40%로 상한 제한
         }
 
-        float activeAcceleration = isSwimMotion ? acceleration : acceleration * 0.3f; // 수영 외 모션 시 가속도 제한
+        float activeAcceleration = isLocomotion ? acceleration : acceleration * 0.3f; // 이동 외 모션 시 가속도 제한
 
         Vector3 targetVelocity = inputDirection * activeSpeed;
 
@@ -422,8 +447,8 @@ public class PlayerController : NetworkBehaviour
             Vector3 velocityError = targetVelocity - rb.linearVelocity;
             rb.AddForce(velocityError * activeAcceleration, ForceMode.Acceleration);
 
-            // 입력이 없거나 수영 외 다른 모션 실행 중일 경우 자연스러운 감속 처리
-            if (inputDirection.sqrMagnitude < 0.01f || !isSwimMotion)
+            // 입력이 없거나 이동 외 다른 모션 실행 중일 경우 자연스러운 감속 처리
+            if (inputDirection.sqrMagnitude < 0.01f || !isLocomotion)
             {
                 rb.linearVelocity = Vector3.Lerp(rb.linearVelocity, Vector3.zero, drag * Runner.DeltaTime);
             }
@@ -435,7 +460,7 @@ public class PlayerController : NetworkBehaviour
             Vector3 horizontalError = targetVelocity - horizontalVelocity;
             rb.AddForce(new Vector3(horizontalError.x, 0f, horizontalError.z) * activeAcceleration, ForceMode.Acceleration);
 
-            if (inputDirection.sqrMagnitude < 0.01f || !isSwimMotion)
+            if (inputDirection.sqrMagnitude < 0.01f || !isLocomotion)
             {
                 Vector3 damped = Vector3.Lerp(horizontalVelocity, Vector3.zero, drag * Runner.DeltaTime);
                 rb.linearVelocity = new Vector3(damped.x, rb.linearVelocity.y, damped.z);

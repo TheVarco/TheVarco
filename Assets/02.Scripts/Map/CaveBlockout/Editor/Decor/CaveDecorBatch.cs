@@ -309,9 +309,12 @@ namespace CaveBlockout.Editor.Decor
         /// RebuildFromData, and MainScene_final holds its own baked copy that inherits nothing from
         /// MainMap - a decor rebuild never touches it. All three have to go.
         ///
-        /// Refuses to save any scene whose instance count does not match the records. A scene with
-        /// fewer instances than records has diverged from MainMap, and quietly saving a partial
-        /// deletion on top of that would hide the divergence instead of reporting it.
+        /// Idempotent, and it has to be: a teammate branching before the retirement lands brings the
+        /// props back in their copy of the play scene, and the merge resolution is to re-run this.
+        /// By then the records are already gone, so the count in the set is not a usable expectation
+        /// for the scenes. What is checked instead is the invariant that matters - after the save,
+        /// no scene holds an instance of a retired species - plus a report of how many each scene
+        /// had, so a scene that has drifted out of step with MainMap is visible rather than silent.
         /// </summary>
         public static void RetireSpecies()
         {
@@ -327,9 +330,7 @@ namespace CaveBlockout.Editor.Decor
                 return;
             }
 
-            // Counted before the records are dropped: this is the number every scene has to match.
             var retired = new HashSet<string>(RetiredPaletteIds);
-            int expected = 0;
             var perSpecies = new SortedDictionary<string, int>();
             foreach (CaveDecorPlacement placement in set.Placements)
             {
@@ -338,7 +339,6 @@ namespace CaveBlockout.Editor.Decor
 
                 perSpecies.TryGetValue(placement.paletteId, out int n);
                 perSpecies[placement.paletteId] = n + 1;
-                expected++;
             }
 
             foreach (var pair in perSpecies)
@@ -372,10 +372,9 @@ namespace CaveBlockout.Editor.Decor
                         doomed.Add(marker.gameObject);
                 }
 
-                if (doomed.Count != expected)
+                if (doomed.Count == 0)
                 {
-                    report.AppendLine($"{scenePath}: FAIL found {doomed.Count}, records say {expected} - NOT SAVED");
-                    allMatched = false;
+                    report.AppendLine($"{scenePath}: already clean");
                     continue;
                 }
 

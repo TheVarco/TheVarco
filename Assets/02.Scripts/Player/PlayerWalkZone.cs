@@ -37,7 +37,8 @@ public class PlayerWalkZone : MonoBehaviour
 
         foreach (PlayerController player in playersInZone)
         {
-            bool nearGround = Physics.Raycast(player.transform.position, Vector3.down, groundCheckDistance, groundLayer);
+            Vector3 origin = player.transform.position + Vector3.up * 0.1f;
+            bool nearGround = Physics.Raycast(origin, Vector3.down, groundCheckDistance, groundLayer, QueryTriggerInteraction.Ignore);
             player.SetSwimMode(!nearGround);
         }
     }
