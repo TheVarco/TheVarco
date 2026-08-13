@@ -12,80 +12,80 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea6038dd54352634390203767bea1362, type: 3}
   m_Name: MainMapUnderwaterZones
   m_EditorClassIdentifier: Varco.Underwater.Runtime::Varco.Underwater.UnderwaterZoneSet
-  dataVersion: 9
+  dataVersion: 10
   zones:
   - zoneId: Z1
-    visibilityMeters: 12
+    visibilityMeters: 28
     fogColor: {r: 0.0356, g: 0.2216, b: 0.3409, a: 1}
     backgroundColor: {r: 0.1422, g: 0.886, b: 1.2451, a: 1}
-    ambientSky: {r: 1.6126, g: 9.0588, b: 9.9598, a: 1}
-    ambientEquator: {r: 0.8538, g: 5.12, b: 5.9286, a: 1}
-    ambientGround: {r: 0.2372, g: 1.7724, b: 2.1343, a: 1}
+    ambientSky: {r: 1.575, g: 2.17, b: 3.5, a: 1}
+    ambientEquator: {r: 0.8663, g: 1.1935, b: 1.925, a: 1}
+    ambientGround: {r: 0.315, g: 0.434, b: 0.7, a: 1}
     ambientIntensity: 1
     directionalIntensity: 1.2
-    extinctionTint: {x: 3.3, y: 1.02, z: 1}
+    extinctionTint: {x: 2.2, y: 1.02, z: 1}
     refraction: 0.0022
     refractionSpeed: 0.6
     causticStrength: 0.08
     screenStrength: 1
     postExposure: 0.35
-    contrast: 12
-    saturation: 6
+    contrast: 5
+    saturation: 0
     colorFilter: {r: 0.82, g: 0.95, b: 1, a: 1}
     bloomIntensity: 0.3
     vignetteIntensity: 0.3
     whiteBalanceTemperature: -14
-    whiteBalanceTint: -6
+    whiteBalanceTint: 0
     particleDensityScale: 1.15
     shaftIntensity: 0.15
     bioluminescenceTint: {r: 0.2, g: 0.45, b: 0.85, a: 1}
   - zoneId: Z2
-    visibilityMeters: 27
+    visibilityMeters: 40
     fogColor: {r: 0.0279, g: 0.2066, b: 0.2448, a: 1}
     backgroundColor: {r: 0.1119, g: 0.7514, b: 0.8395, a: 1}
-    ambientSky: {r: 0.97, g: 5.7106, b: 5.2228, a: 1}
-    ambientEquator: {r: 0.5221, g: 3.4563, b: 3.3574, a: 1}
-    ambientGround: {r: 0.1678, g: 1.2023, b: 1.2126, a: 1}
+    ambientSky: {r: 1.44, g: 1.984, b: 3.2, a: 1}
+    ambientEquator: {r: 0.792, g: 1.0912, b: 1.76, a: 1}
+    ambientGround: {r: 0.288, g: 0.3968, b: 0.64, a: 1}
     ambientIntensity: 1.15
     directionalIntensity: 1.8
-    extinctionTint: {x: 3.3, y: 1.02, z: 1}
+    extinctionTint: {x: 2.2, y: 1.02, z: 1}
     refraction: 0.002
     refractionSpeed: 0.65
     causticStrength: 0.25
     screenStrength: 1
     postExposure: 0.55
-    contrast: 10
-    saturation: 12
+    contrast: 4
+    saturation: 4
     colorFilter: {r: 0.8, g: 0.97, b: 1, a: 1}
     bloomIntensity: 0.55
     vignetteIntensity: 0.2
     whiteBalanceTemperature: -16
-    whiteBalanceTint: -4
+    whiteBalanceTint: 0
     particleDensityScale: 0.85
     shaftIntensity: 0.9
     bioluminescenceTint: {r: 0.35, g: 0.7, b: 1, a: 1}
   - zoneId: Z3
-    visibilityMeters: 16
+    visibilityMeters: 26
     fogColor: {r: 0.0265, g: 0.2038, b: 0.2482, a: 1}
     backgroundColor: {r: 0.119, g: 0.8736, b: 0.9592, a: 1}
-    ambientSky: {r: 0.8467, g: 5.7066, b: 5.6888, a: 1}
-    ambientEquator: {r: 0.4499, g: 3.2609, b: 3.3736, a: 1}
-    ambientGround: {r: 0.1322, g: 1.1063, b: 1.1907, a: 1}
+    ambientSky: {r: 1.35, g: 1.86, b: 3, a: 1}
+    ambientEquator: {r: 0.7425, g: 1.023, b: 1.65, a: 1}
+    ambientGround: {r: 0.27, g: 0.372, b: 0.6, a: 1}
     ambientIntensity: 1.05
     directionalIntensity: 1.5
-    extinctionTint: {x: 3.3, y: 1.02, z: 1}
+    extinctionTint: {x: 2.2, y: 1.02, z: 1}
     refraction: 0.003
     refractionSpeed: 0.95
     causticStrength: 0.15
     screenStrength: 1
     postExposure: 0.45
-    contrast: 12
-    saturation: 6
+    contrast: 5
+    saturation: 0
     colorFilter: {r: 0.8, g: 0.95, b: 1, a: 1}
     bloomIntensity: 0.38
     vignetteIntensity: 0.26
     whiteBalanceTemperature: -14
-    whiteBalanceTint: -5
+    whiteBalanceTint: 0
     particleDensityScale: 1.35
     shaftIntensity: 0.7
     bioluminescenceTint: {r: 0.18, g: 0.42, b: 0.8, a: 1}
@@ -115,78 +115,78 @@ MonoBehaviour:
     shaftIntensity: 0
     bioluminescenceTint: {r: 0, g: 0, b: 0, a: 1}
   - zoneId: Z5
-    visibilityMeters: 12.5
+    visibilityMeters: 24
     fogColor: {r: 0.0439, g: 0.2462, b: 0.3966, a: 1}
     backgroundColor: {r: 0.1709, g: 1.0191, b: 1.4641, a: 1}
-    ambientSky: {r: 1.3177, g: 6.7933, b: 8.7847, a: 1}
-    ambientEquator: {r: 0.7077, g: 3.9062, b: 5.1243, a: 1}
-    ambientGround: {r: 0.2197, g: 1.2737, b: 1.7691, a: 1}
+    ambientSky: {r: 1.62, g: 2.232, b: 3.6, a: 1}
+    ambientEquator: {r: 0.891, g: 1.2276, b: 1.98, a: 1}
+    ambientGround: {r: 0.324, g: 0.4464, b: 0.72, a: 1}
     ambientIntensity: 0.95
     directionalIntensity: 1.2
-    extinctionTint: {x: 3.3, y: 1.02, z: 1}
+    extinctionTint: {x: 2.2, y: 1.02, z: 1}
     refraction: 0.0026
     refractionSpeed: 0.8
     causticStrength: 0.06
     screenStrength: 1
     postExposure: 0.32
-    contrast: 14
-    saturation: 2
+    contrast: 6
+    saturation: -2
     colorFilter: {r: 0.86, g: 0.94, b: 1, a: 1}
     bloomIntensity: 0.5
     vignetteIntensity: 0.32
     whiteBalanceTemperature: -12
-    whiteBalanceTint: -4
+    whiteBalanceTint: 0
     particleDensityScale: 1.25
     shaftIntensity: 0.2
     bioluminescenceTint: {r: 0.85, g: 0.2, b: 0.12, a: 1}
   - zoneId: Z6
-    visibilityMeters: 40
+    visibilityMeters: 55
     fogColor: {r: 0.0258, g: 0.1387, b: 0.1784, a: 1}
     backgroundColor: {r: 0.1297, g: 0.5253, b: 0.5947, a: 1}
-    ambientSky: {r: 0.7613, g: 3.0354, b: 3.028, a: 1}
-    ambientEquator: {r: 0.4153, g: 1.9264, b: 2.033, a: 1}
-    ambientGround: {r: 0.1297, g: 0.7005, b: 0.8003, a: 1}
+    ambientSky: {r: 1.62, g: 2.232, b: 3.6, a: 1}
+    ambientEquator: {r: 0.891, g: 1.2276, b: 1.98, a: 1}
+    ambientGround: {r: 0.324, g: 0.4464, b: 0.72, a: 1}
     ambientIntensity: 1.25
     directionalIntensity: 2.4
-    extinctionTint: {x: 3.5, y: 1.02, z: 1}
+    extinctionTint: {x: 2.3, y: 1.02, z: 1}
     refraction: 0.0018
     refractionSpeed: 0.6
     causticStrength: 0.35
     screenStrength: 1
     postExposure: 0.6
-    contrast: 8
-    saturation: 10
+    contrast: 3
+    saturation: 2
     colorFilter: {r: 0.82, g: 0.97, b: 1, a: 1}
     bloomIntensity: 0.62
     vignetteIntensity: 0.16
     whiteBalanceTemperature: -18
-    whiteBalanceTint: -6
+    whiteBalanceTint: 0
     particleDensityScale: 0.7
     shaftIntensity: 1.6
     bioluminescenceTint: {r: 0.3, g: 0.65, b: 1, a: 1}
   fallback:
     zoneId: Fallback
-    visibilityMeters: 12
+    visibilityMeters: 28
     fogColor: {r: 0.0356, g: 0.2216, b: 0.3409, a: 1}
     backgroundColor: {r: 0.1422, g: 0.886, b: 1.2451, a: 1}
-    ambientSky: {r: 1.6126, g: 9.0588, b: 9.9598, a: 1}
-    ambientEquator: {r: 0.8538, g: 5.12, b: 5.9286, a: 1}
-    ambientGround: {r: 0.2372, g: 1.7724, b: 2.1343, a: 1}
+    ambientSky: {r: 1.575, g: 2.17, b: 3.5, a: 1}
+    ambientEquator: {r: 0.8663, g: 1.1935, b: 1.925, a: 1}
+    ambientGround: {r: 0.315, g: 0.434, b: 0.7, a: 1}
     ambientIntensity: 1
     directionalIntensity: 1.2
-    extinctionTint: {x: 3.3, y: 1.02, z: 1}
+    extinctionTint: {x: 2.2, y: 1.02, z: 1}
     refraction: 0.0022
     refractionSpeed: 0.6
     causticStrength: 0.08
     screenStrength: 1
     postExposure: 0.35
-    contrast: 12
-    saturation: 6
+    contrast: 5
+    saturation: 0
     colorFilter: {r: 0.82, g: 0.95, b: 1, a: 1}
     bloomIntensity: 0.3
     vignetteIntensity: 0.3
     whiteBalanceTemperature: -14
-    whiteBalanceTint: -6
+    whiteBalanceTint: 0
     particleDensityScale: 1.15
     shaftIntensity: 0.15
     bioluminescenceTint: {r: 0.2, g: 0.45, b: 0.85, a: 1}
