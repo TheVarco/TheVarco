@@ -293,6 +293,14 @@ namespace CaveBlockout.Editor.Decor
                     material.SetFloat("_Smoothness", variant.smoothness);
                     material.SetFloat("_Metallic", 0f);
                     material.SetColor("_EmissionColor", variant.emission);
+
+                    // URP/Lit multiplies _EmissionColor by _EmissionMap, so pointing it at the albedo
+                    // makes the glow follow the bake instead of covering the silhouette evenly. Left
+                    // off by default: the Z2 corals were reviewed and signed off glowing uniformly,
+                    // and turning it on for them would change three materials nobody complained about.
+                    material.SetTexture("_EmissionMap",
+                        variant.emissionFollowsAlbedo ? material.GetTexture("_BaseMap") : null);
+
                     material.EnableKeyword("_EMISSION");
                     material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
                     material.enableInstancing = true;
@@ -461,8 +469,8 @@ namespace CaveBlockout.Editor.Decor
                 instance.transform.localPosition = -pivot * normalise;
 
                 ApplyDefaultMaterial(entry, instance);
-                if (entry.addCollider)
-                    AddConvexColliders(instance);
+                if (!entry.swimThrough)
+                    AddColliders(instance);
 
                 string prefabPath = $"{CaveDecorCatalog.PrefabRoot}/{root.name}.prefab";
                 GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
@@ -526,7 +534,17 @@ namespace CaveBlockout.Editor.Decor
             CaveDecorSpawner.ApplyMaterial(instance, material);
         }
 
-        private static void AddConvexColliders(GameObject instance)
+        /// <summary>
+        /// An exact, non-convex MeshCollider per mesh.
+        ///
+        /// These used to be convex, which is wrong twice over for this library. A convex hull of
+        /// Stylized Rock Arch or Blue Stone Cavern fills the opening you are meant to swim through,
+        /// and a hull of a jagged spire is an invisible wall well clear of the visible rock. Nothing
+        /// here needs convexity: decor never moves and never carries a Rigidbody, which is the only
+        /// case PhysX requires it for. Cooked collision is per mesh asset, not per instance, so the
+        /// 246 solid instances in MainMap share 26 cooked meshes.
+        /// </summary>
+        private static void AddColliders(GameObject instance)
         {
             foreach (MeshFilter filter in instance.GetComponentsInChildren<MeshFilter>(true))
             {
@@ -535,7 +553,7 @@ namespace CaveBlockout.Editor.Decor
 
                 MeshCollider collider = filter.gameObject.AddComponent<MeshCollider>();
                 collider.sharedMesh = filter.sharedMesh;
-                collider.convex = true;
+                collider.convex = false;
             }
         }
 

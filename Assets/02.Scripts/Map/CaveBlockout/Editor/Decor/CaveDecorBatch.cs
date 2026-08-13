@@ -223,6 +223,67 @@ namespace CaveBlockout.Editor.Decor
         }
 
         /// <summary>
+        /// Per-species collider coverage over the live instances in every scene that carries the cave.
+        ///
+        /// Asset prep works on prefabs, so "the prefab has a MeshCollider" is one step short of the
+        /// thing that was actually reported - a player swimming through a rock in a play scene. This
+        /// counts colliders on the spawned instances instead, and it does it in each scene, because
+        /// MainMap is not the scene anyone plays.
+        /// </summary>
+        public static void ReportColliders()
+        {
+            string[] scenes =
+            {
+                MainMapPath,
+                "Assets/01.Scenes/MainScene_final.unity",
+                "Assets/01.Scenes/MainScene_young.unity"
+            };
+
+            var report = new StringBuilder();
+            report.AppendLine("===== CAVE DECOR COLLIDER COVERAGE =====");
+
+            foreach (string scenePath in scenes)
+            {
+                if (AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath) == null)
+                {
+                    report.AppendLine($"{scenePath}: MISSING");
+                    continue;
+                }
+
+                EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+
+                var withCollider = new SortedDictionary<string, int>();
+                var without = new SortedDictionary<string, int>();
+                int solid = 0;
+                int swimThrough = 0;
+
+                foreach (CaveDecorInstance marker in CaveDecorSpawner.FindAllInstances())
+                {
+                    string id = string.IsNullOrEmpty(marker.paletteId) ? "<unknown>" : marker.paletteId;
+                    if (marker.GetComponentInChildren<Collider>(true) != null)
+                    {
+                        withCollider.TryGetValue(id, out int n);
+                        withCollider[id] = n + 1;
+                        solid++;
+                    }
+                    else
+                    {
+                        without.TryGetValue(id, out int n);
+                        without[id] = n + 1;
+                        swimThrough++;
+                    }
+                }
+
+                report.AppendLine($"{scenePath}: solid={solid} swimThrough={swimThrough} " +
+                                  $"species={withCollider.Count}+{without.Count}");
+                foreach (var pair in without)
+                    report.AppendLine($"    no collider: {pair.Key} x{pair.Value}");
+            }
+
+            Debug.Log(report.ToString());
+        }
+
+        /// <summary>
         /// The regression the whole route-relative design exists for: regenerate the cave, rebuild the
         /// decor from records, and confirm nothing is left floating or blocking the channel.
         ///
