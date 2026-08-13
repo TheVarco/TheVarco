@@ -128,6 +128,47 @@ namespace Varco.Underwater.EditorTools
             }
         }
 
+        /// <summary>
+        /// Rewrites the zone set from <see cref="UnderwaterZoneSet.ResetToGuideDefaults"/>.
+        ///
+        /// The asset is a serialised dump of that method's hard-coded literals, not an independent
+        /// source of truth. Editing the .asset alone would be undone the moment anyone regenerates, so
+        /// the literals are the thing to edit and this is how the change reaches disk.
+        ///
+        /// OnValidate deliberately does not do this - it only fills a genuinely empty asset, because
+        /// regenerating on a version mismatch would run on every domain reload and throw away hand
+        /// tuning without ever saving. Version upgrades are an explicit, saved step.
+        /// </summary>
+        public static void RegenerateZoneSet()
+        {
+            const string zoneSetPath = "Assets/Settings/Underwater/MainMapUnderwaterZones.asset";
+            try
+            {
+                var zoneSet = AssetDatabase.LoadAssetAtPath<UnderwaterZoneSet>(zoneSetPath);
+                if (zoneSet == null)
+                    throw new InvalidOperationException($"no zone set at {zoneSetPath}");
+
+                zoneSet.ResetToGuideDefaults();
+                EditorUtility.SetDirty(zoneSet);
+                AssetDatabase.SaveAssets();
+
+                var report = new System.Text.StringBuilder();
+                report.AppendLine("UNDERWATER_BATCH_REGEN_ZONES PASS");
+                foreach (UnderwaterZoneProfile zone in zoneSet.Zones)
+                {
+                    report.AppendLine($"  {zone.zoneId}: vis={zone.visibilityMeters}m " +
+                                      $"sky={zone.ambientSky} " +
+                                      $"wbTint={zone.whiteBalanceTint} extR={zone.extinctionTint.x}");
+                }
+                Debug.Log(report.ToString());
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError($"UNDERWATER_BATCH_REGEN_ZONES FAIL {exception}");
+                EditorApplication.Exit(1);
+            }
+        }
+
         /// <summary>Compile-only pass, used to surface script and shader errors without touching the scene.</summary>
         public static void ValidateCompile()
         {
