@@ -284,6 +284,129 @@ namespace CaveBlockout.Editor.Decor
         }
 
         /// <summary>
+        /// Species retired from the catalogue, listed by palette id.
+        ///
+        /// Kept as an explicit list rather than derived from the catalogue by absence, because
+        /// "not in the catalogue" is also true of every asset nobody has authored an entry for yet.
+        /// </summary>
+        private static readonly string[] RetiredPaletteIds = { "SciFiStorageTank", "BlueFacetedArch" };
+
+        /// <summary>
+        /// Removes a retired species from the record set and from every scene that carries the cave.
+        ///
+        /// Deleting the catalogue entry is not enough on its own, and neither is deleting the scene
+        /// objects. The records in MainMapCaveDecor.asset would respawn the props on the next
+        /// RebuildFromData, and MainScene_final / MainScene_young hold their own baked copies that
+        /// inherit nothing from MainMap - a decor rebuild never touches them. All three have to go.
+        ///
+        /// Refuses to save any scene whose instance count does not match the records. A scene with
+        /// fewer instances than records has diverged from MainMap, and quietly saving a partial
+        /// deletion on top of that would hide the divergence instead of reporting it.
+        /// </summary>
+        public static void RetireSpecies()
+        {
+            var report = new StringBuilder();
+            report.AppendLine("===== CAVE DECOR RETIRE SPECIES =====");
+            report.AppendLine("retiring: " + string.Join(", ", RetiredPaletteIds));
+
+            EditorSceneManager.OpenScene(MainMapPath, OpenSceneMode.Single);
+            CaveDecorSet set = LoadSet(report);
+            if (set == null)
+            {
+                Debug.LogError(report.ToString());
+                return;
+            }
+
+            // Counted before the records are dropped: this is the number every scene has to match.
+            var retired = new HashSet<string>(RetiredPaletteIds);
+            int expected = 0;
+            var perSpecies = new SortedDictionary<string, int>();
+            foreach (CaveDecorPlacement placement in set.Placements)
+            {
+                if (placement == null || !retired.Contains(placement.paletteId))
+                    continue;
+
+                perSpecies.TryGetValue(placement.paletteId, out int n);
+                perSpecies[placement.paletteId] = n + 1;
+                expected++;
+            }
+
+            foreach (var pair in perSpecies)
+                report.AppendLine($"    records: {pair.Key} x{pair.Value}");
+
+            int paletteRemoved = set.EditablePalette.RemoveAll(e => e != null && retired.Contains(e.id));
+            int placementsRemoved = set.Placements.RemoveAll(p => p != null && retired.Contains(p.paletteId));
+            EditorUtility.SetDirty(set);
+            AssetDatabase.SaveAssets();
+            report.AppendLine($"decorSet: palette -{paletteRemoved}, placements -{placementsRemoved}, " +
+                              $"placements kept={set.Placements.Count}");
+
+            string[] scenes =
+            {
+                MainMapPath,
+                "Assets/01.Scenes/MainScene_final.unity",
+                "Assets/01.Scenes/MainScene_young.unity"
+            };
+
+            bool allMatched = true;
+            foreach (string scenePath in scenes)
+            {
+                if (AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath) == null)
+                {
+                    report.AppendLine($"{scenePath}: MISSING");
+                    allMatched = false;
+                    continue;
+                }
+
+                EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+
+                var doomed = new List<GameObject>();
+                foreach (CaveDecorInstance marker in CaveDecorSpawner.FindAllInstances())
+                {
+                    if (marker != null && retired.Contains(marker.paletteId))
+                        doomed.Add(marker.gameObject);
+                }
+
+                if (doomed.Count != expected)
+                {
+                    report.AppendLine($"{scenePath}: FAIL found {doomed.Count}, records say {expected} - NOT SAVED");
+                    allMatched = false;
+                    continue;
+                }
+
+                foreach (GameObject instance in doomed)
+                    UnityEngine.Object.DestroyImmediate(instance);
+
+                // DestroyImmediate outside the undo system leaves the scene flagged clean, and
+                // SaveOpenScenes writes nothing for a clean scene. The first run of this method
+                // reported "deleted 8" three times and changed no file on disk.
+                CaveDecorSpawner.MarkSceneDirty();
+                if (!EditorSceneManager.SaveOpenScenes())
+                {
+                    report.AppendLine($"{scenePath}: FAIL save refused");
+                    allMatched = false;
+                    continue;
+                }
+
+                // Re-read after the save rather than trusting the delete: the count above came from
+                // the objects in memory, and the point of this method is what lands in the file.
+                int left = 0;
+                foreach (CaveDecorInstance marker in CaveDecorSpawner.FindAllInstances())
+                {
+                    if (marker != null && retired.Contains(marker.paletteId))
+                        left++;
+                }
+
+                report.AppendLine($"{scenePath}: deleted {doomed.Count}, remaining {left}");
+                if (left != 0)
+                    allMatched = false;
+            }
+
+            report.AppendLine(allMatched ? "RETIRE PASS" : "RETIRE FAIL - see above");
+            Debug.Log(report.ToString());
+        }
+
+        /// <summary>
         /// The regression the whole route-relative design exists for: regenerate the cave, rebuild the
         /// decor from records, and confirm nothing is left floating or blocking the channel.
         ///

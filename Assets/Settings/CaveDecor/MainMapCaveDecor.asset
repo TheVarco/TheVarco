@@ -228,36 +228,6 @@ MonoBehaviour:
     defaultMaterialOverride: {fileID: 0}
     zoneMaterialOverrides: []
     autoScatterCountPerZone: 3
-  - id: BlueFacetedArch
-    prefab: {fileID: 8438754267185597957, guid: b14a2ecdfa094ce4f9f39b7a624eaba3, type: 3}
-    allowedSurfaces: 1
-    zones:
-    - Z6
-    weight: 2
-    scaleRange: {x: 10, y: 16}
-    minSpacing: 24
-    boundingRadius: 0.5
-    embedFractionRange: {x: -0.3, y: -0.08}
-    normalAlignment: 0.4
-    maxTiltDegrees: 3
-    defaultMaterialOverride: {fileID: 0}
-    zoneMaterialOverrides: []
-    autoScatterCountPerZone: 2
-  - id: SciFiStorageTank
-    prefab: {fileID: 2737781306075786246, guid: 8573b821671e207429e13fd047a6cdac, type: 3}
-    allowedSurfaces: 1
-    zones:
-    - Z6
-    weight: 2
-    scaleRange: {x: 3, y: 5}
-    minSpacing: 7.5
-    boundingRadius: 0.5
-    embedFractionRange: {x: -0.3, y: -0.08}
-    normalAlignment: 0.5
-    maxTiltDegrees: 14
-    defaultMaterialOverride: {fileID: 0}
-    zoneMaterialOverrides: []
-    autoScatterCountPerZone: 2
   - id: BlueLayeredRock
     prefab: {fileID: 850463631808437231, guid: fdf028d34cb801e41a7f2fa7f60884ac, type: 3}
     allowedSurfaces: 1
@@ -2338,78 +2308,6 @@ MonoBehaviour:
     surfaceOffset: -0.43471575
     surfaceRotation: {x: -0.022842586, y: 0.65119994, z: -0.009745328, w: -0.7584998}
     scale: 4.815558
-    zoneId: Z6
-  - id: 8a5baa357d4f45e2ab82d27bc2efc37f
-    paletteId: BlueFacetedArch
-    routeId: MainRoute
-    routeDistance: 503.63504
-    angleDegrees: 205.0817
-    surfaceOffset: -0.6714001
-    surfaceRotation: {x: 0.12554713, y: 0.95615363, z: 0.07633652, w: -0.25333962}
-    scale: 12.837679
-    zoneId: Z6
-  - id: bef3e056693d4f77b97ece2ff1ad9b58
-    paletteId: BlueFacetedArch
-    routeId: MainRoute
-    routeDistance: 526.7222
-    angleDegrees: 210.30261
-    surfaceOffset: -1.0758585
-    surfaceRotation: {x: 0.10718229, y: 0.79204386, z: 0.18987748, w: 0.5701973}
-    scale: 14.538238
-    zoneId: Z6
-  - id: c61f055a09324c88b048d99bbc35b260
-    paletteId: BlueFacetedArch
-    routeId: MainRoute
-    routeDistance: 578.7151
-    angleDegrees: 206.4106
-    surfaceOffset: -1.0643317
-    surfaceRotation: {x: 0.010536988, y: 0.98718596, z: 0.14196631, w: -0.07210081}
-    scale: 14.399033
-    zoneId: Z6
-  - id: d78ea7145e2340a680fa3d0a416fb3fd
-    paletteId: SciFiStorageTank
-    routeId: MainRoute
-    routeDistance: 575.3792
-    angleDegrees: 125.26021
-    surfaceOffset: -0.2178162
-    surfaceRotation: {x: -0.2981168, y: 0.94198424, z: -0.005501204, w: 0.15414885}
-    scale: 4.0102034
-    zoneId: Z6
-  - id: adbb901e130746b4af0bdb5e611e8d08
-    paletteId: SciFiStorageTank
-    routeId: MainRoute
-    routeDistance: 508.55853
-    angleDegrees: 165.81654
-    surfaceOffset: -0.17746994
-    surfaceRotation: {x: -0.03979527, y: 0.5534746, z: 0.0843982, w: 0.82762265}
-    scale: 3.880449
-    zoneId: Z6
-  - id: e2222b55d72743c6a75eecc4aa0a8f97
-    paletteId: SciFiStorageTank
-    routeId: MainRoute
-    routeDistance: 491.28622
-    angleDegrees: 136.6654
-    surfaceOffset: -0.2422147
-    surfaceRotation: {x: -0.08262366, y: 0.87870306, z: 0.003087944, w: 0.47015402}
-    scale: 3.7366076
-    zoneId: Z6
-  - id: 2fb974a9f52f4260886df8637dc0b807
-    paletteId: SciFiStorageTank
-    routeId: MainRoute
-    routeDistance: 469.4591
-    angleDegrees: 218.82924
-    surfaceOffset: -0.4674324
-    surfaceRotation: {x: 0.09097093, y: 0.96462125, z: 0.013469538, w: 0.24708067}
-    scale: 4.5105586
-    zoneId: Z6
-  - id: fdfbbffdc56b434dbb944f9f9110b3bc
-    paletteId: SciFiStorageTank
-    routeId: MainRoute
-    routeDistance: 490.7606
-    angleDegrees: 169.6355
-    surfaceOffset: -0.32035366
-    surfaceRotation: {x: -0.058522724, y: 0.36456907, z: 0.15673564, w: -0.9160232}
-    scale: 4.9800935
     zoneId: Z6
   - id: 5f45755a557e47c686721d116ca277a4
     paletteId: BlueLayeredRock

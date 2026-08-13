@@ -362,28 +362,16 @@ namespace CaveBlockout.Editor.Decor
                 normalAlignment = 0.75f
             },
 
-            // Z6 exit throat
-            new Entry
-            {
-                fbxName = "Blue Faceted Arch",
-                zones = new[] { "Z6" },
-                countPerZone = 2,
-                sizeMetres = new Vector2(10f, 16f),
-                surfaces = CaveSurfaceKind.Floor,
-                normalAlignment = 0.4f,
-                maxTiltDegrees = 3f
-                // Same recovered-texture story as Blue Geometric Rock above.
-            },
-            new Entry
-            {
-                fbxName = "Sci-Fi Storage Tank",
-                zones = new[] { "Z6" },
-                countPerZone = 2,
-                sizeMetres = new Vector2(3f, 5f),
-                surfaces = CaveSurfaceKind.Floor,
-                normalAlignment = 0.5f,
-                maxTiltDegrees = 14f
-            },
+            // Z6 exit throat used to be dressed with "Blue Faceted Arch" and "Sci-Fi Storage Tank".
+            // Both were retired on 2026-08-13 at the map owner's request. The entries are deleted
+            // rather than zeroed: asset prep rebuilds the palette from this list and then drops any
+            // placement whose palette entry has gone, so removing them here is what actually retires
+            // the species. A countPerZone = 0 entry would keep the palette id alive and re-open the
+            // door for the next auto-scatter run.
+            //
+            // The generated prefabs are deliberately left in Assets/03.Prefabs/CaveDecor/ - nothing
+            // references them any more, but deleting an asset is not what "delete these objects"
+            // asked for, and keeping them makes the decision reversible.
 
             // ── 2026-08-11 VARCO drop: VARCO/Rocks ────────────────────────────
             //
