@@ -50,8 +50,32 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
     [Tooltip("자동 탐색할 인게임 UI 오브젝트 이름 목록 (HealthBar, OxygenBar, HotBarUI 등)")]
     public string[] defaultGameplayUINames = new string[] { "HealthBar", "OxygenBar", "HotBarUI", "HotbarUI" };
 
+    [Header("대기방")]
+    [Tooltip("체크하면 방을 만든 뒤 바로 게임 씬으로 가지 않고, 호스트가 시작을 누를 때까지 이 씬에서 대기한다.\n" +
+             "팀원 테스트 씬은 꺼두면 지금까지와 똑같이 동작한다")]
+    public bool useLobby;
+    [Tooltip("오프닝이 끝났다는 신호가 이 시간 안에 안 오면 스스로 스폰한다.\n" +
+             "UI 연결 실수로 캐릭터 없는 맵에 갇히는 걸 막는 안전망")]
+    public float spawnReleaseTimeout = 60f;
+
+    // 화면 전환은 LobbyUI가 맡는다. 여기서는 "무슨 일이 일어났는지"만 알린다
+    // (네트워크와 UI를 한 파일에 두면 UI를 고칠 때마다 네트워크 코드를 열어야 한다)
+    public event System.Action LobbyEntered;       // 세션이 열려 대기 상태가 됨
+    public event System.Action PlayerListChanged;  // 누가 들어오거나 나감
+    public event System.Action SceneLoadStarted;   // 게임 씬 로드 시작 (접속한 전원에게 옴)
+    public event System.Action GameSceneLoaded;    // 게임 씬 로드 완료
+
+    public bool IsHost => runner != null && runner.IsServer;
+    public string RoomName => sessionName;
+
     private NetworkRunner runner;
     private PlayerCameraRig localCameraRig;
+    private bool inLobby;
+    private bool spawnReleased;
+    private float spawnReleaseTimer = -1f; // 음수면 대기 중 아님
+
+    // targetScenePath가 비어 있으면 옮겨갈 씬이 없어서 대기 자체가 의미 없다
+    private bool UsesLobby => useLobby && !string.IsNullOrEmpty(targetScenePath);
 
     // 누가 나갔을 때 그 사람 캐릭터만 골라 지우기 위해 기억해둔다
     private readonly Dictionary<PlayerRef, NetworkObject> spawnedPlayers = new Dictionary<PlayerRef, NetworkObject>();
@@ -59,10 +83,38 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
     private readonly Dictionary<PlayerRef, int> assignedSpawnSlots = new Dictionary<PlayerRef, int>();
     private SubmarinePlayerSpawnPoints submarineSpawnPoints;
 
+    // 인트로에서 넘어온 스타터를 기억해둔다 (러너가 DontDestroyOnLoad라 씬을 넘어 살아있음)
+    private static NetworkTestStarter instance;
+
     private void Awake()
     {
+        // 게임 씬에도 팀원들이 각자 테스트하려고 배치해둔 NetworkManager가 있다.
+        // 그냥 두면 얘가 자기 StartPanel을 붙잡고 인게임 HUD를 숨겨버린다.
+        // (그 씬을 직접 Play하면 instance가 비어 있어서 평소대로 동작한다 — 팀원 테스트엔 영향 없음)
+        if (instance != null && instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        instance = this;
+
         BindStartPanelUI();
         InitializeGameplayUI();
+        SetGameplayUIVisible(false); // 게임 시작 전이므로 숨김
+    }
+
+    // 스폰을 LobbyUI가 열어주게 맡겨뒀는데, LobbyUI가 씬 전환에서 살아남지 못하면
+    // 그 신호가 영영 안 온다. 그러면 캐릭터 없는 맵에 갇히므로 여기서 대신 연다
+    private void Update()
+    {
+        if (spawnReleaseTimer < 0f || spawnReleased) return;
+
+        spawnReleaseTimer += Time.unscaledDeltaTime;
+        if (spawnReleaseTimer < spawnReleaseTimeout) return;
+
+        Debug.LogWarning("[NetworkTestStarter] 오프닝 종료 신호가 오지 않아 플레이어를 강제로 스폰합니다. " +
+                         "LobbyUI의 Loading Overlay 연결과, 그 오브젝트가 하이어라키 루트인지 확인하세요.");
+        ReleasePlayerSpawn();
     }
 
     private void InitializeGameplayUI()
@@ -80,9 +132,6 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
                 gameplayUIElements.Add(found);
             }
         }
-
-        // 게임 시작 전이므로 숨김
-        SetGameplayUIVisible(false);
     }
 
     public void SetGameplayUIVisible(bool visible)
@@ -259,10 +308,8 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
             startPanel.SetActive(false);
         }
 
-        // 게임 시작 시 인게임 HUD(체력바, 산소바, 핫바 등) 활성화
-        SetGameplayUIVisible(true);
-
         // 입력 제공이 가능한 NetworkRunner를 현재 오브젝트에 생성
+        CleanupRunner(); // 이전 세션에서 남은 컴포넌트를 걷는다. 두 개 붙으면 Fusion이 꼬인다
         runner = gameObject.AddComponent<NetworkRunner>();
         runner.ProvideInput = true; // 이 클라이언트가 입력을 보낼 수 있게 함
 
@@ -280,21 +327,121 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
             SceneManager = gameObject.AddComponent<NetworkSceneManagerDefault>()
         };
 
-        // 경로를 지정한 경우에만 씬을 전환한다. 비어있으면 지금 씬에서 그대로 시작
-        if (!string.IsNullOrEmpty(targetScenePath))
+        // 대기방을 쓰면 세션만 먼저 열고 인트로 씬에 머무른다. 호스트가 시작을 누를 때 다 같이 이동.
+        // 혼자 하기는 기다릴 사람이 없으니 바로 게임 씬으로 간다
+        if (!UsesLobby || mode == GameMode.Single)
         {
-            int buildIndex = UnityEngine.SceneManagement.SceneUtility.GetBuildIndexByScenePath(targetScenePath);
-            args.Scene = SceneRef.FromIndex(buildIndex);
+            SceneRef gameScene = GetGameSceneRef();
+            if (gameScene.IsValid) args.Scene = gameScene;
         }
 
-        await runner.StartGame(args);
+        StartGameResult result = await runner.StartGame(args);
+
+        // 결과를 안 보면 접속 실패가 성공과 똑같이 흘러가서, 존재하지도 않는 세션의
+        // 빈 대기방이 떠버린다 (사람을 기다리는 줄 알고 계속 서 있게 됨)
+        if (!result.Ok)
+        {
+            Debug.LogError($"[NetworkTestStarter] 세션 시작 실패: {result.ShutdownReason} {result.ErrorMessage}");
+            if (startPanel != null) startPanel.SetActive(true); // 갇히지 않게 시작 화면으로 되돌린다
+            return;
+        }
+
+        if (UsesLobby && mode != GameMode.Single)
+        {
+            inLobby = true;
+            LobbyEntered?.Invoke();
+        }
+        else
+            SetGameplayUIVisible(true); // 게임 시작 시 인게임 HUD(체력바, 산소바, 핫바 등) 활성화
     }
+
+    // Build Settings에 없거나 체크가 꺼져 있으면 -1이 온다.
+    // 그대로 SceneRef.FromIndex에 넘기면 예외로 죽으므로 경고만 남기고 현재 씬을 유지한다
+    private SceneRef GetGameSceneRef()
+    {
+        if (string.IsNullOrEmpty(targetScenePath)) return default;
+
+        int buildIndex = UnityEngine.SceneManagement.SceneUtility.GetBuildIndexByScenePath(targetScenePath);
+        if (buildIndex < 0)
+        {
+            Debug.LogWarning($"[NetworkTestStarter] '{targetScenePath}'가 Build Settings에 없거나 체크가 꺼져 있습니다. " +
+                             "File > Build Settings에서 씬을 켜주세요.");
+            return default;
+        }
+
+        return SceneRef.FromIndex(buildIndex);
+    }
+
+    // 방을 만들거나 참가한 직후. 이때는 아직 게임 씬으로 안 넘어간 상태다
+    // 대기방에서 호스트가 시작을 눌렀을 때. Fusion이 접속한 전원을 동기화해서 같이 옮긴다
+    public void RequestStartGame()
+    {
+        if (runner == null || !runner.IsServer) return;
+
+        SceneRef gameScene = GetGameSceneRef();
+        if (gameScene.IsValid) runner.LoadScene(gameScene);
+    }
+
+    // 대기방에서 나갈 때. 세션을 닫고 시작 화면으로 되돌린다
+    public void LeaveSession()
+    {
+        inLobby = false;
+        spawnReleased = false;
+        spawnReleaseTimer = -1f;
+
+        // destroyGameObject 기본값이 true라 그냥 부르면 이 컴포넌트가 붙은 NetworkManager까지
+        // 통째로 사라져서, 되돌아간 시작 화면의 버튼이 아무 반응도 안 하게 된다
+        if (runner != null) runner.Shutdown(destroyGameObject: false);
+
+        if (startPanel != null) startPanel.SetActive(true);
+    }
+
+    // 러너와 함께 붙였던 애드온들을 걷어낸다. 다음 시작 때 AddComponent가 겹치는 걸 막는다
+    private void CleanupRunner()
+    {
+        foreach (RunnerSimulatePhysics3D physics in GetComponents<RunnerSimulatePhysics3D>()) Destroy(physics);
+        foreach (NetworkSceneManagerDefault sceneManager in GetComponents<NetworkSceneManagerDefault>()) Destroy(sceneManager);
+        foreach (NetworkRunner oldRunner in GetComponents<NetworkRunner>()) Destroy(oldRunner);
+
+        runner = null;
+    }
+
+    // 슬롯을 그리는 쪽(LobbyUI)이 참가자 목록을 읽어갈 수 있게
+    public IEnumerable<PlayerRef> ActivePlayers =>
+        runner != null && runner.IsRunning ? runner.ActivePlayers : System.Array.Empty<PlayerRef>();
+
+    public PlayerRef LocalPlayer => runner != null ? runner.LocalPlayer : default;
 
     // 새 플레이어가 접속하면 Fusion이 자동으로 호출해주는 콜백
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
     {
+        PlayerListChanged?.Invoke();
+
         // 서버만 내부 스폰 위치를 정하고 플레이어 오브젝트 생성
         if (!runner.IsServer) return; // Host(서버 역할)만 스폰을 실행 (모두가 각자 스폰하면 중복 생성됨)
+
+        // 대기방에 있는 동안은 스폰하지 않는다. 안 그러면 인트로 씬에 캐릭터가 생기고
+        // 카메라가 그쪽으로 붙어서 대기 화면이 가려진다.
+        // 오프닝이 도는 동안도 마찬가지 — 화면을 못 보는 채로 적에게 맞는다
+        if (inLobby && !spawnReleased) return;
+
+        SpawnPlayer(player);
+    }
+
+    // 오프닝이 끝나 화면이 열리면 LobbyUI가 부른다
+    public void ReleasePlayerSpawn()
+    {
+        if (spawnReleased) return;
+        spawnReleased = true;
+        spawnReleaseTimer = -1f;
+
+        if (runner == null || !runner.IsServer) return;
+        foreach (PlayerRef player in runner.ActivePlayers) SpawnPlayer(player);
+    }
+
+    private void SpawnPlayer(PlayerRef player)
+    {
+        if (spawnedPlayers.ContainsKey(player)) return; // 중복 스폰 방지
 
         // 스폰 지점을 씬마다 따로 배치하지 않아도 겹치지 않도록 원형으로 흩어놓는다
         // 잠수함 내부 스폰 위치 선택
@@ -325,6 +472,8 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
     // 재접속하면 새 캐릭터가 또 스폰돼 하나씩 쌓인다
     public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
     {
+        PlayerListChanged?.Invoke();
+
         // 서버에서 나간 플레이어 오브젝트와 슬롯 배정 제거
         if (!runner.IsServer) return;
 
@@ -487,16 +636,56 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
         // 현재 테스트 흐름에서는 전송 진행률을 표시하지 않음
     }
 
-    // 씬 로드 완료 콜백 자리 유지
+    // 게임 씬 로드가 끝난 시점. 여기서부터 실제 게임이 시작된다
     public void OnSceneLoadDone(NetworkRunner runner)
     {
-        // 플레이어 생성은 참가 콜백에서 처리하므로 여기서는 작업하지 않음
+        if (!IsInGameScene()) return;
+
+        GameSceneLoaded?.Invoke(); // LobbyUI가 대기방과 로딩 화면을 걷어낸다
+
+        // 여기까지 들고 온 UI 참조는 전부 인트로 씬 것이라 이미 파괴됐다.
+        // 게임 씬에도 팀원이 각자 테스트하던 시작 화면과 HUD가 그대로 있어서 다시 찾는다
+        startPanel = FindObjectInScene(startPanelName);
+        if (startPanel != null) startPanel.SetActive(false);
+
+        gameplayUIElements.Clear();
+        InitializeGameplayUI();
+        SetGameplayUIVisible(true);
+
+        if (!runner.IsServer) return;
+
+        // 대기방을 거쳐 왔으면 오프닝이 끝날 때까지 기다린다 (LobbyUI가 ReleasePlayerSpawn을 부름).
+        // 신호가 안 오는 경우를 대비해 여기서 안전망 타이머를 켠다
+        if (inLobby)
+        {
+            spawnReleaseTimer = 0f;
+            return;
+        }
+
+        foreach (PlayerRef player in runner.ActivePlayers) SpawnPlayer(player);
     }
 
-    // 씬 로드 시작 콜백 자리 유지
+    // 클라이언트가 세션에 붙을 때 일어나는 초기 씬 동기화(인트로 씬)와 구분한다.
+    // 경로 문자열을 직접 비교하면 "MainScene_final"처럼 짧게 써도 씬은 로드되는데
+    // 여기서만 안 맞아서, 스폰과 UI 정리가 통째로 조용히 건너뛰어진다.
+    // 씬을 고르는 쪽(GetGameSceneRef)과 똑같은 함수로 인덱스를 뽑아 비교한다
+    private bool IsInGameScene()
+    {
+        if (string.IsNullOrEmpty(targetScenePath)) return false;
+
+        int target = UnityEngine.SceneManagement.SceneUtility.GetBuildIndexByScenePath(targetScenePath);
+        return target >= 0 &&
+               UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex == target;
+    }
+
+    // 호스트가 LoadScene을 부르면 Fusion이 접속한 전원의 이 콜백을 부른다.
+    // 버튼을 누른 사람만 로딩 화면을 띄우면 나머지는 인트로 씬이 사라지는 걸 그대로 보게 된다
     public void OnSceneLoadStart(NetworkRunner runner)
     {
-        // 현재 테스트 흐름에서는 로딩 화면을 별도로 제어하지 않음
+        // 세션에 붙는 중 일어나는 초기 씬 동기화까지 잡으면 대기방이 뜨기도 전에 로딩 화면이 깜빡인다
+        if (!inLobby) return;
+
+        SceneLoadStarted?.Invoke();
     }
 
     // 관심 영역 이탈 콜백 자리 유지
