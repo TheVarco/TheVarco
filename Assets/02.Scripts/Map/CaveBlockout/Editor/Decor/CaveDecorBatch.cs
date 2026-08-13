@@ -18,6 +18,21 @@ namespace CaveBlockout.Editor.Decor
     {
         private const string MainMapPath = "Assets/01.Scenes/MainMap.unity";
 
+        /// <summary>
+        /// Every scene holding a copy of the cave, in the order they should be visited.
+        ///
+        /// MainMap is where the decor tools author; MainScene_final is where it is played. The two
+        /// carry separate baked copies of the same 392 instances, so anything that edits instances
+        /// rather than prefabs or materials has to visit both. MainScene_young was a third copy and
+        /// was archived to 01.Scenes/Old on 2026-08-13 - add a path here if another play scene ever
+        /// adopts the cave, or these passes will report on a scene nobody ships.
+        /// </summary>
+        private static readonly string[] CaveScenePaths =
+        {
+            MainMapPath,
+            "Assets/01.Scenes/MainScene_final.unity"
+        };
+
         public static void PrepareAssets()
         {
             // Batch mode starts on an untitled unsaved scene, and Unity will not add a scene next to
@@ -219,6 +234,179 @@ namespace CaveBlockout.Editor.Decor
             }
 
             AppendValidation(set, CaveDecorContext.Create(), report);
+            Debug.Log(report.ToString());
+        }
+
+        /// <summary>
+        /// Per-species collider coverage over the live instances in every scene that carries the cave.
+        ///
+        /// Asset prep works on prefabs, so "the prefab has a MeshCollider" is one step short of the
+        /// thing that was actually reported - a player swimming through a rock in a play scene. This
+        /// counts colliders on the spawned instances instead, and it does it in each scene, because
+        /// MainMap is not the scene anyone plays.
+        /// </summary>
+        public static void ReportColliders()
+        {
+            string[] scenes = CaveScenePaths;
+
+            var report = new StringBuilder();
+            report.AppendLine("===== CAVE DECOR COLLIDER COVERAGE =====");
+
+            foreach (string scenePath in scenes)
+            {
+                if (AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath) == null)
+                {
+                    report.AppendLine($"{scenePath}: MISSING");
+                    continue;
+                }
+
+                EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+
+                var withCollider = new SortedDictionary<string, int>();
+                var without = new SortedDictionary<string, int>();
+                int solid = 0;
+                int swimThrough = 0;
+
+                foreach (CaveDecorInstance marker in CaveDecorSpawner.FindAllInstances())
+                {
+                    string id = string.IsNullOrEmpty(marker.paletteId) ? "<unknown>" : marker.paletteId;
+                    if (marker.GetComponentInChildren<Collider>(true) != null)
+                    {
+                        withCollider.TryGetValue(id, out int n);
+                        withCollider[id] = n + 1;
+                        solid++;
+                    }
+                    else
+                    {
+                        without.TryGetValue(id, out int n);
+                        without[id] = n + 1;
+                        swimThrough++;
+                    }
+                }
+
+                report.AppendLine($"{scenePath}: solid={solid} swimThrough={swimThrough} " +
+                                  $"species={withCollider.Count}+{without.Count}");
+                foreach (var pair in without)
+                    report.AppendLine($"    no collider: {pair.Key} x{pair.Value}");
+            }
+
+            Debug.Log(report.ToString());
+        }
+
+        /// <summary>
+        /// Species retired from the catalogue, listed by palette id.
+        ///
+        /// Kept as an explicit list rather than derived from the catalogue by absence, because
+        /// "not in the catalogue" is also true of every asset nobody has authored an entry for yet.
+        /// </summary>
+        private static readonly string[] RetiredPaletteIds = { "SciFiStorageTank", "BlueFacetedArch" };
+
+        /// <summary>
+        /// Removes a retired species from the record set and from every scene that carries the cave.
+        ///
+        /// Deleting the catalogue entry is not enough on its own, and neither is deleting the scene
+        /// objects. The records in MainMapCaveDecor.asset would respawn the props on the next
+        /// RebuildFromData, and MainScene_final holds its own baked copy that inherits nothing from
+        /// MainMap - a decor rebuild never touches it. All three have to go.
+        ///
+        /// Idempotent, and it has to be: a teammate branching before the retirement lands brings the
+        /// props back in their copy of the play scene, and the merge resolution is to re-run this.
+        /// By then the records are already gone, so the count in the set is not a usable expectation
+        /// for the scenes. What is checked instead is the invariant that matters - after the save,
+        /// no scene holds an instance of a retired species - plus a report of how many each scene
+        /// had, so a scene that has drifted out of step with MainMap is visible rather than silent.
+        /// </summary>
+        public static void RetireSpecies()
+        {
+            var report = new StringBuilder();
+            report.AppendLine("===== CAVE DECOR RETIRE SPECIES =====");
+            report.AppendLine("retiring: " + string.Join(", ", RetiredPaletteIds));
+
+            EditorSceneManager.OpenScene(MainMapPath, OpenSceneMode.Single);
+            CaveDecorSet set = LoadSet(report);
+            if (set == null)
+            {
+                Debug.LogError(report.ToString());
+                return;
+            }
+
+            var retired = new HashSet<string>(RetiredPaletteIds);
+            var perSpecies = new SortedDictionary<string, int>();
+            foreach (CaveDecorPlacement placement in set.Placements)
+            {
+                if (placement == null || !retired.Contains(placement.paletteId))
+                    continue;
+
+                perSpecies.TryGetValue(placement.paletteId, out int n);
+                perSpecies[placement.paletteId] = n + 1;
+            }
+
+            foreach (var pair in perSpecies)
+                report.AppendLine($"    records: {pair.Key} x{pair.Value}");
+
+            int paletteRemoved = set.EditablePalette.RemoveAll(e => e != null && retired.Contains(e.id));
+            int placementsRemoved = set.Placements.RemoveAll(p => p != null && retired.Contains(p.paletteId));
+            EditorUtility.SetDirty(set);
+            AssetDatabase.SaveAssets();
+            report.AppendLine($"decorSet: palette -{paletteRemoved}, placements -{placementsRemoved}, " +
+                              $"placements kept={set.Placements.Count}");
+
+            string[] scenes = CaveScenePaths;
+
+            bool allMatched = true;
+            foreach (string scenePath in scenes)
+            {
+                if (AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath) == null)
+                {
+                    report.AppendLine($"{scenePath}: MISSING");
+                    allMatched = false;
+                    continue;
+                }
+
+                EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+
+                var doomed = new List<GameObject>();
+                foreach (CaveDecorInstance marker in CaveDecorSpawner.FindAllInstances())
+                {
+                    if (marker != null && retired.Contains(marker.paletteId))
+                        doomed.Add(marker.gameObject);
+                }
+
+                if (doomed.Count == 0)
+                {
+                    report.AppendLine($"{scenePath}: already clean");
+                    continue;
+                }
+
+                foreach (GameObject instance in doomed)
+                    UnityEngine.Object.DestroyImmediate(instance);
+
+                // DestroyImmediate outside the undo system leaves the scene flagged clean, and
+                // SaveOpenScenes writes nothing for a clean scene. The first run of this method
+                // reported "deleted 8" three times and changed no file on disk.
+                CaveDecorSpawner.MarkSceneDirty();
+                if (!EditorSceneManager.SaveOpenScenes())
+                {
+                    report.AppendLine($"{scenePath}: FAIL save refused");
+                    allMatched = false;
+                    continue;
+                }
+
+                // Re-read after the save rather than trusting the delete: the count above came from
+                // the objects in memory, and the point of this method is what lands in the file.
+                int left = 0;
+                foreach (CaveDecorInstance marker in CaveDecorSpawner.FindAllInstances())
+                {
+                    if (marker != null && retired.Contains(marker.paletteId))
+                        left++;
+                }
+
+                report.AppendLine($"{scenePath}: deleted {doomed.Count}, remaining {left}");
+                if (left != 0)
+                    allMatched = false;
+            }
+
+            report.AppendLine(allMatched ? "RETIRE PASS" : "RETIRE FAIL - see above");
             Debug.Log(report.ToString());
         }
 

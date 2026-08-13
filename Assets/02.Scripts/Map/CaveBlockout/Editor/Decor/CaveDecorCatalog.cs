@@ -54,11 +54,15 @@ namespace CaveBlockout.Editor.Decor
             public float maxTiltDegrees = 8f;
 
             /// <summary>
-            /// Convex MeshCollider on the generated prefab. Off for almost everything: dressing that
-            /// sits 5 m or more off the centre line is never touched, and a collider per instance is
-            /// pure cost. Reserved for the few props big enough to be flown into or landed on.
+            /// Leave the generated prefab without a collider, so the player swims straight through it.
+            ///
+            /// Inverted from the original "addCollider", which defaulted every prop to no collision on
+            /// the theory that dressing 5 m off the centre line is never touched. It is: the player
+            /// hugs walls, and 30 of the 37 props were solid-looking rock you could fly through. The
+            /// default is now an exact collider, and this flag marks the eleven soft species - kelp,
+            /// corals, grass, plants - where swimming through is the intended behaviour.
             /// </summary>
-            public bool addCollider;
+            public bool swimThrough;
 
             /// <summary>Asset path of a material applied in every zone, or null to keep the imported one.</summary>
             public string defaultMaterial;
@@ -91,9 +95,25 @@ namespace CaveBlockout.Editor.Decor
 
             public float smoothness = 0.3f;
 
+            /// <summary>
+            /// Modulate the emission by the asset's own albedo instead of glowing at a flat rate over
+            /// the whole mesh. Costs nothing - it reuses the base map - and is the difference between
+            /// a prop that has hot and cool areas and one that reads as a single cut-out colour.
+            /// </summary>
+            public bool emissionFollowsAlbedo;
+
+            /// <summary>
+            /// Write the generated material to this path instead of the derived one. The only reason
+            /// to set it: an existing material whose GUID is already referenced by scene instances,
+            /// where writing a new file would leave every one of them on the old look.
+            /// </summary>
+            public string materialPathOverride;
+
             public string MaterialPath(string fbxName)
             {
-                return $"{ArtPassMaterialRoot}/{zoneId}_{ToPaletteId(fbxName)}_Emissive.mat";
+                return string.IsNullOrEmpty(materialPathOverride)
+                    ? $"{ArtPassMaterialRoot}/{zoneId}_{ToPaletteId(fbxName)}_Emissive.mat"
+                    : materialPathOverride;
             }
         }
 
@@ -180,6 +200,7 @@ namespace CaveBlockout.Editor.Decor
             new Entry
             {
                 fbxName = "Low Poly Blue Coral",
+                swimThrough = true,
                 zones = new[] { "Z2" },
                 countPerZone = 8,
                 sizeMetres = new Vector2(1.5f, 3.5f),
@@ -194,6 +215,7 @@ namespace CaveBlockout.Editor.Decor
             new Entry
             {
                 fbxName = "Violet Lowpoly Sea Fan",
+                swimThrough = true,
                 zones = new[] { "Z2" },
                 countPerZone = 6,
                 sizeMetres = new Vector2(1.5f, 3f),
@@ -283,9 +305,31 @@ namespace CaveBlockout.Editor.Decor
                 surfaces = CaveSurfaceKind.Floor,
                 normalAlignment = 0.6f,
                 maxTiltDegrees = 4f,
-                zoneMaterials = new Dictionary<string, string>
+                // Was a zoneMaterials pointer at a hand-made Z5_ThermalCrack_Emissive with no _BaseMap,
+                // a near-black base colour and emission at 1.2 red. With no texture and nothing to
+                // modulate it, every texel emitted the same HDR orange and the prop rendered as a flat
+                // orange cut-out - reported from the scene view on 2026-08-13.
+                //
+                // Generated instead, which is the mechanism that exists for exactly this ("every
+                // CaveAsset carries its own baked atlas"). materialPathOverride keeps the old asset
+                // path so the GUID already baked into MainMap and MainScene_final instances still
+                // resolves and both scenes pick the fix up without a decor rebuild.
+                emissiveVariants = new[]
                 {
-                    { "Z5", ArtPassMaterialRoot + "/Z5_ThermalCrack_Emissive.mat" }
+                    new EmissiveVariant
+                    {
+                        zoneId = "Z5",
+                        materialPathOverride = ArtPassMaterialRoot + "/Z5_ThermalCrack_Emissive.mat",
+                        // Dark warm rock, not black: the atlas now carries the detail, so the tint only
+                        // has to pull it towards MAP_GUIDE's "검은 화산암" without erasing it.
+                        baseTint = new Color(0.42f, 0.3f, 0.26f, 1f),
+                        // A fifth of the old intensity, and multiplied by the albedo, so the glow sits
+                        // in the dark crevices instead of washing the whole silhouette. Z5's brief is
+                        // "restrained red, never lava".
+                        emission = new Color(0.55f, 0.11f, 0.02f, 1f),
+                        emissionFollowsAlbedo = true,
+                        smoothness = 0.15f
+                    }
                 }
             },
             new Entry
@@ -296,7 +340,6 @@ namespace CaveBlockout.Editor.Decor
                 sizeMetres = new Vector2(5f, 9f),
                 surfaces = CaveSurfaceKind.Floor,
                 normalAlignment = 0.5f,
-                addCollider = true,
                 maxTiltDegrees = 4f
             },
             new Entry
@@ -307,7 +350,6 @@ namespace CaveBlockout.Editor.Decor
                 sizeMetres = new Vector2(4f, 8f),
                 surfaces = CaveSurfaceKind.Floor,
                 normalAlignment = 0.6f,
-                addCollider = true,
                 maxTiltDegrees = 4f
             },
             new Entry
@@ -320,30 +362,16 @@ namespace CaveBlockout.Editor.Decor
                 normalAlignment = 0.75f
             },
 
-            // Z6 exit throat
-            new Entry
-            {
-                fbxName = "Blue Faceted Arch",
-                zones = new[] { "Z6" },
-                countPerZone = 2,
-                sizeMetres = new Vector2(10f, 16f),
-                surfaces = CaveSurfaceKind.Floor,
-                normalAlignment = 0.4f,
-                addCollider = true,
-                maxTiltDegrees = 3f
-                // Same recovered-texture story as Blue Geometric Rock above.
-            },
-            new Entry
-            {
-                fbxName = "Sci-Fi Storage Tank",
-                zones = new[] { "Z6" },
-                countPerZone = 2,
-                sizeMetres = new Vector2(3f, 5f),
-                surfaces = CaveSurfaceKind.Floor,
-                normalAlignment = 0.5f,
-                addCollider = true,
-                maxTiltDegrees = 14f
-            },
+            // Z6 exit throat used to be dressed with "Blue Faceted Arch" and "Sci-Fi Storage Tank".
+            // Both were retired on 2026-08-13 at the map owner's request. The entries are deleted
+            // rather than zeroed: asset prep rebuilds the palette from this list and then drops any
+            // placement whose palette entry has gone, so removing them here is what actually retires
+            // the species. A countPerZone = 0 entry would keep the palette id alive and re-open the
+            // door for the next auto-scatter run.
+            //
+            // The generated prefabs are deliberately left in Assets/03.Prefabs/CaveDecor/ - nothing
+            // references them any more, but deleting an asset is not what "delete these objects"
+            // asked for, and keeping them makes the decision reversible.
 
             // ── 2026-08-11 VARCO drop: VARCO/Rocks ────────────────────────────
             //
@@ -437,7 +465,6 @@ namespace CaveBlockout.Editor.Decor
                 sizeMetres = new Vector2(3f, 6f),
                 surfaces = CaveSurfaceKind.Floor,
                 normalAlignment = 0.4f,
-                addCollider = true,
                 maxTiltDegrees = 4f
             },
 
@@ -452,7 +479,6 @@ namespace CaveBlockout.Editor.Decor
                 sizeMetres = new Vector2(8f, 14f),
                 surfaces = CaveSurfaceKind.Floor,
                 normalAlignment = 0.4f,
-                addCollider = true,
                 maxTiltDegrees = 4f
             },
             new Entry
@@ -464,7 +490,6 @@ namespace CaveBlockout.Editor.Decor
                 sizeMetres = new Vector2(6f, 12f),
                 surfaces = CaveSurfaceKind.Floor,
                 normalAlignment = 0.5f,
-                addCollider = true,
                 maxTiltDegrees = 5f
             },
 
@@ -486,6 +511,7 @@ namespace CaveBlockout.Editor.Decor
             new Entry
             {
                 fbxName = "Stylized Teal Coral",
+                swimThrough = true,
                 subfolder = CoralsFolder,
                 zones = new[] { "Z2" },
                 countPerZone = 4,
@@ -507,6 +533,7 @@ namespace CaveBlockout.Editor.Decor
             new Entry
             {
                 fbxName = "Blue Crystal Seaweed",
+                swimThrough = true,
                 subfolder = CoralsFolder,
                 zones = new[] { "Z2", "Z6" },
                 countPerZone = 3,
@@ -528,6 +555,7 @@ namespace CaveBlockout.Editor.Decor
             new Entry
             {
                 fbxName = "Colorful Stylized Coral",
+                swimThrough = true,
                 subfolder = CoralsFolder,
                 zones = new[] { "Z2", "Z6" },
                 countPerZone = 3,
@@ -550,6 +578,7 @@ namespace CaveBlockout.Editor.Decor
             new Entry
             {
                 fbxName = "Stylized Green Seaweed",
+                swimThrough = true,
                 subfolder = CoralsFolder,
                 // The plain greens carry the zones that are not allowed to glow. No emissive variant.
                 zones = new[] { "Z1", "Z2", "Z3", "Z6" },
@@ -562,6 +591,7 @@ namespace CaveBlockout.Editor.Decor
             new Entry
             {
                 fbxName = "Stylized Red Seaweed",
+                swimThrough = true,
                 subfolder = CoralsFolder,
                 // Z5 gets exactly one living thing. Red growth clustered at a hydrothermal vent is the
                 // real-world read, and it is the only palette entry whose colour belongs to that zone
@@ -578,6 +608,7 @@ namespace CaveBlockout.Editor.Decor
             new Entry
             {
                 fbxName = "Stylized Grass Patch",
+                swimThrough = true,
                 subfolder = PlantsFolder,
                 zones = new[] { "Z1", "Z2", "Z3", "Z6" },
                 countPerZone = 3,
@@ -589,6 +620,7 @@ namespace CaveBlockout.Editor.Decor
             new Entry
             {
                 fbxName = "Low Poly Green Plant",
+                swimThrough = true,
                 subfolder = PlantsFolder,
                 zones = new[] { "Z1", "Z3", "Z6" },
                 countPerZone = 2,
@@ -600,6 +632,7 @@ namespace CaveBlockout.Editor.Decor
             new Entry
             {
                 fbxName = "Green Stylized Plant",
+                swimThrough = true,
                 subfolder = PlantsFolder,
                 zones = new[] { "Z1", "Z3", "Z6" },
                 countPerZone = 2,
@@ -611,6 +644,7 @@ namespace CaveBlockout.Editor.Decor
             new Entry
             {
                 fbxName = "Low Poly Yellow Plant",
+                swimThrough = true,
                 subfolder = PlantsFolder,
                 // The only warm-yellow growth in the library, so it stays where warm light has a source:
                 // the glowing basin and the daylight-fed exit throat.
