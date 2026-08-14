@@ -101,6 +101,26 @@ public class PlayerController : NetworkBehaviour
     private static readonly int Swim1StateHash = Animator.StringToHash("Swim1");
     private static readonly int Swim2StateHash = Animator.StringToHash("Swim2");
     private static readonly int WalkStateHash = Animator.StringToHash("Walk");
+    private static readonly int EmoteTagHash = Animator.StringToHash("Emote");
+    private static readonly int EmoteFemaleStandingHash = Animator.StringToHash("EmoteFemaleStanding");
+    private static readonly int EmoteFemaleLayingHash = Animator.StringToHash("EmoteFemaleLaying");
+    private static readonly int EmoteWavingHash = Animator.StringToHash("EmoteWaving");
+    private static readonly int EmoteNoHash = Animator.StringToHash("EmoteNo");
+    private static readonly int EmoteSaluteHash = Animator.StringToHash("EmoteSalute");
+    private static readonly int FemaleStandingStateHash = Animator.StringToHash("FemaleStanding");
+    private static readonly int FemaleLayingStateHash = Animator.StringToHash("FemaleLaying");
+    private static readonly int WavingStateHash = Animator.StringToHash("Waving");
+    private static readonly int NoStateHash = Animator.StringToHash("No");
+    private static readonly int SaluteStateHash = Animator.StringToHash("Salute");
+
+    private enum EmoteId
+    {
+        FemaleStanding = 0,
+        FemaleLaying = 1,
+        Waving = 2,
+        No = 3,
+        Salute = 4
+    }
 
     void Awake()
     {
@@ -225,6 +245,7 @@ public class PlayerController : NetworkBehaviour
 
         HandleQuickThrow();
         HandleClickMotions();
+        HandleEmoteInput();
     }
 
     private bool IsGrounded()
@@ -281,6 +302,134 @@ public class PlayerController : NetworkBehaviour
         if (Input.GetMouseButtonDown(1))
         {
             PlayMotionState(NoWeaponStateHash);
+        }
+    }
+
+    // Top-row number keys trigger network-visible emotes while the player is idle.
+    private void HandleEmoteInput()
+    {
+        if (Object != null && !Object.HasInputAuthority)
+            return;
+
+        if (!TryGetRequestedEmote(out EmoteId emote) || !CanStartEmote(emote))
+            return;
+
+        if (Object != null)
+        {
+            // Fusion RPC weaving reliably supports primitive parameters. Keep the
+            // private enum local and transmit only its validated, compact ID.
+            RPC_PlayEmote((int)emote);
+            return;
+        }
+
+        PlayEmote(emote);
+    }
+
+    private static bool TryGetRequestedEmote(out EmoteId emote)
+    {
+        if (Input.GetKeyDown(KeyCode.Alpha5))
+            emote = EmoteId.FemaleStanding;
+        else if (Input.GetKeyDown(KeyCode.Alpha6))
+            emote = EmoteId.FemaleLaying;
+        else if (Input.GetKeyDown(KeyCode.Alpha7))
+            emote = EmoteId.Waving;
+        else if (Input.GetKeyDown(KeyCode.Alpha8))
+            emote = EmoteId.No;
+        else if (Input.GetKeyDown(KeyCode.Alpha9))
+            emote = EmoteId.Salute;
+        else
+        {
+            emote = default;
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool CanStartEmote(EmoteId requestedEmote)
+    {
+        if (animator == null || inputDirection.sqrMagnitude > 0.01f || GetAnimationSpeed() > 0.1f)
+            return false;
+
+        AnimatorStateInfo currentState = animator.GetCurrentAnimatorStateInfo(0);
+        if (!IsEmoteEligibleState(currentState) || IsStateForEmote(currentState, requestedEmote))
+            return false;
+
+        // Do not allow an emote to cut into a gameplay state whose transition has
+        // already started. Idle-mode and emote-to-emote transitions remain valid.
+        if (!animator.IsInTransition(0))
+            return true;
+
+        AnimatorStateInfo nextState = animator.GetNextAnimatorStateInfo(0);
+        return IsEmoteEligibleState(nextState) && !IsStateForEmote(nextState, requestedEmote);
+    }
+
+    private static bool IsEmoteEligibleState(AnimatorStateInfo stateInfo)
+    {
+        return stateInfo.shortNameHash == DefaultStateHash ||
+               stateInfo.shortNameHash == SubmarineStateHash ||
+               stateInfo.tagHash == EmoteTagHash;
+    }
+
+    private static bool IsStateForEmote(AnimatorStateInfo stateInfo, EmoteId emote)
+    {
+        switch (emote)
+        {
+            case EmoteId.FemaleStanding:
+                return stateInfo.shortNameHash == FemaleStandingStateHash;
+            case EmoteId.FemaleLaying:
+                return stateInfo.shortNameHash == FemaleLayingStateHash;
+            case EmoteId.Waving:
+                return stateInfo.shortNameHash == WavingStateHash;
+            case EmoteId.No:
+                return stateInfo.shortNameHash == NoStateHash;
+            case EmoteId.Salute:
+                return stateInfo.shortNameHash == SaluteStateHash;
+            default:
+                return false;
+        }
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.All)]
+    private void RPC_PlayEmote(int emoteId)
+    {
+        if (!IsValidEmoteId(emoteId))
+            return;
+
+        PlayEmote((EmoteId)emoteId);
+    }
+
+    private static bool IsValidEmoteId(int emoteId)
+    {
+        return emoteId >= (int)EmoteId.FemaleStanding && emoteId <= (int)EmoteId.Salute;
+    }
+
+    private void PlayEmote(EmoteId emote)
+    {
+        if (animator == null)
+            return;
+
+        int triggerHash = GetEmoteTriggerHash(emote);
+        if (triggerHash != 0 && HasAnimatorParameter(triggerHash))
+            animator.SetTrigger(triggerHash);
+    }
+
+    private static int GetEmoteTriggerHash(EmoteId emote)
+    {
+        switch (emote)
+        {
+            case EmoteId.FemaleStanding:
+                return EmoteFemaleStandingHash;
+            case EmoteId.FemaleLaying:
+                return EmoteFemaleLayingHash;
+            case EmoteId.Waving:
+                return EmoteWavingHash;
+            case EmoteId.No:
+                return EmoteNoHash;
+            case EmoteId.Salute:
+                return EmoteSaluteHash;
+            default:
+                return 0;
         }
     }
 

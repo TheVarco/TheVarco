@@ -8,6 +8,110 @@ namespace CaveBlockout.Editor
     {
         private const string ControllerPath = "Assets/05.Animations/Player/Controller.controller";
         private const string AnimFolderPath = "Assets/05.Animations/Player/";
+        private const string PlayerAnimFolderPath = "Assets/99.Resources/PlayerAnim/";
+        private const string EmoteStateTag = "Emote";
+        private const float MinimumEmoteDurationSeconds = 2f;
+
+        private sealed class EmoteDefinition
+        {
+            public readonly string StateName;
+            public readonly string TriggerName;
+            public readonly string FbxPath;
+            public readonly string ExpectedClipName;
+            public readonly Vector3 Position;
+
+            public EmoteDefinition(string stateName, string triggerName, string fileName, string expectedClipName, Vector3 position)
+            {
+                StateName = stateName;
+                TriggerName = triggerName;
+                FbxPath = PlayerAnimFolderPath + fileName;
+                ExpectedClipName = expectedClipName;
+                Position = position;
+            }
+        }
+
+        private static readonly EmoteDefinition[] EmoteDefinitions =
+        {
+            new EmoteDefinition("FemaleStanding", "EmoteFemaleStanding", "X Bot@Female Standing Pose.fbx", "Female Standing Pose", new Vector3(800, 0, 0)),
+            new EmoteDefinition("FemaleLaying", "EmoteFemaleLaying", "X Bot@Female Laying Pose.fbx", "Female Laying Pose", new Vector3(800, 100, 0)),
+            new EmoteDefinition("Waving", "EmoteWaving", "X Bot@Waving.fbx", "Waving", new Vector3(800, 200, 0)),
+            new EmoteDefinition("No", "EmoteNo", "X Bot@No.fbx", "No", new Vector3(800, 300, 0)),
+            new EmoteDefinition("Salute", "EmoteSalute", "X Bot@Salute.fbx", "Salute", new Vector3(800, 400, 0))
+        };
+
+        [MenuItem("Tools/Player/Setup Punching and Emotes")]
+        public static void SetupPlayerEmotesAndPunching()
+        {
+            AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
+            if (controller == null || controller.layers.Length == 0)
+            {
+                Debug.LogError($"Cannot set up player emotes because the Animator Controller is missing or has no layers: {ControllerPath}");
+                return;
+            }
+
+            AnimatorStateMachine rootStateMachine = controller.layers[0].stateMachine;
+            AnimatorState defaultState = FindState(rootStateMachine, "Default");
+            AnimatorState noWeaponState = FindState(rootStateMachine, "NoWeapon");
+            if (defaultState == null || noWeaponState == null)
+            {
+                Debug.LogError("Cannot set up player emotes because the existing Default and NoWeapon states are required.");
+                return;
+            }
+
+            if (!HasParameter(controller, "IsMoving", AnimatorControllerParameterType.Bool))
+            {
+                Debug.LogError("Cannot set up player emotes because the existing IsMoving Bool parameter is required.");
+                return;
+            }
+
+            foreach (EmoteDefinition definition in EmoteDefinitions)
+            {
+                if (HasParameterWithDifferentType(controller, definition.TriggerName, AnimatorControllerParameterType.Trigger))
+                {
+                    Debug.LogError($"Cannot set up player emotes because parameter '{definition.TriggerName}' already exists with a non-Trigger type.");
+                    return;
+                }
+            }
+
+            RemoveLegacyEmote(controller, rootStateMachine, "MaleStanding", "EmoteMaleStanding");
+            RemoveLegacyEmote(controller, rootStateMachine, "Thinking", "EmoteThinking");
+
+            AnimationClip punchingClip = ConfigureAndLoadFbxClip(PlayerAnimFolderPath + "X Bot@Punching.fbx", "Punching");
+            if (punchingClip == null)
+            {
+                return;
+            }
+
+            AnimationClip[] emoteClips = new AnimationClip[EmoteDefinitions.Length];
+            for (int i = 0; i < EmoteDefinitions.Length; i++)
+            {
+                EmoteDefinition definition = EmoteDefinitions[i];
+                emoteClips[i] = ConfigureAndLoadFbxClip(definition.FbxPath, definition.ExpectedClipName);
+                if (emoteClips[i] == null)
+                {
+                    return;
+                }
+            }
+
+            noWeaponState.motion = punchingClip;
+            EditorUtility.SetDirty(noWeaponState);
+
+            for (int i = 0; i < EmoteDefinitions.Length; i++)
+            {
+                EmoteDefinition definition = EmoteDefinitions[i];
+                AddParameterIfNotExists(controller, definition.TriggerName, AnimatorControllerParameterType.Trigger);
+
+                AnimatorState emoteState = GetOrAddEmoteState(rootStateMachine, definition, emoteClips[i]);
+                ConfigureEmoteAnyStateTransition(rootStateMachine, emoteState, definition.TriggerName);
+                ConfigureEmoteReturnTransitions(emoteState, defaultState);
+                EditorUtility.SetDirty(emoteState);
+            }
+
+            EditorUtility.SetDirty(rootStateMachine);
+            EditorUtility.SetDirty(controller);
+            AssetDatabase.SaveAssets();
+            Debug.Log("Punching and player emotes were set up without rebuilding the Animator Controller.");
+        }
 
         [MenuItem("Tools/Player/Setup Player Animator Controller")]
         public static void SetupPlayerAnimator()
@@ -355,6 +459,277 @@ namespace CaveBlockout.Editor
             AnimatorState newState = stateMachine.AddState(stateName, defaultPos);
             newState.motion = motion;
             return newState;
+        }
+
+        private static AnimationClip ConfigureAndLoadFbxClip(string fbxPath, string expectedClipName)
+        {
+            ModelImporter importer = AssetImporter.GetAtPath(fbxPath) as ModelImporter;
+            if (importer == null)
+            {
+                Debug.LogError($"Cannot set up player animation because the FBX was not found: {fbxPath}");
+                return null;
+            }
+
+            bool importerChanged = false;
+            if (!importer.importAnimation)
+            {
+                importer.importAnimation = true;
+                importerChanged = true;
+            }
+
+            if (importer.animationType != ModelImporterAnimationType.Human)
+            {
+                importer.animationType = ModelImporterAnimationType.Human;
+                importerChanged = true;
+            }
+
+            ModelImporterClipAnimation[] configuredClips = importer.clipAnimations;
+            bool usesDefaultClips = configuredClips == null || configuredClips.Length == 0;
+            if (usesDefaultClips)
+            {
+                configuredClips = importer.defaultClipAnimations;
+            }
+
+            if ((configuredClips == null || configuredClips.Length == 0) && importerChanged)
+            {
+                importer.SaveAndReimport();
+                importer = AssetImporter.GetAtPath(fbxPath) as ModelImporter;
+                configuredClips = importer != null ? importer.defaultClipAnimations : null;
+                importerChanged = false;
+                usesDefaultClips = true;
+            }
+
+            if (configuredClips == null || configuredClips.Length == 0)
+            {
+                Debug.LogError($"Cannot set up player animation because the FBX contains no animation takes: {fbxPath}");
+                return null;
+            }
+
+            for (int i = 0; i < configuredClips.Length; i++)
+            {
+                ModelImporterClipAnimation clipSettings = configuredClips[i];
+                if (clipSettings.loopTime || clipSettings.loopPose || !clipSettings.lockRootRotation ||
+                    !clipSettings.lockRootHeightY || !clipSettings.lockRootPositionXZ)
+                {
+                    clipSettings.loopTime = false;
+                    clipSettings.loopPose = false;
+                    clipSettings.lockRootRotation = true;
+                    clipSettings.lockRootHeightY = true;
+                    clipSettings.lockRootPositionXZ = true;
+                    importerChanged = true;
+                }
+            }
+
+            if (usesDefaultClips)
+            {
+                importerChanged = true;
+            }
+
+            if (importerChanged)
+            {
+                importer.clipAnimations = configuredClips;
+                importer.SaveAndReimport();
+            }
+
+            return LoadAnimationClipFromFbx(fbxPath, expectedClipName);
+        }
+
+        private static AnimationClip LoadAnimationClipFromFbx(string fbxPath, string expectedClipName)
+        {
+            AnimationClip firstAnimationClip = null;
+            UnityEngine.Object[] assets = AssetDatabase.LoadAllAssetsAtPath(fbxPath);
+            foreach (UnityEngine.Object asset in assets)
+            {
+                if (!(asset is AnimationClip animationClip) ||
+                    animationClip.name.StartsWith("__preview__", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (firstAnimationClip == null)
+                {
+                    firstAnimationClip = animationClip;
+                }
+
+                if (animationClip.name.Equals(expectedClipName, System.StringComparison.OrdinalIgnoreCase) ||
+                    animationClip.name.IndexOf(expectedClipName, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return animationClip;
+                }
+            }
+
+            if (firstAnimationClip != null)
+            {
+                Debug.LogWarning($"No clip named like '{expectedClipName}' was found in {fbxPath}; using '{firstAnimationClip.name}'.");
+                return firstAnimationClip;
+            }
+
+            Debug.LogError($"Cannot set up player animation because no AnimationClip sub-asset was found in: {fbxPath}");
+            return null;
+        }
+
+        private static AnimatorState FindState(AnimatorStateMachine stateMachine, string stateName)
+        {
+            foreach (ChildAnimatorState childState in stateMachine.states)
+            {
+                if (childState.state.name == stateName)
+                {
+                    return childState.state;
+                }
+            }
+
+            return null;
+        }
+
+        private static void RemoveLegacyEmote(
+            AnimatorController controller,
+            AnimatorStateMachine stateMachine,
+            string stateName,
+            string triggerName)
+        {
+            AnimatorState legacyState = FindState(stateMachine, stateName);
+            if (legacyState != null)
+            {
+                foreach (AnimatorStateTransition transition in stateMachine.anyStateTransitions)
+                {
+                    if (transition.destinationState == legacyState)
+                    {
+                        stateMachine.RemoveAnyStateTransition(transition);
+                    }
+                }
+
+                stateMachine.RemoveState(legacyState);
+            }
+
+            for (int i = controller.parameters.Length - 1; i >= 0; i--)
+            {
+                if (controller.parameters[i].name == triggerName)
+                {
+                    controller.RemoveParameter(i);
+                }
+            }
+        }
+
+        private static AnimatorState GetOrAddEmoteState(AnimatorStateMachine stateMachine, EmoteDefinition definition, AnimationClip clip)
+        {
+            AnimatorState state = FindState(stateMachine, definition.StateName);
+            if (state == null)
+            {
+                state = stateMachine.AddState(definition.StateName, definition.Position);
+            }
+
+            state.motion = clip;
+            state.speed = clip.length > 0f && clip.length < MinimumEmoteDurationSeconds
+                ? clip.length / MinimumEmoteDurationSeconds
+                : 1f;
+            state.tag = EmoteStateTag;
+            return state;
+        }
+
+        private static void ConfigureEmoteAnyStateTransition(AnimatorStateMachine stateMachine, AnimatorState emoteState, string triggerName)
+        {
+            AnimatorStateTransition transition = FindTransition(
+                stateMachine.anyStateTransitions,
+                emoteState,
+                triggerName,
+                AnimatorConditionMode.If);
+
+            if (transition == null)
+            {
+                transition = stateMachine.AddAnyStateTransition(emoteState);
+                transition.AddCondition(AnimatorConditionMode.If, 0f, triggerName);
+            }
+
+            transition.hasExitTime = false;
+            transition.duration = 0.1f;
+            transition.canTransitionToSelf = false;
+        }
+
+        private static void ConfigureEmoteReturnTransitions(AnimatorState emoteState, AnimatorState defaultState)
+        {
+            AnimatorStateTransition movementTransition = FindTransition(
+                emoteState.transitions,
+                defaultState,
+                "IsMoving",
+                AnimatorConditionMode.If);
+
+            if (movementTransition == null)
+            {
+                movementTransition = emoteState.AddTransition(defaultState);
+                movementTransition.AddCondition(AnimatorConditionMode.If, 0f, "IsMoving");
+            }
+
+            movementTransition.hasExitTime = false;
+            movementTransition.duration = 0.1f;
+
+            AnimatorStateTransition exitTransition = FindUnconditionalTransition(emoteState.transitions, defaultState);
+            if (exitTransition == null)
+            {
+                exitTransition = emoteState.AddTransition(defaultState);
+            }
+
+            exitTransition.hasExitTime = true;
+            exitTransition.exitTime = 0.9f;
+            exitTransition.duration = 0.1f;
+        }
+
+        private static AnimatorStateTransition FindTransition(
+            AnimatorStateTransition[] transitions,
+            AnimatorState destinationState,
+            string parameter,
+            AnimatorConditionMode mode)
+        {
+            foreach (AnimatorStateTransition transition in transitions)
+            {
+                AnimatorCondition[] conditions = transition.conditions;
+                if (transition.destinationState == destinationState && conditions != null && conditions.Length == 1 &&
+                    conditions[0].parameter == parameter && conditions[0].mode == mode)
+                {
+                    return transition;
+                }
+            }
+
+            return null;
+        }
+
+        private static AnimatorStateTransition FindUnconditionalTransition(AnimatorStateTransition[] transitions, AnimatorState destinationState)
+        {
+            foreach (AnimatorStateTransition transition in transitions)
+            {
+                if (transition.destinationState == destinationState &&
+                    (transition.conditions == null || transition.conditions.Length == 0))
+                {
+                    return transition;
+                }
+            }
+
+            return null;
+        }
+
+        private static bool HasParameter(AnimatorController controller, string parameterName, AnimatorControllerParameterType parameterType)
+        {
+            foreach (AnimatorControllerParameter parameter in controller.parameters)
+            {
+                if (parameter.name == parameterName && parameter.type == parameterType)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool HasParameterWithDifferentType(AnimatorController controller, string parameterName, AnimatorControllerParameterType expectedType)
+        {
+            foreach (AnimatorControllerParameter parameter in controller.parameters)
+            {
+                if (parameter.name == parameterName)
+                {
+                    return parameter.type != expectedType;
+                }
+            }
+
+            return false;
         }
     }
 }
