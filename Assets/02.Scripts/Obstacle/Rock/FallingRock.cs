@@ -426,7 +426,13 @@ public sealed class FallingRock : NetworkBehaviour
     {
         VarcoAudioLibrary library = VarcoAudioLibrary.Instance;
         if (library != null)
-            VarcoAudio.PlayOneShotAt(transform, library.caveRockImpact, 0.8f, 2f, 38f);
+            VarcoAudio.PlayOneShotAt(
+                transform,
+                library.caveRockImpact,
+                0.8f,
+                2f,
+                38f,
+                owner != null ? owner.transform : transform.parent);
     }
 
     // 생성 스포너 복원

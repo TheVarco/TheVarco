@@ -12,6 +12,8 @@ namespace CaveItem.EditorTools
     /// </summary>
     public static class CaveItemResolver
     {
+        private const string HammerZoneName = "HammerZone";
+
         /// <summary>
         /// How much daylight a Centerline body needs between itself and the wall.
         ///
@@ -160,12 +162,47 @@ namespace CaveItem.EditorTools
                 return false;
             }
 
-            // World-axis offset rather than TransformPoint: the submarine sits unrotated and at scale 2,
-            // and a local offset would silently double every distance the layout states in metres.
-            Vector3 position = submarine.position + placement.interiorOffset;
+            Vector3 position;
+            if (placement.kind == CaveItemKind.Hammer)
+            {
+                Transform hammerZone = FindDescendant(submarine, HammerZoneName);
+                if (hammerZone == null)
+                {
+                    failure = $"no '{HammerZoneName}' under the submarine";
+                    return false;
+                }
+
+                BoxCollider spawnCollider = hammerZone.GetComponentInChildren<BoxCollider>(true);
+                if (spawnCollider == null)
+                {
+                    failure = $"'{HammerZoneName}' has no BoxCollider in its hierarchy";
+                    return false;
+                }
+
+                // Respect the collider's Center as well as every parent transform and scale.
+                position = spawnCollider.transform.TransformPoint(spawnCollider.center);
+            }
+            else
+            {
+                // World-axis offset rather than TransformPoint: the submarine sits unrotated and at scale 2,
+                // and a local offset would silently double every distance the layout states in metres.
+                position = submarine.position + placement.interiorOffset;
+            }
+
             Quaternion rotation = Quaternion.Euler(0f, placement.yawDegrees, 0f);
             result = new Result(position, rotation, default, submarine.position, 0f);
             return true;
+        }
+
+        private static Transform FindDescendant(Transform root, string objectName)
+        {
+            foreach (Transform candidate in root.GetComponentsInChildren<Transform>(true))
+            {
+                if (candidate.name == objectName)
+                    return candidate;
+            }
+
+            return null;
         }
 
         private static Quaternion BuildRotation(CaveItemPlacement placement,

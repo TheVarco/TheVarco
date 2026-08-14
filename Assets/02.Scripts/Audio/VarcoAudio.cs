@@ -7,7 +7,8 @@ public static class VarcoAudio
         AudioClip clip,
         float volume = 1f,
         float minDistance = 1.5f,
-        float maxDistance = 35f)
+        float maxDistance = 35f,
+        Transform emitterParent = null)
     {
         if (anchor == null || clip == null)
             return;
@@ -16,6 +17,9 @@ public static class VarcoAudio
         // 충돌체나 소모 아이템이 직후 비활성화/Despawn돼도 OneShot이 잘리지 않게
         // 월드 위치에 독립 방출기를 만든다.
         emitter.transform.position = anchor.position;
+        if (emitterParent != null)
+            emitter.transform.SetParent(emitterParent, true);
+
         AudioSource source = emitter.AddComponent<AudioSource>();
         source.playOnAwake = false;
         source.loop = false;
