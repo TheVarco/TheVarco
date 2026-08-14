@@ -63,6 +63,8 @@ public class RepairableStructure : NetworkBehaviour
     private const float DamageEpsilon = 0.001f;
 
     private Health health;
+    private readonly int[] localRegionOrders = new int[SubmarineDamageRegionUtility.RegionCount];
+    private int localDamageSequence;
     // 네트워크 수리 점유 관리
     private int activeRepairSlot = -1;
     // Player 코드 변경 없는 원격 수리 애니메이션 캐시
@@ -71,12 +73,60 @@ public class RepairableStructure : NetworkBehaviour
     [Networked, Capacity(10)] private NetworkArray<float> NetworkedDamage => default;
     [Networked, Capacity(10)] private NetworkArray<float> NetworkedRepairProgress => default;
     [Networked, Capacity(10)] private NetworkArray<PlayerRef> NetworkedRepairers => default;
+    [Networked, Capacity(SubmarineDamageRegionUtility.RegionCount)]
+    private NetworkArray<int> NetworkedRegionOrders => default;
+    [Networked] private int NetworkedDamageSequence { get; set; }
+
+    /// <summary>방향별 누적 손상 또는 최초 피격 순서가 바뀔 때 호출된다.</summary>
+    public event Action DamageRegionsChanged;
+    /// <summary>체크포인트처럼 애니메이션 없이 방향 상태 전체를 다시 표시해야 할 때 호출된다.</summary>
+    public event Action DamageRegionsReset;
 
     private bool IsNetworkActive => Object != null && Object.IsValid && Runner != null && Runner.IsRunning;
     public bool UsesNetworkAuthority => IsNetworkActive;
 
     public int SlotCount => damageSlots?.Length ?? 0;
     public float RepairCycleDuration => repairCycleDuration;
+
+    public float GetRegionDamage(SubmarineDamageRegion region)
+    {
+        float damage = 0f;
+        if (damageSlots == null)
+            return damage;
+
+        for (int i = 0; i < damageSlots.Length; i++)
+        {
+            DamageDecalSlot slot = damageSlots[i];
+            if (slot != null
+                && i < 10
+                && SubmarineDamageRegionUtility.FromDamageSlot(i) == region)
+            {
+                damage += Mathf.Max(0f, slot.accumulatedDamage);
+            }
+        }
+
+        return damage;
+    }
+
+    public int GetRegionOrder(SubmarineDamageRegion region)
+    {
+        int index = (int)region;
+        return index >= 0 && index < localRegionOrders.Length
+            ? localRegionOrders[index]
+            : 0;
+    }
+
+    public int[] CaptureCheckpointDamageOrders()
+    {
+        int[] values = new int[localRegionOrders.Length];
+        Array.Copy(localRegionOrders, values, localRegionOrders.Length);
+        return values;
+    }
+
+    public int CaptureCheckpointDamageSequence()
+    {
+        return localDamageSequence;
+    }
 
     // 체크포인트용 부위별 누적 손상 복사
     public float[] CaptureCheckpointDamage()
@@ -100,7 +150,11 @@ public class RepairableStructure : NetworkBehaviour
 
     // 체크포인트 데이터로 부위 손상과 수리 진행 상태 복원
     // 복원 이후 데칼 표시 즉시 갱신
-    public void RestoreCheckpointDamage(float[] accumulatedDamage, float[] repairProgress)
+    public void RestoreCheckpointDamage(
+        float[] accumulatedDamage,
+        float[] repairProgress,
+        int[] regionOrders = null,
+        int damageSequence = 0)
     {
         // 호스트 권한을 확인한 뒤 배열 범위 안의 슬롯 상태 복원
         if (IsNetworkActive && !Object.HasStateAuthority)
@@ -125,6 +179,10 @@ public class RepairableStructure : NetworkBehaviour
             WriteNetworkSlot(i, slot);
             UpdateSlotDamageVisual(slot);
         }
+
+        RestoreRegionOrders(regionOrders, damageSequence);
+        WriteNetworkRegionState();
+        DamageRegionsReset?.Invoke();
     }
 
     // 체력 참조와 손상 슬롯 기본값 준비
@@ -146,6 +204,9 @@ public class RepairableStructure : NetworkBehaviour
             slot.repairProgressSeconds = 0f;
             UpdateSlotDamageVisual(slot);
         }
+
+        Array.Clear(localRegionOrders, 0, localRegionOrders.Length);
+        localDamageSequence = 0;
     }
 
     // 체력 피해 이벤트 연결
@@ -174,6 +235,9 @@ public class RepairableStructure : NetworkBehaviour
                 WriteNetworkSlot(i, damageSlots[i]);
                 NetworkedRepairers.Set(i, PlayerRef.None);
             }
+
+            EnsureOrdersForActiveRegions();
+            WriteNetworkRegionState();
         }
         else
         {
@@ -293,7 +357,12 @@ public class RepairableStructure : NetworkBehaviour
 
         // 부위별 손상 누적
         DamageDecalSlot slot = damageSlots[slotIndex];
+        SubmarineDamageRegion region = SubmarineDamageRegionUtility.FromDamageSlot(slotIndex);
+        bool wasRegionUndamaged = GetRegionDamage(region) <= DamageEpsilon;
         slot.accumulatedDamage += appliedInfo.AppliedAmount;
+
+        if (wasRegionUndamaged)
+            ActivateRegion(region);
 
         // 데칼 단계 계산
         int damageStage = CalculateDamageStage(
@@ -308,7 +377,9 @@ public class RepairableStructure : NetworkBehaviour
 
         // 손상 표시 갱신
         WriteNetworkSlot(slotIndex, slot);
+        WriteNetworkRegionState();
         UpdateSlotDamageVisual(slot);
+        DamageRegionsChanged?.Invoke();
 
         // 유리와 선체의 Renderer 분리 확인
         string visualMaterialName = slot.glassOverlay != null
@@ -429,9 +500,17 @@ public class RepairableStructure : NetworkBehaviour
             }
 
             UpdateSlotDamageVisual(slot);
+
+            SubmarineDamageRegion region = SubmarineDamageRegionUtility.FromDamageSlot(slotIndex);
+            if (GetRegionDamage(region) <= DamageEpsilon)
+                DeactivateRegion(region);
         }
 
         WriteNetworkSlot(slotIndex, slot);
+        WriteNetworkRegionState();
+
+        if (repairedAmount > 0f)
+            DamageRegionsChanged?.Invoke();
 
         // 완전 수리 처리
         if (!CanRepairSlot(slotIndex))
@@ -563,6 +642,76 @@ public class RepairableStructure : NetworkBehaviour
             QueryTriggerInteraction.Ignore);
     }
 
+    private void ActivateRegion(SubmarineDamageRegion region)
+    {
+        int index = (int)region;
+        if (index < 0 || index >= localRegionOrders.Length || localRegionOrders[index] > 0)
+            return;
+
+        localDamageSequence = Mathf.Max(0, localDamageSequence) + 1;
+        localRegionOrders[index] = localDamageSequence;
+    }
+
+    private void DeactivateRegion(SubmarineDamageRegion region)
+    {
+        int index = (int)region;
+        if (index >= 0 && index < localRegionOrders.Length)
+            localRegionOrders[index] = 0;
+    }
+
+    private void EnsureOrdersForActiveRegions()
+    {
+        HashSet<int> usedOrders = new HashSet<int>();
+        for (int i = 0; i < localRegionOrders.Length; i++)
+        {
+            SubmarineDamageRegion region = (SubmarineDamageRegion)i;
+            if (GetRegionDamage(region) <= DamageEpsilon)
+            {
+                localRegionOrders[i] = 0;
+                continue;
+            }
+
+            int order = localRegionOrders[i];
+            if (order <= 0 || !usedOrders.Add(order))
+            {
+                localDamageSequence = Mathf.Max(0, localDamageSequence) + 1;
+                localRegionOrders[i] = localDamageSequence;
+                usedOrders.Add(localRegionOrders[i]);
+            }
+            else
+            {
+                localDamageSequence = Mathf.Max(localDamageSequence, order);
+            }
+        }
+    }
+
+    private void RestoreRegionOrders(int[] regionOrders, int damageSequence)
+    {
+        Array.Clear(localRegionOrders, 0, localRegionOrders.Length);
+        localDamageSequence = Mathf.Max(0, damageSequence);
+
+        if (regionOrders != null)
+        {
+            int count = Mathf.Min(regionOrders.Length, localRegionOrders.Length);
+            for (int i = 0; i < count; i++)
+                localRegionOrders[i] = Mathf.Max(0, regionOrders[i]);
+        }
+
+        EnsureOrdersForActiveRegions();
+    }
+
+    private void WriteNetworkRegionState()
+    {
+        if (!IsNetworkActive || !Object.HasStateAuthority)
+            return;
+
+        int count = Mathf.Min(localRegionOrders.Length, NetworkedRegionOrders.Length);
+        for (int i = 0; i < count; i++)
+            NetworkedRegionOrders.Set(i, localRegionOrders[i]);
+
+        NetworkedDamageSequence = localDamageSequence;
+    }
+
     // 로컬 슬롯 값을 고정 크기 네트워크 배열에 기록
     private void WriteNetworkSlot(int slotIndex, DamageDecalSlot slot)
     {
@@ -586,6 +735,7 @@ public class RepairableStructure : NetworkBehaviour
         if (damageSlots == null)
             return;
 
+        bool anyRegionStateChanged = false;
         int count = Mathf.Min(damageSlots.Length, NetworkedDamage.Length);
         for (int i = 0; i < count; i++)
         {
@@ -599,8 +749,32 @@ public class RepairableStructure : NetworkBehaviour
             slot.accumulatedDamage = damage;
             slot.repairProgressSeconds = progress;
             if (visualChanged)
+            {
                 UpdateSlotDamageVisual(slot);
+                anyRegionStateChanged = true;
+            }
         }
+
+        int regionCount = Mathf.Min(localRegionOrders.Length, NetworkedRegionOrders.Length);
+        for (int i = 0; i < regionCount; i++)
+        {
+            int order = NetworkedRegionOrders.Get(i);
+            if (localRegionOrders[i] == order)
+                continue;
+
+            localRegionOrders[i] = order;
+            anyRegionStateChanged = true;
+        }
+
+        int sequence = NetworkedDamageSequence;
+        if (localDamageSequence != sequence)
+        {
+            localDamageSequence = sequence;
+            anyRegionStateChanged = true;
+        }
+
+        if (anyRegionStateChanged)
+            DamageRegionsChanged?.Invoke();
     }
 
     // 권위 승인 수리 점유 상태 기반 원격 Player 애니메이션 구동
