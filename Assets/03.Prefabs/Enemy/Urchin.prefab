@@ -203,7 +203,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 485a52818d7c48af82f01fe893f46d93, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SeaUrchinController
   damageAmount: 2
   damageInterval: 5
@@ -217,7 +217,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
   SortKey: 1560841122
   ObjectInterest: 1
@@ -238,12 +238,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkTransform
   _stateAuthorityChangeErrorCorrectionDelta: 0
   SyncScale: 0
   SyncParent: 0
-  _interpolationTarget: {fileID: 0}
   _autoAOIOverride: 1
   DisableSharedModeInterpolation: 0
 --- !u!114 &200011
@@ -256,7 +255,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d6b28fb6446b4a969b6765382d9fae01, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHealthNetworkSync
 --- !u!1001 &8048350290203215850
 PrefabInstance:
