@@ -7,20 +7,25 @@ using UnityEngine;
 namespace Varco.Exterior.EditorTools
 {
     /// <summary>
-    /// Builds the deterministic base of the sea/island environment outside the cave exit in
-    /// MainScene_final: ocean surface, island terrain, seabed, and the headland mountains that form
-    /// the cliff the exit mouth pierces. The purpose is a Cinemachine cutscene backdrop - the sub
-    /// drives out of the 24x16 mouth, surfaces, and the beach is ahead - so placement is anchored to
-    /// the measured exit pose, and the artistic polish (palms, beach props, light direction) is an
-    /// explicit manual pass on top.
+    /// Builds the deterministic base of the sea environment outside the cave exit in MainScene_final:
+    /// ocean surface, seabed, and the headland mountains flanking the exit. The purpose is a
+    /// Cinemachine cutscene backdrop - the sub drives out of the 24x16 mouth, surfaces, and the beach
+    /// is ahead - so placement is anchored to the measured exit pose.
     ///
-    /// Everything lives under a tool-owned root named "Exterior" whose children are deleted and
+    /// Everything this builder owns lives under a root named "Exterior" whose children are deleted and
     /// recreated by name on every run, the same contract CaveBlockoutBuilder uses: re-running the
-    /// builder is always safe, and the manual pass adds objects under separate, untouched children.
+    /// builder is always safe.
     ///
-    /// Why the headland exists at all: the cave shell is single-sided, facing inward. From outside
-    /// the mouth the cave is invisible - the mountains ARE the landmass the exit appears to be
-    /// carved into.
+    /// 🔴 THE ISLAND IS NOT PART OF THIS. It is hand-placed scene content - the pack's own authored
+    /// demo island, sitting in a root-level "Terrain" group with the demo "Prefabs" group beside it.
+    /// It deliberately lives OUTSIDE the "Exterior" root so the recreate-by-name contract can never
+    /// delete it. Do not add an island pass back into this file; see the note in Build().
+    ///
+    /// Why the headland exists at all: the cave shell is single-sided, facing inward, so from outside
+    /// the mouth the shell reads as an inside-out smooth dome rather than rock. The mountains help
+    /// frame that, but they cannot cover it - the tunnel profile is 85 m wide 20 m behind the mouth,
+    /// so any peak clear of the corridor is far too far out. The actual fix for the dome is an
+    /// outward-facing collar generated at the exit rim by the cave mesh generator, not more mountains.
     /// </summary>
     public static class ExteriorEnvironmentBuilder
     {
@@ -31,16 +36,13 @@ namespace Varco.Exterior.EditorTools
             "Assets/ThirdParty/Uber Stylized Water/Prefabs/Water Template/Water Tempate Tropical.prefab";
         private const string SkyboxMaterialPath =
             "Assets/ThirdParty/Uber Stylized Water/Demo/Sky/SKy 22.mat";
-        private const string IslandTerrainDataPath =
-            "Assets/LowPolyTropicalEnvironment_LITE/Terrain/TE_Lite_Terrain.asset";
         private const string SandTexturePath =
             "Assets/ThirdParty/Uber Stylized Water/Demo/Terrain/sand_01_color_2k.png";
-        private const string BeachTerrainLayerPath =
-            "Assets/ThirdParty/Uber Stylized Water/Demo/Terrain/Sand.terrainlayer";
+        private const string SeaTemplateMaterialPath =
+            "Assets/ThirdParty/Uber Stylized Water/Template Materials/UWa-Template-Tropical.mat";
         private const string GeneratedFolder = "Assets/Generated/Exterior";
-        private const string IslandTerrainCopyPath = GeneratedFolder + "/IslandTerrain.asset";
         private const string SeabedMaterialPath = GeneratedFolder + "/ExteriorSeabed_Sand.mat";
-        private const string TerrainMaterialPath = GeneratedFolder + "/ExteriorIsland_TerrainLit.mat";
+        private const string SeaMaterialPath = GeneratedFolder + "/ExteriorSea_Tropical.mat";
 
         // Measured exit pose (route end at 579.56 m). The exit points 26.9 degrees upward, bearing
         // ~11 degrees east of +Z; Bearing is that direction flattened to the horizon.
@@ -56,22 +58,6 @@ namespace Varco.Exterior.EditorTools
         /// Must match UnderwaterZoneDirector.seaSurfaceY.
         /// </summary>
         public const float SeaLevel = 273f;
-
-        /// <summary>Footprint multiplier on the pack's 50 x 50 m island - user-approved upscaling.</summary>
-        private const float FootprintScale = 4f;
-
-        /// <summary>Fraction of the island footprint that should end up above water.</summary>
-        private const float IslandDryFraction = 0.35f;
-
-        /// <summary>Metres from waterline to summit once the height range is stretched.</summary>
-        private const float IslandReliefMeters = 28f;
-
-        /// <summary>
-        /// Distance from the exit to the island centre, along the horizontal bearing. Internal
-        /// because the review capture frames its island shots from the same number - two copies
-        /// drifted apart once already.
-        /// </summary>
-        internal const float IslandDistanceMeters = 190f;
 
         [MenuItem("Tools/Exterior/외부 환경 구성 (MainScene_final)")]
         public static void BuildInteractive()
@@ -119,14 +105,42 @@ namespace Varco.Exterior.EditorTools
 
             GameObject root = GameObject.Find(RootName) ?? new GameObject(RootName);
 
+            // The island is NOT built here any more - it is hand-placed scene content.
+            //
+            // It used to be generated: the pack's TerrainData was copied, its heightmap solved for a
+            // waterline, its footprint scaled 4x and its terrain layer swapped. That was dropped in
+            // favour of the pack's own authored island, which the author placed by hand as a root-level
+            // "Terrain" group holding "Terrain_Lite" (referencing the pack's ORIGINAL TerrainData) plus
+            // the demo "Prefabs" group.
+            //
+            // 🔴 Nothing in this file may create or destroy an island again. Every group under the
+            // "Exterior" root is deleted and recreated by name on each run (see RecreateChild), so
+            // re-adding a BuildIsland would either duplicate the hand-placed island or, if someone
+            // parented the manual work under "Exterior", silently delete it. The beach props went with
+            // it for the same reason: they seated themselves against whatever Terrain they found, and
+            // the pack's demo island arrives already dressed.
+            RemoveRetiredChild(root.transform, "Island");
+            RemoveRetiredChild(root.transform, "BeachProps");
+
             BuildSea(root.transform);
             BuildSeabed(root.transform);
-            BuildIsland(root.transform);
             BuildHeadland(root.transform);
-            // After the island: props are seated by sampling the terrain that BuildIsland creates.
-            BuildBeachProps(root.transform);
             ApplySkybox();
             RaiseFarClip();
+        }
+
+        /// <summary>
+        /// Deletes a group this builder used to own but no longer does, so a scene built by an older
+        /// version does not keep a stale generated island alongside the hand-placed one.
+        /// </summary>
+        private static void RemoveRetiredChild(Transform root, string name)
+        {
+            Transform existing = root.Find(name);
+            if (existing == null)
+                return;
+            Debug.Log($"EXTERIOR: removing retired tool-owned group '{name}' - " +
+                      "the island and its props are hand-placed scene content now");
+            UnityEngine.Object.DestroyImmediate(existing.gameObject);
         }
 
         private static Transform RecreateChild(Transform root, string name)
@@ -151,6 +165,10 @@ namespace Varco.Exterior.EditorTools
 
             var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, sea);
             instance.transform.position = new Vector3(ExitPosition.x, SeaLevel, ExitPosition.z);
+
+            Material seaMaterial = EnsureSeaMaterial();
+            foreach (MeshRenderer renderer in instance.GetComponentsInChildren<MeshRenderer>(true))
+                renderer.sharedMaterial = seaMaterial;
 
             // Must out-reach the seabed plane (800 m centred 420 m out) from every angle, or its edge
             // shows as a hard line with bare seabed beyond it.
@@ -191,6 +209,69 @@ namespace Varco.Exterior.EditorTools
             }
         }
 
+        /// <summary>
+        /// A project-owned copy of the pack's Tropical water material, retuned for THIS scene's scale.
+        ///
+        /// Why a copy: the template lives under ThirdParty and is shared with the pack's own demo
+        /// scenes. Why a retune at all - the numbers, because this was misdiagnosed once:
+        ///
+        /// The sea rendered as a single flat navy sheet. It was NOT a UV/tiling problem from scaling the
+        /// plane to 2.4 km: the shader's textures default to world-space Y-projected UVs (the
+        /// "WorldSpace Y-Project UV" subgraph feeds a Position node in AbsoluteWorld space into
+        /// "PanningTexture"), so plane scale does not stretch foam, caustics or normals at all.
+        ///
+        /// The real cause is that every distance in the template is authored for the demo's scale -
+        /// water about 5 m deep, camera about 5 m away:
+        ///   - `_Water_Depth 0.3` with `_WorldSpaceDepth 1` finishes the shallow-to-deep gradient within
+        ///     0.3 m of depth. Our sea is ~21 m deep (seabed 252, surface 273), so everything except a
+        ///     30 cm strip at the shoreline is pinned to `_Color_Deep` - the flat navy, exactly.
+        ///   - `_Caustics_Start 5` / `_Caustics_Fade 5` cull caustics by CAMERA distance, gone by ~10 m.
+        ///     Every cutscene camera here is tens of metres out, so caustics never drew.
+        ///   - `_DistanceMask_Start 5` / `_Fade 10` fade the surface detail on the same basis.
+        ///
+        /// Colours are left exactly as the pack authored them - that tropical palette is the look being
+        /// asked for. Only the distances change. Overrides are re-applied every run so this code stays
+        /// the single source of truth, the same contract UnderwaterZoneSet.ResetToGuideDefaults uses.
+        /// </summary>
+        private static Material EnsureSeaMaterial()
+        {
+            var template = AssetDatabase.LoadAssetAtPath<Material>(SeaTemplateMaterialPath);
+            if (template == null)
+                throw new InvalidOperationException($"no water template material at {SeaTemplateMaterialPath}");
+
+            var material = AssetDatabase.LoadAssetAtPath<Material>(SeaMaterialPath);
+            if (material == null)
+            {
+                material = new Material(template);
+                AssetDatabase.CreateAsset(material, SeaMaterialPath);
+            }
+            else
+            {
+                // Re-seed from the template so a pack update propagates, then re-apply our overrides.
+                material.shader = template.shader;
+                material.CopyPropertiesFromMaterial(template);
+            }
+
+            // Depth gradient spans the real water column instead of 0.3 m.
+            material.SetFloat("_Water_Depth", 12f);
+            // Shoreline band wide enough to read at this scale.
+            material.SetFloat("_SL_WaterDepth", 2.5f);
+            // Caustics visible from cutscene distances, and reaching the actual seabed depth.
+            material.SetFloat("_Caustics_Start", 70f);
+            material.SetFloat("_Caustics_Fade", 160f);
+            material.SetFloat("_Caustics_Depth", -12f);
+            // Surface detail must survive past a few metres too.
+            material.SetFloat("_DistanceMask_Start", 60f);
+            material.SetFloat("_DistanceMask_Fade", 250f);
+
+            EditorUtility.SetDirty(material);
+            Debug.Log($"EXTERIOR sea material: '{material.name}' from template, " +
+                      $"_Water_Depth {template.GetFloat("_Water_Depth"):0.##} -> {material.GetFloat("_Water_Depth"):0.##}, " +
+                      $"_Caustics_Start {template.GetFloat("_Caustics_Start"):0.#} -> {material.GetFloat("_Caustics_Start"):0.#}, " +
+                      $"keywords [{string.Join(", ", material.shaderKeywords)}]");
+            return material;
+        }
+
         // ---- seabed ------------------------------------------------------------------------------
 
         private static void BuildSeabed(Transform root)
@@ -225,171 +306,6 @@ namespace Varco.Exterior.EditorTools
                 AssetDatabase.CreateAsset(material, SeabedMaterialPath);
             }
             plane.GetComponent<MeshRenderer>().sharedMaterial = material;
-        }
-
-        // ---- island ------------------------------------------------------------------------------
-
-        private static void BuildIsland(Transform root)
-        {
-            Transform group = RecreateChild(root, "Island");
-
-            var source = AssetDatabase.LoadAssetAtPath<TerrainData>(IslandTerrainDataPath);
-            if (source == null)
-                throw new InvalidOperationException($"no island TerrainData at {IslandTerrainDataPath}");
-
-            // A copy, not the imported asset: the size is enlarged below (user-approved "scale the
-            // island up if it is too small"), and mutating the imported pack asset would bleed the
-            // change into its demo scenes and future reimports. Recreated every run so multiplier
-            // changes take effect - a stale cached copy cost one full iteration.
-            AssetDatabase.DeleteAsset(IslandTerrainCopyPath);
-            TerrainData data = UnityEngine.Object.Instantiate(source);
-
-            // Height and waterline are SOLVED from the heightmap, not chosen. The pack's island has
-            // roughly 5.6 m of real relief inside a 600 m nominal range, so any hand-picked "sink it
-            // by N metres" is an order of magnitude off - the first two attempts drowned it by 190 m
-            // and then left 0.6 m of sand showing. Instead: pick the height at which the wanted
-            // fraction of the footprint is dry, then scale the range so the dry part stands
-            // IslandReliefMeters tall.
-            SolveIslandHeights(data, out float waterlineNormalised, out float verticalScale);
-            data.size = new Vector3(source.size.x * FootprintScale, source.size.y * verticalScale,
-                source.size.z * FootprintScale);
-
-            // The baked detail (grass) prototypes use the legacy terrain-detail shaders URP does not
-            // ship - they rendered as a magenta ribbon along the shoreline. Trees go with them:
-            // palms are hand-placed in the polish pass, where they can face the camera line anyway.
-            data.treeInstances = Array.Empty<TreeInstance>();
-            data.treePrototypes = Array.Empty<TreePrototype>();
-            data.detailPrototypes = Array.Empty<DetailPrototype>();
-
-            // The pack's own Sand_Lite / Grass_Lite layers render WHITE under URP. Their diffuse
-            // textures are near-white greyscale and the actual colour lives entirely in
-            // m_DiffuseRemapMax (sand is 1, 0.86, 0.36; grass 0.37, 0.70, 0.10) - a TerrainLayer field
-            // only HDRP's terrain shader consumes. URP ignores it and draws the raw greyscale, which is
-            // why the island read as snow. This was NOT an exposure problem: the review capture
-            // measures 0.0% clipped pixels, so darkening the exterior would only have dimmed the sky
-            // and left the island just as colourless.
-            //
-            // The water pack's Sand layer has a neutral remap and a genuinely sand-coloured albedo, and
-            // it is the same texture the seabed material uses - so the beach and the seabed match where
-            // they meet at the waterline.
-            var sandLayer = AssetDatabase.LoadAssetAtPath<TerrainLayer>(BeachTerrainLayerPath);
-            if (sandLayer != null)
-                data.terrainLayers = new[] { sandLayer };
-            else
-                Debug.LogWarning($"EXTERIOR island: no TerrainLayer at {BeachTerrainLayerPath}; the " +
-                                 "island keeps the pack's HDRP-remapped layers and will render white");
-
-            AssetDatabase.CreateAsset(data, IslandTerrainCopyPath);
-            Debug.Log($"EXTERIOR island: terrain copy {source.size} -> {data.size} " +
-                      $"(vertical x{verticalScale:0.#}), details/trees stripped");
-
-            var terrainObject = new GameObject("IslandTerrain");
-            terrainObject.transform.SetParent(group, false);
-            Terrain terrain = terrainObject.AddComponent<Terrain>();
-            terrain.terrainData = data;
-
-            // A Terrain added from script has no materialTemplate and falls back to the built-in
-            // terrain shader, which under URP renders magenta. The pack's own material is a mesh
-            // material and cannot drive a Terrain either - it has to be a TerrainLit.
-            Shader terrainShader = Shader.Find("Universal Render Pipeline/Terrain/Lit");
-            if (terrainShader != null)
-            {
-                var terrainMaterial = AssetDatabase.LoadAssetAtPath<Material>(TerrainMaterialPath);
-                if (terrainMaterial == null)
-                {
-                    terrainMaterial = new Material(terrainShader);
-                    AssetDatabase.CreateAsset(terrainMaterial, TerrainMaterialPath);
-                }
-                terrain.materialTemplate = terrainMaterial;
-            }
-            else
-            {
-                Debug.LogWarning("EXTERIOR island: URP TerrainLit shader not found, terrain will be magenta");
-            }
-            TerrainCollider collider = terrainObject.AddComponent<TerrainCollider>();
-            collider.terrainData = data;
-
-            // Terrain pivots at its corner and cannot be rotated, so the horizontal placement centres
-            // the footprint on the bearing; the vertical drop comes from the solved waterline.
-            Vector3 centre = ExitPosition + Bearing * IslandDistanceMeters;
-            terrainObject.transform.position = new Vector3(
-                centre.x - data.size.x * 0.5f,
-                SeaLevel - waterlineNormalised * data.size.y,
-                centre.z - data.size.z * 0.5f);
-
-            Debug.Log($"EXTERIOR island: size={data.size} corner={terrainObject.transform.position} " +
-                      $"centre=({centre.x:0.#},{centre.z:0.#})");
-            ReportIslandProfile(terrain, data);
-        }
-
-        /// <summary>
-        /// Solves the two island unknowns from the heightmap itself.
-        ///
-        /// <paramref name="waterlineNormalised"/> is the normalised height (0-1, the units
-        /// TerrainData stores) that should sit exactly at sea level, chosen so
-        /// <see cref="IslandDryFraction"/> of the footprint ends up dry.
-        /// <paramref name="verticalScale"/> then stretches size.y so the dry part stands
-        /// <see cref="IslandReliefMeters"/> tall.
-        /// </summary>
-        private static void SolveIslandHeights(TerrainData data, out float waterlineNormalised,
-            out float verticalScale)
-        {
-            int resolution = data.heightmapResolution;
-            float[,] map = data.GetHeights(0, 0, resolution, resolution);
-
-            var heights = new System.Collections.Generic.List<float>(resolution * resolution);
-            foreach (float height in map)
-                heights.Add(height);
-            heights.Sort();
-
-            // The value with IslandDryFraction of the map above it.
-            int index = Mathf.Clamp(
-                Mathf.RoundToInt((1f - IslandDryFraction) * (heights.Count - 1)), 0, heights.Count - 1);
-            waterlineNormalised = heights[index];
-            float peak = heights[heights.Count - 1];
-
-            float dryRange = peak - waterlineNormalised;
-            verticalScale = dryRange > 1e-6f
-                ? IslandReliefMeters / (dryRange * data.size.y)
-                : 1f;
-
-            Debug.Log($"EXTERIOR island solve: peak={peak:0.#####} waterline={waterlineNormalised:0.#####} " +
-                      $"(dry range {dryRange * data.size.y:0.##} m at source scale) -> vertical x{verticalScale:0.#}");
-        }
-
-        /// <summary>
-        /// How much of the island actually clears the water, measured rather than assumed - the check
-        /// on <see cref="SolveIslandHeights"/> rather than a restatement of it, because it samples the
-        /// built Terrain component through SampleHeight instead of the raw map.
-        /// </summary>
-        private static void ReportIslandProfile(Terrain terrain, TerrainData data)
-        {
-            const int Steps = 33;
-            float highest = float.NegativeInfinity;
-            Vector3 highestPoint = Vector3.zero;
-            int aboveWater = 0, total = 0;
-
-            for (int ix = 0; ix < Steps; ix++)
-            {
-                for (int iz = 0; iz < Steps; iz++)
-                {
-                    Vector3 world = terrain.transform.position + new Vector3(
-                        data.size.x * ix / (Steps - 1f), 0f, data.size.z * iz / (Steps - 1f));
-                    float y = terrain.SampleHeight(world) + terrain.transform.position.y;
-                    total++;
-                    if (y > SeaLevel)
-                        aboveWater++;
-                    if (y > highest)
-                    {
-                        highest = y;
-                        highestPoint = new Vector3(world.x, y, world.z);
-                    }
-                }
-            }
-
-            Debug.Log($"EXTERIOR island profile: highest y={highest:0.#} " +
-                      $"({highest - SeaLevel:+0.#;-0.#} m vs sea) at ({highestPoint.x:0.#},{highestPoint.z:0.#}), " +
-                      $"{aboveWater * 100f / total:0.#}% of the footprint is above water");
         }
 
         // ---- headland ----------------------------------------------------------------------------
@@ -658,219 +574,6 @@ namespace Varco.Exterior.EditorTools
 
             instance.transform.position = origin;
             return false;
-        }
-
-        // ---- beach props -------------------------------------------------------------------------
-
-        private const string TropicalPrefabFolder = "Assets/LowPolyTropicalEnvironment_LITE";
-
-        /// <summary>Span of the jetty. Scaling is uniform, so this also caps how tall it gets.</summary>
-        private const float PierLengthMeters = 12f;
-
-        /// <summary>
-        /// Dresses the island: palms, undergrowth, shore rocks and a pier on the side the submarine
-        /// approaches from.
-        ///
-        /// The plan called this a manual hand-placement pass. It is scripted instead, for the same
-        /// reason the rest of the exterior is: the whole group is deleted and rebuilt by name on every
-        /// run, so a hand-placed prop would be destroyed the next time anyone re-ran the builder. Every
-        /// position is derived from a fixed integer hash and from the terrain's own height, so the
-        /// result is byte-identical run to run and survives an island reshape.
-        ///
-        /// Placement is biased toward the exit-facing side: that is where every cutscene camera looks
-        /// from, and the far side of a 200 m island is never on screen.
-        /// </summary>
-        private static void BuildBeachProps(Transform root)
-        {
-            Transform group = RecreateChild(root, "BeachProps");
-
-            Terrain terrain = root.GetComponentInChildren<Terrain>();
-            if (terrain == null)
-            {
-                Debug.LogWarning("EXTERIOR props: no island Terrain, beach props skipped");
-                return;
-            }
-
-            Vector3 islandCentre = ExitPosition + Bearing * IslandDistanceMeters;
-            // Seaward = back toward the exit, the direction every approach shot comes from.
-            Vector3 seaward = -Bearing;
-
-            int palms = ScatterProps(group, terrain, "PalmTree_05", islandCentre, seaward,
-                count: 14, targetHeight: 13f, minElevation: 1.5f, maxElevation: 16f, seed: 9101);
-            int plants = ScatterProps(group, terrain, "Plant_01", islandCentre, seaward,
-                count: 12, targetHeight: 3.5f, minElevation: 0.6f, maxElevation: 9f, seed: 2273);
-            int rocks = ScatterProps(group, terrain, "Rock_01", islandCentre, seaward,
-                count: 9, targetHeight: 5f, minElevation: 0.2f, maxElevation: 5f, seed: 5519);
-
-            bool pier = TryPlacePier(group, terrain, islandCentre, seaward);
-
-            Debug.Log($"EXTERIOR props: {palms} palms, {plants} plants, {rocks} rocks, " +
-                      $"pier={(pier ? "placed" : "SKIPPED")}");
-        }
-
-        /// <summary>
-        /// Scatters <paramref name="count"/> copies on ground standing between
-        /// <paramref name="minElevation"/> and <paramref name="maxElevation"/> metres above the
-        /// waterline. Returns how many were actually seated - the elevation band can be narrow, and a
-        /// silent shortfall would read as "the beach is dressed" when it is not.
-        /// </summary>
-        private static int ScatterProps(Transform group, Terrain terrain, string prefabName,
-            Vector3 islandCentre, Vector3 seaward, int count, float targetHeight, float minElevation,
-            float maxElevation, int seed)
-        {
-            GameObject prefab = FindTropicalPrefab(prefabName);
-            if (prefab == null)
-            {
-                Debug.LogWarning($"EXTERIOR props: prefab '{prefabName}' not found, skipped");
-                return 0;
-            }
-
-            var parent = new GameObject(prefabName).transform;
-            parent.SetParent(group, false);
-
-            float seawardAngle = Mathf.Atan2(seaward.z, seaward.x);
-            int placed = 0;
-
-            // Bounded candidate budget: the accept band is a ring on a solved heightmap, so a fixed
-            // attempt cap is what keeps a reshaped island from looping forever.
-            const int MaxAttempts = 600;
-            for (int attempt = 0; attempt < MaxAttempts && placed < count; attempt++)
-            {
-                // +/-110 degrees about the seaward bearing, so props hug the visible arc.
-                float angle = seawardAngle + (Hash01(seed, attempt * 3) - 0.5f) * (220f * Mathf.Deg2Rad);
-                float radius = Mathf.Lerp(18f, 78f, Mathf.Sqrt(Hash01(seed, attempt * 3 + 1)));
-                var candidate = new Vector3(
-                    islandCentre.x + Mathf.Cos(angle) * radius, 0f,
-                    islandCentre.z + Mathf.Sin(angle) * radius);
-
-                float ground = terrain.transform.position.y + terrain.SampleHeight(candidate);
-                float elevation = ground - SeaLevel;
-                if (elevation < minElevation || elevation > maxElevation)
-                    continue;
-
-                var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
-                instance.transform.position = new Vector3(candidate.x, ground, candidate.z);
-                instance.transform.rotation = Quaternion.Euler(0f, Hash01(seed, attempt * 3 + 2) * 360f, 0f);
-
-                Bounds bounds = ComputeBounds(instance);
-                if (bounds.size.y > 0.01f)
-                {
-                    // These props are authored for the pack's 50 m demo island; at native size on a
-                    // 200 m one a palm is a shrub. Uniform, so foliage keeps its proportions.
-                    float scale = targetHeight / bounds.size.y;
-                    instance.transform.localScale *= scale;
-
-                    // Re-seat: scaling about the pivot lifts or sinks the base depending on where the
-                    // pivot sits inside the prefab.
-                    Bounds scaled = ComputeBounds(instance);
-                    instance.transform.position += Vector3.up * (ground - scaled.min.y);
-                }
-
-                placed++;
-            }
-
-            if (placed < count)
-                Debug.LogWarning($"EXTERIOR props: only {placed}/{count} '{prefabName}' fitted the " +
-                                 $"{minElevation:0.#}-{maxElevation:0.#} m elevation band in {MaxAttempts} tries");
-            return placed;
-        }
-
-        /// <summary>
-        /// Walks in from open water along the seaward bearing until the terrain rises out of the sea,
-        /// then lays the pier across that waterline pointing out to sea.
-        /// </summary>
-        private static bool TryPlacePier(Transform group, Terrain terrain, Vector3 islandCentre,
-            Vector3 seaward)
-        {
-            GameObject prefab = FindTropicalPrefab("Pier_02");
-            if (prefab == null)
-            {
-                Debug.LogWarning("EXTERIOR props: 'Pier_02' not found, skipped");
-                return false;
-            }
-
-            // Offset off the centre line: dead centre put the pier on the island's summit silhouette in
-            // every approach shot, which is where the eye goes first and where this prop reads worst.
-            Vector3 lateral = Right * -30f;
-
-            Vector3 shoreline = Vector3.zero;
-            bool found = false;
-            // From 120 m out (open water) inward to the centre, first crossing wins.
-            for (float distance = 120f; distance >= 0f; distance -= 1f)
-            {
-                Vector3 probe = islandCentre + lateral + seaward * distance;
-                float ground = terrain.transform.position.y + terrain.SampleHeight(probe);
-                if (ground <= SeaLevel)
-                    continue;
-                shoreline = new Vector3(probe.x, SeaLevel, probe.z);
-                found = true;
-                break;
-            }
-
-            if (!found)
-            {
-                Debug.LogWarning("EXTERIOR props: no waterline crossing along the seaward bearing, " +
-                                 "pier skipped");
-                return false;
-            }
-
-            var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, group);
-            instance.transform.position = shoreline;
-
-            // Aim the pier's LONG horizontal axis out to sea rather than assuming the prefab's forward
-            // is its length - a pier laid across the shore instead of out from it is instantly wrong.
-            instance.transform.rotation = Quaternion.identity;
-            Bounds flat = ComputeBounds(instance);
-            float yaw = Mathf.Atan2(seaward.x, seaward.z) * Mathf.Rad2Deg;
-            if (flat.size.x > flat.size.z)
-                yaw += 90f;
-            instance.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
-
-            // 12 m, not 30. The prefab is a ~3 m dock piece and the scale is uniform, so asking for a
-            // 30 m span also made it 30 m TALL: it rendered as a wooden gantry towering over the
-            // island's summit. At this size it reads as a small jetty, which is all a backdrop needs.
-            Bounds oriented = ComputeBounds(instance);
-            float length = Mathf.Max(oriented.size.x, oriented.size.z);
-            if (length > 0.01f)
-                instance.transform.localScale *= PierLengthMeters / length;
-
-            // Feet just under the surface, and drawn back so the landward end sits on the beach.
-            Bounds scaled = ComputeBounds(instance);
-            instance.transform.position += Vector3.up * (SeaLevel - 0.5f - scaled.min.y) - seaward * 4f;
-
-            Bounds placed = ComputeBounds(instance);
-            Debug.Log($"EXTERIOR props: pier at {instance.transform.position} yaw {yaw:0.#} deg, " +
-                      $"{length:0.#} m -> {PierLengthMeters:0.#} m span, " +
-                      $"{placed.size.y:0.#} m tall, top y={placed.max.y:0.#}");
-            return true;
-        }
-
-        /// <summary>
-        /// Deterministic [0,1) from two integers. A fixed hash rather than System.Random so the layout
-        /// is reproducible from the source alone, with no dependence on call order or runtime version.
-        /// </summary>
-        private static float Hash01(int seed, int salt)
-        {
-            unchecked
-            {
-                uint hash = (uint)(seed * 73856093) ^ (uint)(salt * 19349663 + 83492791);
-                hash ^= hash << 13;
-                hash ^= hash >> 17;
-                hash ^= hash << 5;
-                return (hash & 0xFFFFFFu) / 16777216f;
-            }
-        }
-
-        private static GameObject FindTropicalPrefab(string name)
-        {
-            foreach (string guid in AssetDatabase.FindAssets($"{name} t:prefab",
-                         new[] { TropicalPrefabFolder }))
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guid);
-                if (System.IO.Path.GetFileNameWithoutExtension(path) == name)
-                    return AssetDatabase.LoadAssetAtPath<GameObject>(path);
-            }
-            return null;
         }
 
         private static GameObject FindPrefab(string name)

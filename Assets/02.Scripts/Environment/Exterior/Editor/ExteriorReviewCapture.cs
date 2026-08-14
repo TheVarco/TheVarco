@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -111,18 +112,53 @@ namespace Varco.Exterior.EditorTools
             Capture(null);
         }
 
+        /// <summary>
+        /// Centre of the island's footprint, read from whatever Terrain is actually in the scene.
+        ///
+        /// This used to be a fixed offset along the bearing, shared with the builder's
+        /// IslandDistanceMeters. The island is hand-placed now, so a constant would silently frame
+        /// empty ocean the moment anyone nudged it. Terrain pivots at its corner, hence the half-size.
+        /// </summary>
+        private static Vector3 ResolveIsland(out float footprintMeters)
+        {
+            footprintMeters = 200f;
+
+            Terrain terrain = UnityEngine.Object
+                .FindObjectsByType<Terrain>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .FirstOrDefault(candidate => candidate != null && candidate.terrainData != null);
+
+            if (terrain == null)
+            {
+                Debug.LogWarning("EXTERIOR capture: no Terrain in the scene - island shots fall back to " +
+                                 "190 m along the bearing and may frame open water");
+                return ExitPosition + Bearing * 190f;
+            }
+
+            Vector3 size = terrain.terrainData.size;
+            Vector3 corner = terrain.transform.position;
+            footprintMeters = Mathf.Max(size.x, size.z);
+            var centre = new Vector3(corner.x + size.x * 0.5f, corner.y, corner.z + size.z * 0.5f);
+
+            Debug.Log($"EXTERIOR capture: island '{terrain.name}' footprint {size.x:0.#} x {size.z:0.#} m, " +
+                      $"corner {corner}, centre ({centre.x:0.#}, {centre.z:0.#}), base y={corner.y:0.#}, " +
+                      $"nominal top y={corner.y + size.y:0.#} (real relief is a small fraction of size.y), " +
+                      $"{Vector3.Dot(centre - ExitPosition, Bearing):0.#} m along the bearing from the exit");
+            return centre;
+        }
+
         private static (string label, Vector3 position, Vector3 target)[] BuildShots()
         {
             Vector3 surfacing = ExitPosition + ExitDirection * 29f;
-            Vector3 islandCentre = ExitPosition + Bearing * ExteriorEnvironmentBuilder.IslandDistanceMeters;
+            Vector3 islandCentre = ResolveIsland(out float footprint);
 
-            // Anchored to the WATERLINE, not to islandCentre. islandCentre inherits ExitPosition.y =
-            // 260, which is 13 m below the sea surface at 273: every shot that aimed at it was aiming
-            // underwater at the island's drowned flank, and shot 5's viewpoint - islandCentre minus
-            // 250 m of bearing - landed 60 m BEHIND the mouth, inside the headland mass, which is why
-            // it rendered as a wall of rock instead of a beach.
+            // Anchored to the WATERLINE, not to islandCentre. A Terrain's transform sits at its base,
+            // well below the surface, so aiming at islandCentre aims at the island's drowned flank.
             Vector3 islandSurface = new Vector3(islandCentre.x, ExteriorEnvironmentBuilder.SeaLevel, islandCentre.z);
             Vector3 midpoint = (ExitPosition + islandCentre) * 0.5f;
+
+            // Standoff scales with the island instead of being a fixed 130 m: the hand-placed island is
+            // a 50 m footprint, and a distance tuned for the old 200 m one renders it as a speck.
+            float standoff = Mathf.Max(45f, footprint * 1.3f);
 
             // Shot 1 sits on the measured knot-12 centreline position (~549 m) rather than
             // exit - dir*40: the end tangent extended backwards leaves the curving tunnel and the
@@ -135,10 +171,11 @@ namespace Varco.Exterior.EditorTools
                 ("2_outside_looking_back", ExitPosition + ExitDirection * 26f + Vector3.down * 8f, ExitPosition),
                 ("3_surfacing_underwater", surfacing + Vector3.down * 2f, islandSurface),
                 ("4_surfaced_above_water", surfacing + Vector3.up * 3f, islandSurface + Vector3.up * 8f),
-                // 130 m short of the island centre and riding the surface: the dry part of the island
-                // is roughly a 59 m radius, so this stands ~70 m off the shoreline with the beach
-                // filling the lower frame rather than the whole of it.
-                ("5_beach_from_water", islandSurface - Bearing * 130f + Vector3.up * 4f,
+                // Stood off SIDEWAYS, not back along the bearing. The island now sits only ~29 m past
+                // the mouth, so any standoff worth having on the bearing axis puts the camera back
+                // inside the cave - which is exactly the bug that made this shot a wall of rock before.
+                // Lateral keeps it on open water at any island distance.
+                ("5_beach_from_water", islandSurface - Right * standoff + Vector3.up * 4f,
                     islandSurface + Vector3.up * 2f),
                 ("6_overview", ExitPosition + Bearing * 120f + Right * 160f + Vector3.up * 110f,
                     new Vector3(midpoint.x, ExteriorEnvironmentBuilder.SeaLevel, midpoint.z))
@@ -184,11 +221,34 @@ namespace Varco.Exterior.EditorTools
                 data.renderPostProcessing = true;
                 data.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
 
+                // The play camera the director actually drives. EvaluateAndApplyAt sets clearFlags and
+                // backgroundColor on the director's own trackedCamera - a private serialized field -
+                // NOT on this capture rig. Left alone, the rig keeps a fresh Camera's default Skybox
+                // clear, so an underwater frame shows SKY where the game shows solid water colour:
+                // that is why an earlier capture appeared to show clouds through the cave mouth.
+                // Copying the flags off the driven camera is faithful by construction - no duplicated
+                // logic to drift - and it is the only way these frames can judge the surface-from-below
+                // effect at all. Same class of trap as the POST_OFF one in UnderwaterGradingCompare.
+                Camera drivenCamera = Camera.main ?? UnityEngine.Object
+                    .FindObjectsByType<Camera>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                    .FirstOrDefault(candidate => candidate != null && candidate != camera);
+                if (drivenCamera == null)
+                    Debug.LogWarning("EXTERIOR capture: no play camera found, so the rig keeps its " +
+                                     "default Skybox clear and underwater frames will NOT match the game");
+                else
+                    report.AppendLine($"  clear flags mirrored from '{drivenCamera.name}'");
+
                 foreach ((string label, Vector3 position, Vector3 target) in BuildShots())
                 {
                     camera.transform.position = position;
                     camera.transform.rotation = Quaternion.LookRotation(target - position, Vector3.up);
                     director.EvaluateAndApplyAt(position);
+
+                    if (drivenCamera != null)
+                    {
+                        camera.clearFlags = drivenCamera.clearFlags;
+                        camera.backgroundColor = drivenCamera.backgroundColor;
+                    }
 
                     string file = $"{label}.png";
                     Render(camera, Path.Combine(root, file), out Vector3 mean, out float clipped);
