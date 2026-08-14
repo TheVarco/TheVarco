@@ -17,7 +17,7 @@ namespace Varco.Underwater
         /// with a relative tint, so a version-1 asset deserialises into fields that still exist but now
         /// mean something different - it has to be regenerated, not migrated field by field.
         /// </summary>
-        private const int CurrentDataVersion = 10;
+        private const int CurrentDataVersion = 11;
 
         [SerializeField] private int dataVersion;
         [SerializeField] private List<UnderwaterZoneProfile> zones = new List<UnderwaterZoneProfile>();
@@ -240,6 +240,40 @@ namespace Varco.Underwater
                     whiteBalanceTint = 0f,
                     particleDensityScale = 0.70f,
                     shaftIntensity = 1.60f,
+                    bioluminescenceTint = new Color(0.30f, 0.65f, 1.00f)
+                },
+
+                // Exterior - 동굴 밖 개방 수역. 존이 아니라 UnderwaterZoneDirector의 exteriorZoneId가
+                // 출구 평면을 지난 위치에서 명시적으로 찾는 프로필이다 (경로 거리는 마지막 섹션에
+                // 클램프되므로 섹션 데이터로는 도달할 수 없다). 햇빛 드는 얕은 열대 수역: 시야가 길고,
+                // 빨강이 살아 있고, 그레이딩은 중립에 가깝게 - 수면 위 컷씬 프레임이 이 그레이딩을
+                // 그대로 물려받기 때문이다.
+                new UnderwaterZoneProfile
+                {
+                    zoneId = "Exterior",
+                    visibilityMeters = 45f,
+                    fogColor = new Color(0.0800f, 0.4200f, 0.5200f),
+                    backgroundColor = new Color(0.3000f, 1.0500f, 1.3000f),
+                    ambientSky = new Color(2.2000f, 2.9000f, 3.6000f),
+                    ambientEquator = new Color(1.2100f, 1.5950f, 1.9800f),
+                    ambientGround = new Color(0.4400f, 0.5800f, 0.7200f),
+                    ambientIntensity = 1.20f,
+                    directionalIntensity = 1.40f,
+                    // 얕은 물이라 빨강이 오래 살아남는다 - 심해 단서의 역함수가 곧 "밖으로 나왔다"는 단서
+                    extinctionTint = new Vector3(1.4f, 1.01f, 1.0f),
+                    refraction = 0.0022f,
+                    refractionSpeed = 0.70f,
+                    causticStrength = 0.45f,
+                    postExposure = 0.20f,
+                    contrast = 0f,
+                    saturation = 5f,
+                    colorFilter = Color.white,
+                    bloomIntensity = 0.30f,
+                    vignetteIntensity = 0.12f,
+                    whiteBalanceTemperature = -5f,
+                    whiteBalanceTint = 0f,
+                    particleDensityScale = 0.40f,
+                    shaftIntensity = 1.00f,
                     bioluminescenceTint = new Color(0.30f, 0.65f, 1.00f)
                 }
             };

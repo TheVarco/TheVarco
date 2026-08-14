@@ -27,6 +27,25 @@ namespace Varco.Underwater
         public bool IsValid => positions != null && positions.Length >= 2;
         public float TotalLength => IsValid ? distances[distances.Length - 1] : 0f;
 
+        /// <summary>
+        /// World position and outward direction of the route's far end - the cave exit mouth. The
+        /// direction comes from the last polyline segment (2 m spacing), which the noise system keeps
+        /// clean: displacement fades to zero within 5 m of either route end.
+        /// </summary>
+        public bool TryGetEndPose(out Vector3 position, out Vector3 tangent)
+        {
+            if (!IsValid)
+            {
+                position = Vector3.zero;
+                tangent = Vector3.forward;
+                return false;
+            }
+
+            position = positions[positions.Length - 1];
+            tangent = (position - positions[positions.Length - 2]).normalized;
+            return true;
+        }
+
         public bool Build(CaveRoute route, int splineIndex = 0)
         {
             positions = null;

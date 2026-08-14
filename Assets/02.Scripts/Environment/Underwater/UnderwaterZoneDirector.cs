@@ -67,6 +67,21 @@ namespace Varco.Underwater
         [Range(-2f, 2f)] public float exposureOffset;
         [Range(0f, 3f)] public float bloomMultiplier = 1f;
 
+        [Header("Exterior")]
+        [Tooltip("Blend to the exterior profile past the cave exit, and fade the underwater effect " +
+                 "out above the sea surface. Without this, positions past the route end clamp to Z6 " +
+                 "and the beach outside the exit renders as deep cave.")]
+        [SerializeField] private bool exteriorBlendEnabled = true;
+        [Tooltip("Zone id resolved for open water outside the exit.")]
+        [SerializeField] private string exteriorZoneId = "Exterior";
+        [Tooltip("Metres past the exit plane over which cave grading crossfades to the exterior profile.")]
+        [SerializeField] private float exteriorBlendMeters = 12f;
+        [Tooltip("World Y of the exterior sea surface. The exit mouth top sits at ~268 after the " +
+                 "24x16 shrink, so 273 keeps the mouth fully submerged.")]
+        [SerializeField] private float seaSurfaceY = 273f;
+        [Tooltip("Vertical crossfade window at the waterline, so surfacing has no pop.")]
+        [SerializeField] private float surfaceBlendMeters = 1.5f;
+
         [Header("Authoring")]
         [Tooltip("Zone applied by the \"Apply Preview Zone\" context-menu item.")]
         [SerializeField] private string previewZoneId = "Z1";
@@ -86,6 +101,8 @@ namespace Varco.Underwater
         private bool markersSearched;
         private bool stateCaptured;
         private bool primed;
+        /// <summary>0 fully submerged, 1 fully above <see cref="seaSurfaceY"/>. Set per resolve.</summary>
+        private float aboveWaterWeight;
         private Rect panelRect = new Rect(18f, 18f, 320f, 420f);
 
         private bool capturedFogEnabled;
@@ -267,10 +284,42 @@ namespace Varco.Underwater
             if (zoneSet == null)
                 return;
 
+            aboveWaterWeight = !exteriorBlendEnabled
+                ? 0f
+                : Mathf.SmoothStep(0f, 1f,
+                    Mathf.Clamp01((worldPosition.y - seaSurfaceY) / Mathf.Max(0.01f, surfaceBlendMeters)));
+
             if (routeReady && TryResolveFromRoute(worldPosition, result))
+            {
+                ApplyExteriorBlend(worldPosition, result);
                 return;
+            }
 
             ResolveFromMarkers(worldPosition, result);
+        }
+
+        /// <summary>
+        /// Crossfades the resolved cave profile into the exterior one past the exit plane.
+        ///
+        /// FindSectionIndex clamps past-the-end distances to the last section, so without this the
+        /// open water outside the mouth is graded as deep-cave Z6 forever. The projection onto the
+        /// exit tangent only counts when the sample already sits near the route's end - a lateral
+        /// fold of the route elsewhere can never read as "outside".
+        /// </summary>
+        private void ApplyExteriorBlend(Vector3 worldPosition, UnderwaterZoneProfile result)
+        {
+            if (!exteriorBlendEnabled || RouteDistance < sampler.TotalLength - 30f)
+                return;
+            if (!sampler.TryGetEndPose(out Vector3 exitPosition, out Vector3 exitDirection))
+                return;
+
+            float beyond = Vector3.Dot(worldPosition - exitPosition, exitDirection);
+            if (beyond <= 0f)
+                return;
+
+            float weight = Mathf.SmoothStep(0f, 1f,
+                Mathf.Clamp01(beyond / Mathf.Max(0.01f, exteriorBlendMeters)));
+            result.SetToLerp(result, zoneSet.Resolve(exteriorZoneId), weight);
         }
 
         private bool TryResolveFromRoute(Vector3 worldPosition, UnderwaterZoneProfile result)
@@ -414,8 +463,10 @@ namespace Varco.Underwater
         private void Apply(UnderwaterZoneProfile profile)
         {
             float visibility = Mathf.Max(1f, profile.visibilityMeters * visibilityMultiplier);
+            // Above the sea surface there is no water to absorb light: the screen pass fades out over
+            // the waterline window instead of switching, so breaking the surface has no pop.
             float screenStrength = driveScreenPass
-                ? Mathf.Clamp01(profile.screenStrength * masterStrength)
+                ? Mathf.Clamp01(profile.screenStrength * masterStrength) * (1f - aboveWaterWeight)
                 : 0f;
             bool screenPassActive = screenStrength > 0.001f;
 
@@ -434,6 +485,12 @@ namespace Varco.Underwater
             {
                 RenderSettings.fog = false;
             }
+
+            // The screen-pass fade above hands fog duty back to RenderSettings the moment the camera
+            // surfaces - which would paint the open-air island with underwater fog. Above the
+            // waterline neither fog path may run.
+            if (aboveWaterWeight > 0.5f)
+                RenderSettings.fog = false;
 
             if (driveAmbient)
             {
@@ -463,8 +520,18 @@ namespace Varco.Underwater
 
             if (driveCameraBackground && trackedCamera != null)
             {
-                trackedCamera.clearFlags = CameraClearFlags.SolidColor;
-                trackedCamera.backgroundColor = profile.backgroundColor;
+                // Underwater, the solid clear colour IS the water beyond the last drawn surface.
+                // Above the waterline that same colour reads as a wall of water in the sky, so the
+                // camera clears to the skybox instead.
+                if (aboveWaterWeight > 0.5f)
+                {
+                    trackedCamera.clearFlags = CameraClearFlags.Skybox;
+                }
+                else
+                {
+                    trackedCamera.clearFlags = CameraClearFlags.SolidColor;
+                    trackedCamera.backgroundColor = profile.backgroundColor;
+                }
             }
 
             if (drivePostProcessing)
@@ -503,8 +570,12 @@ namespace Varco.Underwater
                 // Tie defocus to visibility so the far wall softens, but keep it well short of the
                 // in-scatter distance and cap the radius: starting the blur at half the visibility with
                 // a near-full radius smeared the rock detail into flat blobs.
-                depthOfField.gaussianStart.value = visibility * 0.9f;
-                depthOfField.gaussianEnd.value = visibility * 2.2f;
+                //
+                // Above the waterline the defocus range opens toward infinity - air has no turbidity,
+                // and an island 140 m out would otherwise sit fully inside the blur band.
+                float dofVisibility = Mathf.Lerp(visibility, 4000f, aboveWaterWeight);
+                depthOfField.gaussianStart.value = dofVisibility * 0.9f;
+                depthOfField.gaussianEnd.value = dofVisibility * 2.2f;
                 depthOfField.gaussianMaxRadius.value = Mathf.Lerp(0.5f, 0.3f, Mathf.Clamp01(visibility / 45f));
             }
         }
