@@ -7,6 +7,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
+using Varco.Underwater;
 
 namespace Varco.Exterior.EditorTools
 {
@@ -44,6 +45,8 @@ namespace Varco.Exterior.EditorTools
             "Assets/ThirdParty/Uber Stylized Water/Demo/Terrain/sand_01_color_2k.png";
         private const string SeaTemplateMaterialPath =
             "Assets/ThirdParty/Uber Stylized Water/Template Materials/UWa-Template-Tropical.mat";
+        private const string ZoneSetPath = "Assets/Settings/Underwater/MainMapUnderwaterZones.asset";
+        private const string ExteriorZoneId = "Exterior";
         private const string GeneratedFolder = "Assets/Generated/Exterior";
         private const string SeabedMaterialPath = GeneratedFolder + "/ExteriorSeabed_Sand.mat";
         private const string SeaMaterialPath = GeneratedFolder + "/ExteriorSea_Tropical.mat";
@@ -148,7 +151,62 @@ namespace Varco.Exterior.EditorTools
             BuildExitCollar(root.transform);
             BuildHeadland(root.transform);
             ApplySkybox();
+            ApplyEditModeAmbient();
             RaiseFarClip();
+        }
+
+        /// <summary>
+        /// Writes the Exterior profile's lighting into RenderSettings so the SCENE VIEW shows the beach
+        /// the way the game does.
+        ///
+        /// 🔴 The scene was carrying a fossil. Its saved ambient was sky (0.202, 1.132, 1.245) - red a
+        /// sixth of green and blue, a ratio of 1 : 5.6 : 6.2, which is exactly the pre-PR#11 cyan noted
+        /// in HANDOFF.md 2-E, divided by UnderwaterEnvironmentBuilder's 1/8 editor preview scale. Nobody
+        /// saw it because UnderwaterZoneDirector overwrites ambient every frame at runtime; edit mode has
+        /// no director, so the scene view kept lighting everything with a colour that has almost no red
+        /// in it. Yellow sand cannot render yellow under that - it came out cyan.
+        ///
+        /// The exterior is what gets authored in this scene view, so the Exterior profile is what belongs
+        /// in the saved state. Values are written 1:1 rather than through the 1/8 preview scale, because
+        /// the point is for the scene view to match what the director applies at runtime.
+        /// </summary>
+        private static void ApplyEditModeAmbient()
+        {
+            var zoneSet = AssetDatabase.LoadAssetAtPath<UnderwaterZoneSet>(ZoneSetPath);
+            if (zoneSet == null)
+            {
+                Debug.LogWarning($"EXTERIOR: no zone set at {ZoneSetPath}, scene-view ambient left as is");
+                return;
+            }
+
+            UnderwaterZoneProfile exterior = zoneSet.Resolve(ExteriorZoneId);
+            if (exterior == null || exterior.zoneId != ExteriorZoneId)
+            {
+                Debug.LogWarning($"EXTERIOR: zone set has no '{ExteriorZoneId}' profile, " +
+                                 "scene-view ambient left as is");
+                return;
+            }
+
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = exterior.ambientSky * exterior.ambientIntensity;
+            RenderSettings.ambientEquatorColor = exterior.ambientEquator * exterior.ambientIntensity;
+            RenderSettings.ambientGroundColor = exterior.ambientGround * exterior.ambientIntensity;
+            RenderSettings.ambientIntensity = 1f;
+            RenderSettings.fog = false;
+
+            Light sun = UnityEngine.Object
+                .FindObjectsByType<Light>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .FirstOrDefault(candidate => candidate.type == LightType.Directional);
+            if (sun != null)
+            {
+                sun.color = exterior.directionalColor;
+                sun.intensity = exterior.directionalIntensity;
+                EditorUtility.SetDirty(sun);
+            }
+
+            Debug.Log($"EXTERIOR scene-view lighting: ambient sky {RenderSettings.ambientSkyColor}, " +
+                      $"sun {(sun != null ? sun.color.ToString() : "none")} - " +
+                      "replaces the pre-PR#11 cyan the scene had kept since before the navy re-grade");
         }
 
         /// <summary>

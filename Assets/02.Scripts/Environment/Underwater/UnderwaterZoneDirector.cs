@@ -136,12 +136,46 @@ namespace Varco.Underwater
             CaptureSceneState();
             ResolveReferences();
             primed = false;
+            RenderPipelineManager.beginCameraRendering += ApplyScreenPassForCamera;
         }
 
         private void OnDisable()
         {
+            RenderPipelineManager.beginCameraRendering -= ApplyScreenPassForCamera;
             Shader.SetGlobalFloat(StrengthId, 0f);
             RestoreSceneState();
+        }
+
+        /// <summary>
+        /// Re-decides the screen pass for the camera actually being rendered.
+        ///
+        /// 🔴 WHY THIS EXISTS. _Underwater_Strength is a GLOBAL shader property and the underwater pass
+        /// is a renderer feature, so it runs on every camera in the frame. <see cref="Apply"/> sets that
+        /// global once per frame from <see cref="trackedCamera"/>, which is right for the player's view
+        /// and wrong for every other view: with the sub still inside the cave, the scene view flown out
+        /// above the island was drawn fully submerged - open sky, palms and sand all graded as deep
+        /// water. That is what "물 밖에 있는데도 물에 있는 효과가 적용됨" was.
+        ///
+        /// It matters beyond authoring comfort: the point of the exterior work is a Cinemachine cutscene
+        /// that surfaces, and a cutscene camera is not the tracked camera. Without this the shot would
+        /// stay underwater however high it climbed.
+        ///
+        /// Only the strength is re-evaluated. Water colour, extinction and everything scene-wide
+        /// (ambient, fog, the sun, post processing) genuinely cannot be per-camera, and at strength 0
+        /// none of the screen pass survives anyway.
+        /// </summary>
+        private void ApplyScreenPassForCamera(ScriptableRenderContext context, Camera camera)
+        {
+            if (!driveScreenPass || camera == null || zoneSet == null)
+                return;
+
+            float weight = !exteriorBlendEnabled
+                ? 0f
+                : Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(
+                    (camera.transform.position.y - seaSurfaceY) / Mathf.Max(0.01f, surfaceBlendMeters)));
+
+            Shader.SetGlobalFloat(StrengthId,
+                Mathf.Clamp01(current.screenStrength * masterStrength) * (1f - weight));
         }
 
         private void LateUpdate()
