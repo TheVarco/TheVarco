@@ -254,17 +254,20 @@ namespace Varco.Underwater
                     visibilityMeters = 45f,
                     fogColor = new Color(0.0800f, 0.4200f, 0.5200f),
                     backgroundColor = new Color(0.3000f, 1.0500f, 1.3000f),
-                    ambientSky = new Color(2.2000f, 2.9000f, 3.6000f),
-                    ambientEquator = new Color(1.2100f, 1.5950f, 1.9800f),
-                    ambientGround = new Color(0.4400f, 0.5800f, 0.7200f),
-                    ambientIntensity = 1.20f,
+                    // 수면 위 프레임이 이 앰비언트를 그대로 받는다. 동굴 존들(3.0-3.6)은 톤매핑
+                    // 전제의 심해 값이라, 그 수준이면 야외 지형·산체가 흰색으로 날아간다 - 야외는
+                    // 디렉셔널 라이트가 주광이고 앰비언트는 채움광 수준이어야 한다.
+                    ambientSky = new Color(1.3000f, 1.6000f, 1.9500f),
+                    ambientEquator = new Color(0.7150f, 0.8800f, 1.0725f),
+                    ambientGround = new Color(0.2600f, 0.3200f, 0.3900f),
+                    ambientIntensity = 1.00f,
                     directionalIntensity = 1.40f,
                     // 얕은 물이라 빨강이 오래 살아남는다 - 심해 단서의 역함수가 곧 "밖으로 나왔다"는 단서
                     extinctionTint = new Vector3(1.4f, 1.01f, 1.0f),
                     refraction = 0.0022f,
                     refractionSpeed = 0.70f,
                     causticStrength = 0.45f,
-                    postExposure = 0.20f,
+                    postExposure = 0.10f,
                     contrast = 0f,
                     saturation = 5f,
                     colorFilter = Color.white,
