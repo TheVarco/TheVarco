@@ -33209,11 +33209,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCameraRig
   viewMode: 0
   mouseSensitivity: 2.5
-  clampPitch: 0
   minPitch: -80
   maxPitch: 80
   target: {fileID: 0}
-  eyeOffset: {x: 0, y: 0.8, z: 0.1}
+  eyeOffset: {x: 0, y: 0.8, z: 0.05}
   thirdPersonDistance: 4
   thirdPersonHeightOffset: 0.3
   followSmoothing: 10
@@ -41455,6 +41454,7 @@ MonoBehaviour:
   - HotBarUI
   - HotbarUI
   useLobby: 0
+  spawnReleaseTimeout: 60
 --- !u!1001 &1640548930
 PrefabInstance:
   m_ObjectHideFlags: 0

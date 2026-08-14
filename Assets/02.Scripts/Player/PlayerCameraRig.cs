@@ -15,9 +15,9 @@ public class PlayerCameraRig : MonoBehaviour
 
     [Header("마우스 감도")]
     public float mouseSensitivity = 2.5f;
-    public bool clampPitch = true;
-    public float minPitch = -89f;
-    public float maxPitch = 89f;
+    [Tooltip("위아래 시선 한계. 넘기면 화면이 뒤집히고 3인칭 카메라가 천장/바닥을 뚫는다")]
+    [Range(-89f, 0f)] public float minPitch = -80f;
+    [Range(0f, 89f)] public float maxPitch = 80f;
 
     [Header("참조")]
     public Transform target; // 따라다닐 플레이어 Transform
@@ -105,8 +105,11 @@ public class PlayerCameraRig : MonoBehaviour
         {
             yaw += Input.GetAxis("Mouse X") * mouseSensitivity;
             pitch -= Input.GetAxis("Mouse Y") * mouseSensitivity;
-            if (clampPitch)
-                pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
+
+            // 항상 조인다. 예전엔 clampPitch 토글이 있었는데 모든 씬에서 꺼진 채로 저장돼
+            // 있어서 위아래로 무한히 돌아갔고, 90도를 넘어가면 3인칭 카메라 자리가 눈 위치의
+            // 위아래로 뒤집혀 천장과 바닥을 뚫었다. 끌 이유가 없는 값이라 토글을 없앴다
+            pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
         }
 
         // 테스트용 임시 전환 키 (나중에 설정 메뉴 UI로 교체)
@@ -129,7 +132,10 @@ public class PlayerCameraRig : MonoBehaviour
         Quaternion lookRotation = Quaternion.Euler(pitch, yaw, 0f);
         transform.rotation = lookRotation;
 
-        Vector3 eyePosition = target.position + lookRotation * eyeOffset;
+        // 눈은 머리에 붙어 있어야 한다. lookRotation을 그대로 쓰면 pitch까지 반영돼서
+        // 아래를 볼 때 눈이 발밑으로 내려앉고 뒤로 밀린다 (80도에서 위 0.8m -> 위 0.14m + 뒤 0.79m).
+        // 그 상태로 바닥 근처면 카메라가 지형 안에 박힌다. 좌우(yaw)만 따라 돌면 된다
+        Vector3 eyePosition = target.position + Quaternion.Euler(0f, yaw, 0f) * eyeOffset;
 
         if (viewMode == ViewMode.FirstPerson)
         {
