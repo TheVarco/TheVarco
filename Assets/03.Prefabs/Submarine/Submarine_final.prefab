@@ -291,7 +291,7 @@ GameObject:
   - component: {fileID: 7365325630006765200}
   - component: {fileID: 878609549893578404}
   m_Layer: 0
-  m_Name: Spot Light
+  m_Name: Headlight
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -305,8 +305,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 946861511065365486}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.60876137, y: 0, z: 0, w: 0.7933534}
-  m_LocalPosition: {x: 0, y: -10, z: -3}
+  m_LocalRotation: {x: -0, y: -0.64278734, z: 0.7660446, w: 0}
+  m_LocalPosition: {x: 0.0000502124, y: -13.026933, z: -0.9098211}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -322,11 +322,11 @@ Light:
   m_Enabled: 1
   serializedVersion: 12
   m_Type: 0
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 50
-  m_Range: 30
-  m_SpotAngle: 50
-  m_InnerSpotAngle: 30
+  m_Color: {r: 1, g: 0.93, b: 0.82, a: 1}
+  m_Intensity: 3000
+  m_Range: 60
+  m_SpotAngle: 120
+  m_InnerSpotAngle: 70
   m_CookieSize2D: {x: 0.5, y: 0.5}
   m_Shadows:
     m_Type: 0

@@ -60,7 +60,16 @@ namespace Varco.Underwater
         [Range(0f, 1f)] public float screenStrength = 1f;
 
         [Header("Post Processing")]
-        [Range(-2f, 2f)] public float postExposure = 0.35f;
+        /// <summary>
+        /// The lit zones all sit between 0.32 and 0.60. The upper bound is 6 rather than 2 because Z4
+        /// needs 5.10: its scene radiance is roughly 30x below every other zone (directional light 0,
+        /// ambient a fifteenth of the rest), which puts the whole frame under the ACES toe, and the
+        /// tonemapper then clamps it to literal black - measured at 0.0% non-black pixels. Five stops
+        /// of extra exposure is the dark-adapted-eye compensation that buys the image back. Treat a
+        /// value above 2 as a statement that the zone has almost no light in it, not as a fix for
+        /// grading that merely looks dim.
+        /// </summary>
+        [Range(-2f, 6f)] public float postExposure = 0.35f;
         [Range(-100f, 100f)] public float contrast = 12f;
         [Range(-100f, 100f)] public float saturation = 6f;
         [ColorUsage(false)] public Color colorFilter = new Color(0.82f, 0.95f, 1f);
@@ -113,6 +122,10 @@ namespace Varco.Underwater
         /// <summary>Writes the weighted blend of <paramref name="a"/> and <paramref name="b"/> into this instance.</summary>
         public void SetToLerp(UnderwaterZoneProfile a, UnderwaterZoneProfile b, float t)
         {
+            // Captured before anything is written, because SetToLerp(this, target, t) is a supported
+            // call and the ambient fields below would otherwise be overwritten before they are read.
+            float exposureBlend = BlendPostExposure(a, b, t);
+
             zoneId = t < 0.5f ? a.zoneId : b.zoneId;
             visibilityMeters = Mathf.Lerp(a.visibilityMeters, b.visibilityMeters, t);
 
@@ -132,7 +145,7 @@ namespace Varco.Underwater
             causticStrength = Mathf.Lerp(a.causticStrength, b.causticStrength, t);
             screenStrength = Mathf.Lerp(a.screenStrength, b.screenStrength, t);
 
-            postExposure = Mathf.Lerp(a.postExposure, b.postExposure, t);
+            postExposure = exposureBlend;
             contrast = Mathf.Lerp(a.contrast, b.contrast, t);
             saturation = Mathf.Lerp(a.saturation, b.saturation, t);
             colorFilter = Color.Lerp(a.colorFilter, b.colorFilter, t);
@@ -145,6 +158,48 @@ namespace Varco.Underwater
 
             shaftIntensity = Mathf.Lerp(a.shaftIntensity, b.shaftIntensity, t);
             bioluminescenceTint = Color.Lerp(a.bioluminescenceTint, b.bioluminescenceTint, t);
+        }
+
+        /// <summary>
+        /// Blends <see cref="postExposure"/> so the crossing is never brighter than either side of it.
+        ///
+        /// 🔴 WHY THIS IS NOT A Mathf.Lerp. Exposure and ambient are two halves of one quantity: how
+        /// bright the zone ends up on screen is roughly ambient * 2^postExposure. Z4 sets ambient to a
+        /// fifteenth of its neighbours and postExposure to 5.10 to compensate, and those two cancel out
+        /// at the zone's centre - but not on the way in. Lerping both linearly means the halfway point
+        /// carries Z3's ambient with most of Z4's exposure, and the measured result was a frame 2.2x
+        /// BRIGHTER than Z3 itself: flying into the blackout zone flashed white before going dark.
+        ///
+        /// Interpolating the product geometrically instead, and solving for the exposure that produces
+        /// it, keeps the crossing monotonic by construction. Where two zones share an ambient level this
+        /// reduces to the linear blend it replaces, so only the Z3/Z4 and Z4/Z5 boundaries change.
+        /// </summary>
+        private static float BlendPostExposure(UnderwaterZoneProfile a, UnderwaterZoneProfile b, float t)
+        {
+            float ambientA = AmbientReference(a);
+            float ambientB = AmbientReference(b);
+
+            float productA = ambientA * Mathf.Pow(2f, a.postExposure);
+            float productB = ambientB * Mathf.Pow(2f, b.postExposure);
+
+            // Geometric interpolation of the product, i.e. linear in stops.
+            float product = Mathf.Pow(productA, 1f - t) * Mathf.Pow(productB, t);
+            float ambient = Mathf.Max(1e-4f, Mathf.Lerp(ambientA, ambientB, t));
+
+            return Mathf.Log(product / ambient, 2f);
+        }
+
+        /// <summary>
+        /// Scalar stand-in for "how much light this zone puts on a surface". Only the sky term is used:
+        /// equator and ground track it by construction in every authored zone, and what matters here is
+        /// the ratio between zones, not an accurate irradiance.
+        /// </summary>
+        private static float AmbientReference(UnderwaterZoneProfile profile)
+        {
+            float luma = 0.2126f * profile.ambientSky.r
+                       + 0.7152f * profile.ambientSky.g
+                       + 0.0722f * profile.ambientSky.b;
+            return Mathf.Max(1e-4f, luma * Mathf.Max(0.01f, profile.ambientIntensity));
         }
 
         /// <summary>

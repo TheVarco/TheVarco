@@ -20,8 +20,12 @@ namespace Varco.Underwater
         /// Version 12 added UnderwaterZoneProfile.directionalColor, which the director now writes to the
         /// scene's only light. A version-11 asset has no value stored for it, so it must be regenerated
         /// rather than trusted - the field decides whether the sun is daylight or cave-blue.
+        ///
+        /// Version 13 re-graded Z4. postExposure moved 0.10 -> 5.10, which is outside the range the
+        /// field used to allow, so a version-12 asset does not merely hold an older value - it holds one
+        /// that renders the zone as literal black. It has to be regenerated, not left alone.
         /// </summary>
-        private const int CurrentDataVersion = 12;
+        private const int CurrentDataVersion = 13;
 
         [SerializeField] private int dataVersion;
         [SerializeField] private List<UnderwaterZoneProfile> zones = new List<UnderwaterZoneProfile>();
@@ -160,7 +164,18 @@ namespace Varco.Underwater
                 },
 
                 // Z4 완전 암흑 단층 - 4-7m, 손전등 외 조명 0, 발광 생물 없음.
-                // 헤드라이트가 후속 작업이라 지금은 의도적으로 거의 보이지 않는 것이 정상이다.
+                //
+                // 🔴 가시거리 5.5는 MAP_GUIDE:27의 설계된 기믹이라 그대로다. 바뀐 것은 그레이딩뿐이다.
+                // 배치모드 측정 결과 Z4는 화면이 "어두운" 정도가 아니라 non-black 픽셀 0.0%, 즉 문자
+                // 그대로 (0,0,0)이었다. 원인은 안개가 아니라 노출이다. 이 존은 directionalIntensity가
+                // 0이고 앰비언트가 다른 존의 1/15라 씬 광량이 30배 낮은데, postExposure만 다른 존과
+                // 같은 0.10을 쓰고 있었다. 그 결과 프레임 전체가 ACES 토 아래로 들어가 톤매퍼가 0으로
+                // 클램프했다. 노출을 5.10으로 올리고(암순응) contrast 18 -> 6, vignette 0.55 -> 0.40으로
+                // 완화하니 물빛과 조종석이 읽히고, 잠수함 헤드라이트가 5 m 안쪽 물체를 실제로 드러낸다.
+                //
+                // 헤드라이트로 20 m 밖 동굴 벽을 밝히는 것은 여기서도 여전히 불가능하다. Z4 통로는 뱃머리
+                // 기준 전방 최근접 표면이 17-21 m인데 5.5 m 가시거리의 25 m 투과율은 1e-6이라, 스포트라이트
+                // 강도를 50,000까지 올려도 화면에 점 몇 개만 찍힌다. "가까이 가야 보인다"가 이 존의 규칙이다.
                 new UnderwaterZoneProfile
                 {
                     zoneId = "Z4",
@@ -176,12 +191,12 @@ namespace Varco.Underwater
                     refraction = 0.0016f,
                     refractionSpeed = 0.45f,
                     causticStrength = 0f,
-                    postExposure = 0.10f,
-                    contrast = 18f,
+                    postExposure = 5.10f,
+                    contrast = 6f,
                     saturation = -20f,
                     colorFilter = new Color(0.85f, 0.92f, 1.00f),
                     bloomIntensity = 0.15f,
-                    vignetteIntensity = 0.55f,
+                    vignetteIntensity = 0.40f,
                     whiteBalanceTemperature = -8f,
                     whiteBalanceTint = -2f,
                     particleDensityScale = 1.60f,
