@@ -136,9 +136,13 @@ namespace Varco.Exterior.EditorTools
             RemoveRetiredChild(root.transform, "Island");
             RemoveRetiredChild(root.transform, "BeachProps");
 
+            // Resolved once and shared: the seabed, the skirt and the island all have to be the same
+            // sand at the same scale, and the terrain's own layer is the reference for that.
+            Terrain terrain = FindIslandTerrain();
+
             BuildSea(root.transform);
-            BuildSeabed(root.transform);
-            BuildIslandSkirt(root.transform);
+            BuildSeabed(root.transform, terrain);
+            BuildIslandSkirt(root.transform, terrain);
             BuildExitCollar(root.transform);
             BuildHeadland(root.transform);
             ApplySkybox();
@@ -310,47 +314,155 @@ namespace Varco.Exterior.EditorTools
 
         // ---- seabed ------------------------------------------------------------------------------
 
-        private static void BuildSeabed(Transform root)
+        private const string SeabedMeshPath = GeneratedFolder + "/ExteriorSeabed.asset";
+
+        /// <summary>Fallback sand tile size if the terrain cannot be read. The pack's Sand layer uses 4 m.</summary>
+        private const float FallbackSandTileMeters = 4f;
+
+        private const float SeabedSpanMeters = 800f;
+
+        /// <summary>
+        /// The seabed sheet. Generated rather than a CreatePrimitive plane so its UVs can be authored in
+        /// world metres: a primitive's UVs run 0..1 across the whole 800 m, which forced a tiling factor
+        /// on the material and made it impossible for the seabed, the skirt and the terrain to share one
+        /// scale. Generating it also drops the MeshCollider CreatePrimitive adds, which this backdrop has
+        /// no use for.
+        /// </summary>
+        private static void BuildSeabed(Transform root, Terrain terrain)
         {
             Transform group = RecreateChild(root, "Seabed");
 
-            // Centred 420 m out along the bearing so the 800 m plane starts ~20 m beyond the mouth.
+            // Centred 420 m out along the bearing so the 800 m sheet starts ~20 m beyond the mouth.
             // It must not slice through the cave: at y=252 it would cross the visible Z6 interior if
             // it extended back over the route (the tunnel around 540-579 m spans y 240-260).
-            GameObject plane = GameObject.CreatePrimitive(PrimitiveType.Plane);
-            plane.name = "SeabedPlane";
-            plane.transform.SetParent(group, false);
-            plane.transform.position = ExitPosition + Bearing * 420f + Vector3.up * (SeabedLevel - ExitPosition.y);
-            plane.transform.localScale = new Vector3(80f, 1f, 80f); // 10 m primitive -> 800 m
+            Vector3 centre = ExitPosition + Bearing * 420f + Vector3.up * (SeabedLevel - ExitPosition.y);
+            float tile = SandTileMeters(terrain);
+            float half = SeabedSpanMeters * 0.5f;
 
-            plane.GetComponent<MeshRenderer>().sharedMaterial = EnsureSeabedMaterial();
+            var corners = new[]
+            {
+                new Vector3(centre.x - half, centre.y, centre.z - half),
+                new Vector3(centre.x + half, centre.y, centre.z - half),
+                new Vector3(centre.x + half, centre.y, centre.z + half),
+                new Vector3(centre.x - half, centre.y, centre.z + half)
+            };
+
+            var mesh = new Mesh { name = "ExteriorSeabed" };
+            mesh.SetVertices(corners);
+            mesh.SetUVs(0, corners.Select(c => new Vector2(c.x, c.z) / tile).ToArray());
+            mesh.SetTriangles(new[] { 0, 2, 1, 0, 3, 2 }, 0);
+            EnsureWindingTowards(mesh, Vector3.up);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+
+            var seabed = new GameObject("SeabedPlane");
+            seabed.transform.SetParent(group, false);
+            seabed.AddComponent<MeshFilter>().sharedMesh = SaveMeshAsset(mesh, SeabedMeshPath);
+            seabed.AddComponent<MeshRenderer>().sharedMaterial = EnsureSeabedMaterial(terrain);
+            seabed.isStatic = true;
         }
 
         /// <summary>
-        /// The sand material shared by the seabed plane and the island skirt. They meet along the
-        /// skirt's outer edge, so they have to be the same texture or the join reads as a colour seam.
+        /// Metres of world space per sand tile, read from the terrain's own sand layer.
+        ///
+        /// This is the number that made the island look like it had a step around it: the terrain tiles
+        /// its sand every 4 m, the seabed plane was tiling every 6.7 m and the skirt every 1 m, so three
+        /// surfaces meant to be one beach were drawn at three different scales.
         /// </summary>
-        private static Material EnsureSeabedMaterial()
+        private static float SandTileMeters(Terrain terrain)
+        {
+            TerrainLayer layer = FindSandLayer(terrain);
+            if (layer == null || layer.tileSize.x <= 0.01f)
+                return FallbackSandTileMeters;
+            return layer.tileSize.x;
+        }
+
+        private static TerrainLayer FindSandLayer(Terrain terrain)
+        {
+            TerrainLayer[] layers = terrain != null && terrain.terrainData != null
+                ? terrain.terrainData.terrainLayers
+                : null;
+            if (layers == null || layers.Length == 0)
+                return null;
+
+            return layers.FirstOrDefault(layer => layer != null && layer.name.IndexOf(
+                       "sand", StringComparison.OrdinalIgnoreCase) >= 0)
+                   ?? layers.FirstOrDefault(layer => layer != null);
+        }
+
+        /// <summary>
+        /// The sand shared by the seabed sheet and the island skirt, matched to the terrain's own sand
+        /// layer - same texture, same normal map, same smoothness, and above all the same tile size.
+        /// Both meshes carry UVs already expressed in tiles, so the material's own scale stays at 1 and
+        /// there is exactly one place the scale is decided.
+        ///
+        /// Rebuilt from the layer every run so the code stays the single source of truth, the same
+        /// contract EnsureSeaMaterial uses.
+        /// </summary>
+        private static Material EnsureSeabedMaterial(Terrain terrain)
         {
             var material = AssetDatabase.LoadAssetAtPath<Material>(SeabedMaterialPath);
-            if (material != null)
-                return material;
-
-            material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            var sand = AssetDatabase.LoadAssetAtPath<Texture2D>(SandTexturePath);
-            if (sand != null)
+            if (material == null)
             {
-                material.SetTexture("_BaseMap", sand);
-                material.SetTextureScale("_BaseMap", new Vector2(120f, 120f));
+                material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                AssetDatabase.CreateAsset(material, SeabedMaterialPath);
+            }
+
+            TerrainLayer sandLayer = FindSandLayer(terrain);
+            Texture2D diffuse = sandLayer != null ? sandLayer.diffuseTexture : null;
+            if (diffuse == null)
+                diffuse = AssetDatabase.LoadAssetAtPath<Texture2D>(SandTexturePath);
+
+            if (diffuse != null)
+            {
+                material.SetTexture("_BaseMap", diffuse);
+
+                // 🔴 The tint has to be carried over as _BaseColor. This pack's sand texture is a nearly
+                // white greyscale and ALL of its colour lives in the layer's m_DiffuseRemapMax - for
+                // Sand_Lite that is (1, 0.861, 0.355). The terrain shader applies it, so the island
+                // renders warm tan while a plain Lit material drawing the same texture renders almost
+                // white. That mismatch, not the tiling, is what still read as a step around the island
+                // after the tile sizes were unified.
+                //
+                // (HANDOFF-exterior.md 4-D says URP ignores m_DiffuseRemapMax. That held for the
+                // generated island's TerrainLit material, but this hand-placed terrain plainly does
+                // apply it - the island is tan on screen. Matching the value is correct either way.)
+                Vector4 remap = sandLayer != null ? sandLayer.diffuseRemapMax : Vector4.one;
+                material.SetColor("_BaseColor", new Color(remap.x, remap.y, remap.z));
             }
             else
             {
                 material.SetColor("_BaseColor", new Color(0.76f, 0.70f, 0.50f));
-                Debug.LogWarning($"EXTERIOR seabed: no sand texture at {SandTexturePath}, flat colour used");
+                Debug.LogWarning($"EXTERIOR seabed: no sand texture on the terrain or at " +
+                                 $"{SandTexturePath}, flat colour used");
             }
-            material.SetFloat("_Smoothness", 0.1f);
-            AssetDatabase.CreateAsset(material, SeabedMaterialPath);
+
+            // UVs are authored in tiles, so the material must not scale them again.
+            material.SetTextureScale("_BaseMap", Vector2.one);
+
+            if (sandLayer != null && sandLayer.normalMapTexture != null)
+            {
+                material.SetTexture("_BumpMap", sandLayer.normalMapTexture);
+                material.SetTextureScale("_BumpMap", Vector2.one);
+                material.SetFloat("_BumpScale", sandLayer.normalScale);
+                material.EnableKeyword("_NORMALMAP");
+            }
+
+            material.SetFloat("_Smoothness", sandLayer != null ? sandLayer.smoothness : 0.1f);
+            EditorUtility.SetDirty(material);
+
+            Debug.Log($"EXTERIOR sand: layer '{(sandLayer != null ? sandLayer.name : "none")}', " +
+                      $"texture '{(diffuse != null ? diffuse.name : "none")}', " +
+                      $"tile {SandTileMeters(terrain):0.##} m, " +
+                      $"tint {material.GetColor("_BaseColor")} - shared by the seabed sheet and the skirt");
             return material;
+        }
+
+        private static Terrain FindIslandTerrain()
+        {
+            return UnityEngine.Object
+                .FindObjectsByType<Terrain>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .FirstOrDefault(candidate => candidate.terrainData != null);
         }
 
         // ---- island skirt ------------------------------------------------------------------------
@@ -397,13 +509,10 @@ namespace Varco.Exterior.EditorTools
         ///
         /// No collider: like the headland, this is backdrop. The sub must never be able to hit it.
         /// </summary>
-        private static void BuildIslandSkirt(Transform root)
+        private static void BuildIslandSkirt(Transform root, Terrain terrain)
         {
             Transform group = RecreateChild(root, "IslandSkirt");
 
-            Terrain terrain = UnityEngine.Object
-                .FindObjectsByType<Terrain>(FindObjectsInactive.Include, FindObjectsSortMode.None)
-                .FirstOrDefault(candidate => candidate.terrainData != null);
             if (terrain == null)
             {
                 Debug.LogWarning("EXTERIOR skirt: no Terrain in the scene, skirt skipped. The island is " +
@@ -431,7 +540,7 @@ namespace Varco.Exterior.EditorTools
             var skirt = new GameObject("IslandSkirtMesh");
             skirt.transform.SetParent(group, false);
             skirt.AddComponent<MeshFilter>().sharedMesh = asset;
-            skirt.AddComponent<MeshRenderer>().sharedMaterial = EnsureSeabedMaterial();
+            skirt.AddComponent<MeshRenderer>().sharedMaterial = EnsureSeabedMaterial(terrain);
             skirt.isStatic = true;
 
             Debug.Log($"EXTERIOR skirt: terrain {size.x:0.#} x {size.z:0.#} m at " +
@@ -542,6 +651,7 @@ namespace Varco.Exterior.EditorTools
         private static Mesh BuildSkirtMesh(List<(Vector2 point, Vector2 outward)> perimeter,
             float[] widths, Terrain terrain, float terrainBaseY)
         {
+            float tile = SandTileMeters(terrain);
             int loop = perimeter.Count;
             int rings = SkirtRingCount + 1;
             var vertices = new Vector3[loop * rings];
@@ -560,8 +670,9 @@ namespace Varco.Exterior.EditorTools
                     float y = Mathf.Lerp(innerY, SkirtOuterY, eased);
                     int index = ring * loop + i;
                     vertices[index] = new Vector3(flat.x, y, flat.y);
-                    // World-space UVs so the sand tiles identically to the seabed plane beside it.
-                    uvs[index] = new Vector2(flat.x, flat.y) / 120f;
+                    // UVs in TILES of world space, matching the terrain's own sand layer, so the skirt,
+                    // the seabed and the island are one continuous beach rather than three scales.
+                    uvs[index] = new Vector2(flat.x, flat.y) / tile;
                 }
             }
 
