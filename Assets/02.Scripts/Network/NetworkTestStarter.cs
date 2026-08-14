@@ -91,7 +91,13 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
         // 게임 씬에도 팀원들이 각자 테스트하려고 배치해둔 NetworkManager가 있다.
         // 그냥 두면 얘가 자기 StartPanel을 붙잡고 인게임 HUD를 숨겨버린다.
         // (그 씬을 직접 Play하면 instance가 비어 있어서 평소대로 동작한다 — 팀원 테스트엔 영향 없음)
-        if (instance != null && instance != this)
+        //
+        // 판정 기준은 "존재하는가"가 아니라 "세션을 굴리고 있는가"다. 대기방에서 나가면
+        // 러너를 닫고 씬을 다시 여는데, 그때 옛 스타터는 아직 파괴 대기 중이라 살아 있다
+        // (Fusion이 DontDestroyOnLoad로 옮겨놔서 씬 재로드로도 안 지워짐).
+        // 존재만 보고 양보하면 새로 열린 씬의 NetworkManager가 스스로를 지워서
+        // 시작 버튼이 통째로 죽는다 — 에러 한 줄 없이
+        if (instance != null && instance != this && instance.runner != null)
         {
             Destroy(gameObject);
             return;
@@ -309,7 +315,6 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
         }
 
         // 입력 제공이 가능한 NetworkRunner를 현재 오브젝트에 생성
-        CleanupRunner(); // 이전 세션에서 남은 컴포넌트를 걷는다. 두 개 붙으면 Fusion이 꼬인다
         runner = gameObject.AddComponent<NetworkRunner>();
         runner.ProvideInput = true; // 이 클라이언트가 입력을 보낼 수 있게 함
 
@@ -382,28 +387,23 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
         if (gameScene.IsValid) runner.LoadScene(gameScene);
     }
 
-    // 대기방에서 나갈 때. 세션을 닫고 시작 화면으로 되돌린다
+    // 대기방에서 나갈 때. 세션을 닫고 인트로 씬을 처음부터 다시 연다.
+    //
+    // 컴포넌트만 골라 갈아끼우려 하면 안 된다. NetworkRunner는 DisallowMultipleComponent라
+    // 같은 프레임에 지웠다 붙일 수 없고(Destroy는 프레임 끝에 처리됨, AddComponent가 null을
+    // 돌려줌), Shutdown한 러너는 재사용도 못 한다. 씬을 다시 로드하면 NetworkManager와
+    // StartPanel과 LobbyUI가 전부 깨끗한 초기 상태로 돌아온다
     public void LeaveSession()
     {
         inLobby = false;
         spawnReleased = false;
         spawnReleaseTimer = -1f;
 
-        // destroyGameObject 기본값이 true라 그냥 부르면 이 컴포넌트가 붙은 NetworkManager까지
-        // 통째로 사라져서, 되돌아간 시작 화면의 버튼이 아무 반응도 안 하게 된다
-        if (runner != null) runner.Shutdown(destroyGameObject: false);
-
-        if (startPanel != null) startPanel.SetActive(true);
-    }
-
-    // 러너와 함께 붙였던 애드온들을 걷어낸다. 다음 시작 때 AddComponent가 겹치는 걸 막는다
-    private void CleanupRunner()
-    {
-        foreach (RunnerSimulatePhysics3D physics in GetComponents<RunnerSimulatePhysics3D>()) Destroy(physics);
-        foreach (NetworkSceneManagerDefault sceneManager in GetComponents<NetworkSceneManagerDefault>()) Destroy(sceneManager);
-        foreach (NetworkRunner oldRunner in GetComponents<NetworkRunner>()) Destroy(oldRunner);
-
+        if (runner != null) runner.Shutdown(); // 기본값대로 러너 오브젝트까지 정리
         runner = null;
+
+        UnityEngine.SceneManagement.SceneManager.LoadScene(
+            UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
     }
 
     // 슬롯을 그리는 쪽(LobbyUI)이 참가자 목록을 읽어갈 수 있게

@@ -175,19 +175,16 @@ namespace CaveItem.EditorTools
             Center(list, CaveItemKind.Shark, "Z6", 568f, 160f, 5f, "상어 3 - 출구 직전");
 
             // ================= Submarine =================
-            // Measured, not derived: CaveItemProbe found the interior floor at y = -0.893 by casting
-            // down from the spawn slots with triggers ignored (WalkZone is itself a trigger capsule and
-            // swallows a default query at y = 1.88).
-            //
-            // z = 0 is the midpoint of the four spawn slots, which run +2.264 to -2.265. That is the only
-            // z from which every slot is inside PlayerInteractor's 3 m range - measured at 1.74 / 2.56 m.
+            // The hammer position is resolved from the BoxCollider below the submarine's HammerZone.
+            // Keeping the authored marker in the prefab makes moving the pickup a scene-design change
+            // instead of another hard-coded world offset in this layout.
             //
             // Unparented, like all 39 other scene NetworkObjects. Fusion's NetworkObjectBaker builds
             // NestedObjects from transform-path ancestry, so parenting this under the submarine would
             // bake it as a nested object - and CarryableItem.OnPickedUp immediately reparents to the
             // player's hand socket, which would tear a baked nested object out of its parent at runtime.
-            Interior(list, CaveItemKind.Hammer, new Vector3(0f, -0.843f, -6.1f), 90f,
-                "잠수함 내부 바닥. 수리 대상인 RepairableStructure가 잠수함 루트에 있다");
+            Interior(list, CaveItemKind.Hammer, Vector3.zero, 90f,
+                "잠수함 HammerZone. 수리 대상인 RepairableStructure가 잠수함 루트에 있다");
 
             return list;
         }

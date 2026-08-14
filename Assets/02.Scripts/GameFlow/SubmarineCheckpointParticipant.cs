@@ -58,6 +58,8 @@ namespace Varco.GameFlow
                 Health = GameFlowHealthUtility.Capture(health),
                 AccumulatedDamage = repairable != null ? repairable.CaptureCheckpointDamage() : null,
                 RepairProgress = repairable != null ? repairable.CaptureCheckpointRepairProgress() : null,
+                DamageRegionOrders = repairable != null ? repairable.CaptureCheckpointDamageOrders() : null,
+                DamageSequence = repairable != null ? repairable.CaptureCheckpointDamageSequence() : 0,
                 DoorStates = doorStates
             };
         }
@@ -120,7 +122,9 @@ namespace Varco.GameFlow
             GameFlowHealthUtility.Restore(health, submarineState.Health);
             repairable?.RestoreCheckpointDamage(
                 submarineState.AccumulatedDamage,
-                submarineState.RepairProgress);
+                submarineState.RepairProgress,
+                submarineState.DamageRegionOrders,
+                submarineState.DamageSequence);
 
             // 저장된 배열 범위 안에서 문 상태 복원
             int doorCount = Mathf.Min(doors.Length, submarineState.DoorStates?.Length ?? 0);
@@ -144,6 +148,8 @@ namespace Varco.GameFlow
             public HealthCheckpointState Health;
             public float[] AccumulatedDamage;
             public float[] RepairProgress;
+            public int[] DamageRegionOrders;
+            public int DamageSequence;
             public bool[] DoorStates;
         }
     }
