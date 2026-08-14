@@ -46,6 +46,9 @@ public sealed class SubmarineSonarController : NetworkBehaviour
     [Header("Monitor")]
     [SerializeField] private SubmarineSonarGraphic display;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource sonarAudioSource;
+
     [Header("Colors")]
     [SerializeField] private Color backgroundColor = new Color(0.004f, 0.035f, 0.025f, 0.98f);
     [SerializeField] private Color gridColor = new Color(0.12f, 0.55f, 0.32f, 0.45f);
@@ -81,6 +84,8 @@ public sealed class SubmarineSonarController : NetworkBehaviour
     // 소나 표시 색상과 UI 참조 초기화
     private void Awake()
     {
+        CacheSonarAudioSource();
+
         // 표시 컴포넌트를 찾고 카테고리별 색상 팔레트 전달
         if (display == null)
         {
@@ -317,8 +322,24 @@ public sealed class SubmarineSonarController : NetworkBehaviour
     private void PlaySonarAudio()
     {
         VarcoAudioLibrary library = VarcoAudioLibrary.Instance;
-        if (library != null)
-            VarcoAudio.PlayOneShotAt(transform, library.sonarPing, 0.65f, 2f, 45f);
+        if (library == null || library.sonarPing == null)
+            return;
+
+        CacheSonarAudioSource();
+        sonarAudioSource.PlayOneShot(library.sonarPing, 0.65f);
+    }
+
+    private void CacheSonarAudioSource()
+    {
+        if (sonarAudioSource == null)
+            sonarAudioSource = gameObject.AddComponent<AudioSource>();
+
+        sonarAudioSource.playOnAwake = false;
+        sonarAudioSource.loop = false;
+        sonarAudioSource.spatialBlend = 1f;
+        sonarAudioSource.rolloffMode = AudioRolloffMode.Linear;
+        sonarAudioSource.minDistance = 2f;
+        sonarAudioSource.maxDistance = 10f;
     }
 
     // 소나 대상이 현재 핑에 포함될 수 있는지 판정
