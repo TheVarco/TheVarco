@@ -276,6 +276,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWalkZone
   groundCheckDistance: 2
+  releaseDistanceMultiplier: 1.6
+  modeSwitchCooldown: 0.5
   groundLayer:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -289,7 +291,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2427883104584294508}
   - component: {fileID: 7365325630006765200}
-  - component: {fileID: 878609549893578404}
+  - component: {fileID: 4871803668372057740}
   m_Layer: 0
   m_Name: Spot Light
   m_TagString: Untagged
@@ -377,7 +379,7 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
---- !u!114 &878609549893578404
+--- !u!114 &4871803668372057740
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2244,6 +2246,10 @@ PrefabInstance:
       propertyPath: m_LocalRotation.y
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: -6609101755519868767, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: d7a66f7540e64123aab471e685323eb2, type: 2}
     - target: {fileID: -4660914210154667549, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
       propertyPath: m_Name
       value: Joystick_Left
@@ -2262,7 +2268,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -3910990755373119420, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -6.29
+      value: -7.86
       objectReference: {fileID: 0}
     - target: {fileID: -3910990755373119420, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
       propertyPath: m_LocalPosition.y

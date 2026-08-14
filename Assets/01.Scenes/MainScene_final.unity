@@ -32697,6 +32697,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Submarine_final
       objectReference: {fileID: 0}
+    - target: {fileID: 2814228357089302013, guid: 62d0b2e05224eea428645afdd507a470, type: 3}
+      propertyPath: modeSwitchCooldown
+      value: 0.5
+      objectReference: {fileID: 0}
     - target: {fileID: 3027614687741519286, guid: 62d0b2e05224eea428645afdd507a470, type: 3}
       propertyPath: m_LocalPosition.x
       value: -7.86
@@ -33225,7 +33229,7 @@ MonoBehaviour:
   minPitch: -80
   maxPitch: 80
   target: {fileID: 0}
-  eyeOffset: {x: 0, y: 0.8, z: 0.05}
+  eyeOffset: {x: 0, y: 0.8, z: 0.07}
   thirdPersonDistance: 4
   thirdPersonHeightOffset: 0.3
   followSmoothing: 10
