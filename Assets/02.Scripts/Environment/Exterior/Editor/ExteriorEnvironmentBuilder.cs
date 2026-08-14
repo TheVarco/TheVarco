@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CaveBlockout;
+using CaveBlockout.Decor;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -757,42 +759,9 @@ namespace Varco.Exterior.EditorTools
         /// the scene-facing half - finding the shell, clamping reach against the corridor, and refusing
         /// to leave anything in the scene that fails the gate.
         /// </summary>
-        /// <summary>
-        /// 🔴 OFF, and not because it is unfinished scaffolding - because the CONSTRUCTION below is
-        /// wrong and the clearance gate is right to reject it. Turning this on without replacing the
-        /// construction just puts the error back.
-        ///
-        /// What is proven and worth keeping: rim extraction (32 verts, centroid on the exit, verified),
-        /// the skin clearance model, and the reach solver. What fails: spokes are extruded radially from
-        /// the exit centroid in the rim plane, which is not normal to the tunnel surface, and the route
-        /// curves so section centres drift behind the mouth. Some spokes therefore dive into the tunnel
-        /// no matter how the reach is clamped, and the solver drives those to 0 while their neighbours
-        /// keep the full 60 m. The measured distribution is literally 0..60 m around one loop, and the
-        /// long skewed triangles bridging a 0-reach spoke to a 60-reach one sweep across the corridor -
-        /// caught, correctly, by the line probes.
-        ///
-        /// The fix is to stop extruding from a point and follow the tunnel instead: sample the route the
-        /// way ExteriorClearance.Create does (CaveRoutePolyline.Build/Sample plus
-        /// CaveRoute.EvaluateWidth/EvaluateHeight) and place each collar ring at a FRACTION of the real
-        /// cross-section - about 1.15 at the rim ramping outwards. Points at a fraction above 1 are
-        /// outside the nominal tunnel analytically, so the reach search disappears along with the
-        /// tolerances it needed. See HANDOFF-exterior.md.
-        /// </summary>
-        /// <remarks>
-        /// static readonly rather than const so the disabled body still compiles as reachable code -
-        /// a const would make every line below it a CS0162 warning and invite someone to delete it.
-        /// </remarks>
-        private static readonly bool CollarEnabled = false;
-
         private static void BuildExitCollar(Transform root)
         {
             Transform group = RecreateChild(root, "ExitCollar");
-            if (!CollarEnabled)
-            {
-                Debug.Log("EXTERIOR collar: disabled - the current construction cannot pass the corridor " +
-                          "gate. See the note on CollarEnabled for the diagnosis and the way in.");
-                return;
-            }
 
             MeshFilter shell = UnityEngine.Object
                 .FindObjectsByType<MeshFilter>(FindObjectsInactive.Include, FindObjectsSortMode.None)
@@ -810,36 +779,35 @@ namespace Varco.Exterior.EditorTools
                 return;
             }
 
-            // TWO clearance models, because the collar is a different kind of object to a headland.
-            //
-            // The headland volumes exist to keep FOREIGN geometry away from the mouth: the escape
-            // cylinder is r=15 while the mouth's own half-height is 8, and ShellMargin adds another 8 m
-            // around the tunnel. The rim therefore sits inside both by construction - the shell itself
-            // would "fail" them. Testing a skin welded to that rim against them rejects everything, which
-            // is exactly what the first run did: 0 m of reach at all 32 vertices.
-            //
-            // So the collar is shaped against a SKIN model - the nominal tunnel with no margin and no
-            // escape cylinder, which answers the only question that matters for a surface hugging the
-            // outside of the shell: is this point inside the tunnel? It is then verified against the FULL
-            // model's line probes, which is the test that actually catches a sheet lying across the swim
-            // path, and finally by the independent EXIT_CORRIDOR raycast gate in ExteriorReviewCapture.
+            if (!TryBuildRouteSampler(out Func<float, ExteriorExitCollar.Section> sample,
+                    out float endDistance, out string routeFailure))
+            {
+                Debug.LogWarning($"EXTERIOR collar: {routeFailure}, collar skipped");
+                return;
+            }
+
+            // The SKIN model - the nominal tunnel, no margin, no escape cylinder. The headland volumes
+            // exist to keep FOREIGN geometry away from the mouth: the escape cylinder is r=15 while the
+            // mouth's own half-height is 8, and ShellMargin adds another 8 m around the tunnel. The rim
+            // sits inside both by construction, so the shell itself would "fail" them. For a skin welded
+            // to that rim the only meaningful question is the one this model answers: is the point
+            // inside the tunnel?
             ExteriorClearance skin = ExteriorClearance.Create(
                 ExitPosition, ExitDirection, 0.01f, 0.01f, 0f);
             ExteriorClearance clearance = ExteriorClearance.Create(
                 ExitPosition, ExitDirection, EscapeCorridorRadius, EscapeCorridorLength, ShellMargin);
 
-            Vector3 axis = ExitDirection.normalized;
-            Mesh mesh = ExteriorExitCollar.Build(rim, ExitPosition, ExitDirection, SkirtOuterY,
-                (rimPoint, outward, startReach) => SolveCollarReach(rimPoint, outward, axis, skin, startReach),
-                out float minReach, out float maxReach);
+            Mesh mesh = ExteriorExitCollar.Build(rim, sample, endDistance, out float roofClearance);
 
-            Debug.Log($"EXTERIOR collar: rim {rim.Count} verts, solved reach {minReach:0.#}..{maxReach:0.#} m " +
-                      $"(wanted {ExteriorExitCollar.DesiredReach:0})");
+            Debug.Log($"EXTERIOR collar: rim {rim.Count} verts, {ExteriorExitCollar.Rings} rings over " +
+                      $"{ExteriorExitCollar.SpanMeters:0} m of route, roof clamp clearance " +
+                      $"{roofClearance:0.#} m");
 
-            if (maxReach < ExteriorExitCollar.MinimumReach)
+            if (roofClearance < 0f)
             {
-                Debug.LogError($"EXTERIOR collar: clearance left only {maxReach:0.#} m of reach " +
-                               "everywhere - nothing worth emitting. No collar built.");
+                Debug.LogError($"EXTERIOR collar: the crest clamp sits {-roofClearance:0.#} m BELOW the " +
+                               "tunnel roof, so clamping would push vertices back inside. Raise CrestY. " +
+                               "No collar built.");
                 UnityEngine.Object.DestroyImmediate(mesh);
                 return;
             }
@@ -864,60 +832,52 @@ namespace Varco.Exterior.EditorTools
             collar.AddComponent<MeshRenderer>().sharedMaterial = EnsureCollarMaterial();
             collar.isStatic = true;
 
-            Debug.Log($"EXTERIOR collar: rim {rim.Count} verts, reach {minReach:0.#}..{maxReach:0.#} m " +
-                      $"(wanted {ExteriorExitCollar.DesiredReach:0}), {ExteriorExitCollar.Rings} rings, " +
-                      $"{asset.triangles.Length / 3} tris, bounds y " +
-                      $"{asset.bounds.min.y:0.#}..{asset.bounds.max.y:0.#}");
+            Debug.Log($"EXTERIOR collar: {asset.triangles.Length / 3} tris, bounds y " +
+                      $"{asset.bounds.min.y:0.#}..{asset.bounds.max.y:0.#} " +
+                      $"(sea level {SeaLevel:0.#}), x {asset.bounds.min.x:0.#}..{asset.bounds.max.x:0.#}");
         }
 
         /// <summary>
-        /// Largest reach whose whole run stays clear of both forbidden volumes.
-        ///
-        /// Sampled along the run rather than only at its end, and through
-        /// <see cref="ExteriorExitCollar.Evaluate"/> rather than a straight line, because the collar
-        /// sweeps BACK towards the cave as it goes out - testing the straight ray would clear a reach
-        /// the built surface does not actually have.
+        /// Exposes the main route's cross-sections to the collar loft, sampled exactly the way
+        /// <see cref="ExteriorClearance"/> samples them so a fraction means the same thing to both.
         /// </summary>
-        private static float SolveCollarReach(Vector3 rimPoint, Vector3 outward, Vector3 axis,
-            ExteriorClearance skin, float startReach)
+        private static bool TryBuildRouteSampler(out Func<float, ExteriorExitCollar.Section> sample,
+            out float endDistance, out string failure)
         {
-            const float StepMeters = 2.5f;
+            const string MainRouteId = "MainRoute";
+            sample = null;
+            endDistance = 0f;
 
-            // Sample the RING parameters the loft will actually emit, not an independent grid. With a
-            // grid of its own the solver cleared t=0.1 and t=0.2 while the mesh put a vertex at t=0.125,
-            // which is how the first collar failed its own verification.
-            int samples = ExteriorExitCollar.Rings;
-
-            // The rim's own depth in the nominal tunnel is the baseline, NOT zero. The exit rim was
-            // deliberately roughened (CaveMeshGenerator's exitRimNoiseWeight), so some rim vertices sit
-            // several metres inside the nominal ellipse. Demanding the collar be outside it would reject
-            // those vertices for a displacement that is the shell's own rock, not the collar's doing.
-            // The invariant that actually matters: the collar never reaches further into the tunnel than
-            // the rim it grows from.
-            // Outside the tunnel, "outside" is all that is asked - hence the max with 0. Comparing raw
-            // depths there rejects a vertex for sitting 12.35 m clear when its rim sits 12.41 m clear.
-            float baseline = Mathf.Max(0f, skin.Intrusion(rimPoint, out _));
-
-            float reach = startReach;
-            while (reach > 0f)
+            CaveRoute route = UnityEngine.Object
+                .FindObjectsByType<CaveRoute>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .FirstOrDefault(candidate => candidate != null && candidate.Definitions != null &&
+                                             candidate.Definitions.Any(d => d != null && d.routeId == MainRouteId));
+            if (route == null)
             {
-                bool clear = true;
-                // k starts at 1: t=0 IS the weld ring, which is that baseline by definition.
-                for (int k = 1; k <= samples; k++)
-                {
-                    Vector3 point = ExteriorExitCollar.Evaluate(
-                        rimPoint, outward, axis, reach, k / (float)samples, SkirtOuterY);
-                    if (skin.Intrusion(point, out _) > baseline)
-                    {
-                        clear = false;
-                        break;
-                    }
-                }
-                if (clear)
-                    return reach;
-                reach -= StepMeters;
+                failure = $"no CaveRoute carrying '{MainRouteId}'";
+                return false;
             }
-            return 0f;
+
+            CaveRouteSplineDefinition definition =
+                route.Definitions.First(d => d != null && d.routeId == MainRouteId);
+            CaveRoutePolyline polyline = CaveRoutePolyline.Build(route, definition.splineIndex);
+            if (polyline == null || !polyline.IsValid)
+            {
+                failure = $"'{MainRouteId}' spline would not build";
+                return false;
+            }
+
+            int splineIndex = definition.splineIndex;
+            endDistance = polyline.Length;
+            sample = distance =>
+            {
+                polyline.Sample(distance, out Vector3 centre, out Vector3 tangent, out float parameter);
+                return new ExteriorExitCollar.Section(centre, tangent,
+                    route.EvaluateWidth(splineIndex, parameter) * 0.5f,
+                    route.EvaluateHeight(splineIndex, parameter) * 0.5f);
+            };
+            failure = null;
+            return true;
         }
 
         /// <summary>
@@ -931,39 +891,43 @@ namespace Varco.Exterior.EditorTools
             Vector3[] vertices = mesh.vertices;
             int loop = mesh.vertexCount / (ExteriorExitCollar.Rings + 1);
 
-            // Ring 0 IS the shell's rim, so each spoke is measured against its own weld vertex rather
-            // than against zero - see the note in SolveCollarReach about the roughened rim.
-            var baseline = new float[loop];
-            for (int i = 0; i < loop; i++)
-                baseline[i] = Mathf.Max(0f, skin.Intrusion(vertices[i], out _));
-
-            // Tolerance is set by the clearance sampler's own resolution, not by taste. Sections are
-            // taken every metre and Intrusion snaps to the nearest one, while across the exit taper the
-            // half-extents move about 2 m per metre of route - so the depth it reports is quantised at
-            // roughly that scale. Half a metre sits inside that error bar; anything tighter rejects the
-            // sampler's noise rather than a real overhang.
-            const float Tolerance = 0.5f;
-            float worstExcess = float.NegativeInfinity;
+            // Rings 1..N sit at a cross-section fraction above 1, so being outside the nominal tunnel is
+            // a property of the construction, not something to be searched for or absorbed by a
+            // tolerance. This loop is therefore an ASSERTION: a hit means the loft is wrong, and the
+            // right response is to fix the loft rather than to loosen this number.
+            //
+            // Ring 0 is skipped because it IS the shell's rim - the exit rim is deliberately roughened
+            // (CaveMeshGenerator's exitRimNoiseWeight), so some of those vertices sit over a metre inside
+            // the nominal ellipse. That displacement is the shell's own rock, not the collar's.
+            float worstIntrusion = float.NegativeInfinity;
             for (int i = loop; i < vertices.Length; i++)
             {
                 float intrusion = skin.Intrusion(vertices[i], out string reason);
-                float excess = intrusion - baseline[i % loop];
-                worstExcess = Mathf.Max(worstExcess, excess);
-                if (excess > Tolerance)
+                worstIntrusion = Mathf.Max(worstIntrusion, intrusion);
+                if (intrusion > 0f)
                 {
-                    violation = $"{reason} (collar vertex {i} reaches {intrusion:0.##} m into the tunnel, " +
-                                $"{excess:0.##} m deeper than its rim vertex at {baseline[i % loop]:0.##} m)";
+                    violation = $"{reason} (collar vertex {i} is {intrusion:0.##} m inside the nominal " +
+                                "tunnel, which a fraction above 1 should make impossible)";
                     return false;
                 }
             }
-            Debug.Log($"EXTERIOR collar: worst vertex sits {worstExcess:0.##} m deeper than its own rim " +
-                      $"vertex (tolerance {Tolerance:0.##} m)");
-            // The probe test runs on everything EXCEPT the weld band. The cave-corridor probes thread the
-            // tunnel at 0.9 of its cross-section, which passes straight through the rim's own
-            // neighbourhood - so the triangles joining ring 0 to ring 1 are crossed by construction, no
-            // matter how well behaved the collar is. Excluding them keeps the test meaningful for every
-            // triangle that is genuinely the collar's own, which is where a sheet across the corridor
-            // could actually appear.
+            Debug.Log($"EXTERIOR collar: closest vertex clears the nominal tunnel by " +
+                      $"{-worstIntrusion:0.##} m");
+            // The probe test runs against the SKIN model and on everything EXCEPT the weld band.
+            //
+            // Weld band: the corridor probes thread the tunnel at 0.9 of its cross-section, which passes
+            // through the rim's own neighbourhood, so ring 0 to ring 1 is crossed by construction.
+            //
+            // Skin model: probes are straight chords between stations, and across the exit taper the
+            // profile flares about 2 m of half-width per metre of route - so a chord bulges OUTSIDE the
+            // tapered wall between its endpoints. Inflating the sections by ShellMargin's 8 m first, as
+            // the full model does, pushes those chords 8 m further out again and they strike a collar
+            // that the exact per-vertex test says clears the tunnel everywhere by 1.35 m. The skin
+            // model's probes follow the real tunnel, so they answer the question actually being asked:
+            // does a collar triangle lie across the swim path?
+            //
+            // The independent EXIT_CORRIDOR gate in ExteriorReviewCapture raycasts real renderers through
+            // the mouth afterwards, and is the check that has to pass either way.
             int[] triangles = mesh.triangles;
             var beyondWeld = new List<int>(triangles.Length);
             for (int i = 0; i < triangles.Length; i += 3)
@@ -975,7 +939,7 @@ namespace Varco.Exterior.EditorTools
                 beyondWeld.Add(triangles[i + 2]);
             }
 
-            if (clearance.IntersectsProbes(vertices, beyondWeld.ToArray(), out Vector3 crossing))
+            if (skin.IntersectsProbes(vertices, beyondWeld.ToArray(), out Vector3 crossing))
             {
                 violation = $"corridor (triangle crossing near {crossing})";
                 return false;

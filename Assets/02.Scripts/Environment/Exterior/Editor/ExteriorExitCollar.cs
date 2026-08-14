@@ -17,7 +17,23 @@ namespace Varco.Exterior.EditorTools
     /// WHAT IT COVERS. The exit taper narrows the tunnel from 85 x 50 m to 24 x 16 m over the last
     /// 15.5 m, which leaves the shell's OUTER surface as a funnel reaching +-42.5 m wide and about
     /// y = 285 - twelve metres above the 273 m sea surface. Seen from outside that funnel is the smooth
-    /// dome in review cut 2. The collar sweeps out from the rim to cover it.
+    /// dome in review cut 2.
+    ///
+    /// 🔴 HOW IT IS BUILT, AND WHY THE OBVIOUS WAY DOES NOT WORK.
+    ///
+    /// The first attempt extruded each rim vertex radially outward from the exit centroid, in the rim
+    /// plane, and used a search to clamp how far. That cannot be made to work: the radial direction is
+    /// not normal to the tunnel surface, and the route curves so the section centres drift sideways
+    /// behind the mouth. Some spokes therefore dive INTO the tunnel however far they are shortened, and
+    /// the solver drove those to zero while their neighbours kept the full length - a measured spread of
+    /// 0..60 m around one loop. The long skewed triangles bridging a 0-length spoke to a 60 m one swept
+    /// across the corridor, and the line probes caught them. Correctly.
+    ///
+    /// This construction follows the tunnel instead of a point. Rings are placed on the route's OWN
+    /// cross-sections at a FRACTION of each section, starting just outside the wall and opening up as
+    /// they travel back. A point at fraction > 1 is outside the nominal tunnel by definition, so the
+    /// clearance invariant holds analytically and there is no search, no per-vertex clamp and no
+    /// tolerance to tune. It also means the collar hugs the funnel it is hiding rather than slicing it.
     ///
     /// 🔴 THIS DOES NOT TOUCH CaveShell.asset. That mesh is shared with
     /// MainScene_final_Cinemachine.unity, which is taehuni's. The collar is a separate mesh owned by the
@@ -25,56 +41,87 @@ namespace Varco.Exterior.EditorTools
     /// </summary>
     internal static class ExteriorExitCollar
     {
-        /// <summary>How far the collar reaches out from the rim before clearance clamps it.</summary>
-        private const float ReachMeters = 60f;
-
-        /// <summary>Below this the collar is not worth emitting at all.</summary>
-        private const float MinReachMeters = 10f;
-
+        /// <summary>Rings behind the mouth, not counting the weld ring itself.</summary>
         private const int RingCount = 8;
 
-        /// <summary>Metres of slack demanded beyond the forbidden volumes.</summary>
-        private const float ClearanceMargin = 3f;
+        /// <summary>Metres of route travelled per ring. 8 x 4 = 32 m, comfortably past the 15.5 m taper.</summary>
+        private const float StepMeters = 4f;
 
         /// <summary>
-        /// Ceiling for collar vertices. The shell funnel tops out near 285, so 292 covers it with margin
-        /// while stopping the upper rim from shooting off into a spike - the rim plane is tilted 27
-        /// degrees, so unclamped in-plane extrusion climbs fast on the high side.
+        /// Cross-section fraction at the first ring behind the weld. Must be above 1: that is the whole
+        /// clearance argument. 1.12 keeps it tight to the rock without the shell's authored noise, which
+        /// reaches about 1.14 m inside the nominal ellipse, poking back through it.
+        /// </summary>
+        private const float StartFraction = 1.12f;
+
+        /// <summary>Fraction at the outermost ring - this is what turns the funnel into a hillside.</summary>
+        private const float EndFraction = 1.55f;
+
+        /// <summary>
+        /// Ceiling for collar vertices. Must stay ABOVE the tunnel's own roof everywhere the collar
+        /// spans, or clamping a high spoke down would push it back inside and break the invariant.
+        /// Z6's half-height is 25 m on a centre line near y=260, so the roof tops out near 285.
+        /// Build() asserts this rather than trusting it.
         /// </summary>
         private const float CrestY = 292f;
 
-        /// <summary>Amplitude of the surface break-up. Ramped in from zero so the rim weld stays exact.</summary>
-        private const float NoiseAmplitude = 3.5f;
-
-        private const float NoiseWavelength = 26f;
-
         /// <summary>
-        /// How far the collar sweeps BACK along the exit axis, AS A FRACTION OF ITS REACH.
-        ///
-        /// Without a setback the collar is a flat disc in the rim plane and the shell funnel it is meant
-        /// to hide - which flares to +-42.5 m over the last 15.5 m - simply pokes through it. Sweeping
-        /// back turns the collar into a shallow cone that follows that flare.
-        ///
-        /// 🔴 IT MUST BE A RATIO, NOT A FIXED DISTANCE. The funnel gains 1.97 m of half-width per metre
-        /// travelled back, so the collar only stays outside it while it gains outward distance faster
-        /// than that. With a fixed setback the ratio collapses as soon as the clearance solver shortens
-        /// the reach - and since shortening the reach then makes the intrusion WORSE, the solver drives
-        /// every vertex to zero and no collar is ever emitted. That is exactly what the first two
-        /// attempts did. At 0.3 the cone runs out 3.3 : 1, clear of the funnel at every reach.
-        ///
-        /// Linear in t, not eased: an eased setback leaves the first rings sitting in the mouth plane,
-        /// which is the one place the escape cylinder is measured.
-        ///
-        /// Evaluate() is the single position function used by both the solver and the loft, so what gets
-        /// tested is exactly what gets built.
+        /// Surface break-up, as a FRACTION of the section rather than a distance, and strictly outward:
+        /// the multiplier is 1 + amplitude * noise01, never less than 1. A displacement that could pull
+        /// a vertex inward would destroy the "fraction > 1" guarantee that makes this construction safe.
         /// </summary>
-        private const float SetbackRatio = 0.3f;
+        private const float NoiseAmplitude = 0.10f;
+
+        private const float NoiseWavelength = 24f;
 
         /// <summary>The shell's tube has 32 sides, so its single open boundary loop has 32 vertices.</summary>
         private const int ExpectedRimVertexCount = 32;
 
         /// <summary>How far the extracted loop's centroid may sit from the measured exit position.</summary>
         private const float RimCentroidTolerance = 1f;
+
+        public static int Rings => RingCount;
+        public static float SpanMeters => RingCount * StepMeters;
+
+        /// <summary>
+        /// One tunnel cross-section. The frame is built exactly the way <see cref="ExteriorClearance"/>
+        /// builds its own, so a fraction measured here means the same thing the clearance test measures.
+        /// </summary>
+        public readonly struct Section
+        {
+            public readonly Vector3 centre;
+            public readonly Vector3 right;
+            public readonly Vector3 up;
+            public readonly float halfWidth;
+            public readonly float halfHeight;
+
+            public Section(Vector3 centre, Vector3 tangent, float halfWidth, float halfHeight)
+            {
+                this.centre = centre;
+
+                Vector3 sideways = Vector3.Cross(tangent, Vector3.up);
+                if (sideways.sqrMagnitude < 1e-6f)
+                    sideways = Vector3.Cross(tangent, Vector3.forward);
+                right = sideways.normalized;
+                up = Vector3.Cross(right, tangent).normalized;
+
+                this.halfWidth = halfWidth;
+                this.halfHeight = halfHeight;
+            }
+
+            public Vector3 At(float fraction, float angle) => centre
+                + right * (halfWidth * fraction * Mathf.Cos(angle))
+                + up * (halfHeight * fraction * Mathf.Sin(angle));
+
+            /// <summary>Where <paramref name="worldPoint"/> sits on this section, as an angle.</summary>
+            public float AngleOf(Vector3 worldPoint)
+            {
+                Vector3 offset = worldPoint - centre;
+                float u = Vector3.Dot(offset, right) / Mathf.Max(0.01f, halfWidth);
+                float v = Vector3.Dot(offset, up) / Mathf.Max(0.01f, halfHeight);
+                return Mathf.Atan2(v, u);
+            }
+        }
 
         /// <summary>
         /// Reads the shell's open boundary loop in world space.
@@ -182,83 +229,67 @@ namespace Varco.Exterior.EditorTools
         }
 
         /// <summary>
-        /// Lofts the collar outward from the rim, in the rim's own plane.
+        /// Lofts the collar back along the route from the rim.
         ///
-        /// In-plane extrusion is what makes this read as land rather than as a disc lying on the water:
-        /// the rim plane is tilted 27 degrees up, so its "up" side sweeps up and BACK over the cave -
-        /// the hillside the tunnel bores through - while its "down" side sweeps forward and down towards
-        /// the seabed. Y is clamped at both ends so neither runs away.
+        /// Ring 0 is the extracted rim itself, so the weld is exact and cannot open a crack even where
+        /// the shell's authored rim noise pulls the rock inside the nominal ellipse. Rings 1..N sit on
+        /// the route's own sections at a fraction above 1, which is what puts them outside the tunnel by
+        /// construction.
         ///
-        /// <paramref name="reachSolver"/> returns the usable reach for one rim vertex; the caller wires
-        /// it to the clearance test, which is what keeps the collar out of the escape corridor.
+        /// Angles are measured from the rim vertices themselves rather than assumed, so the loft lines
+        /// up with the shell's tessellation whatever roll convention its frames used.
         /// </summary>
-        public static Mesh Build(List<Vector3> rim, Vector3 exitCentre, Vector3 exitDirection,
-            float floorY, Func<Vector3, Vector3, float, float> reachSolver,
-            out float minReach, out float maxReach)
+        public static Mesh Build(List<Vector3> rim, Func<float, Section> sample, float endDistance,
+            out float roofClearance)
         {
             int loop = rim.Count;
-            var outward = new Vector3[loop];
-            var reach = new float[loop];
+            Section endSection = sample(endDistance);
 
-            Vector3 axis = exitDirection.normalized;
+            var angles = new float[loop];
             for (int i = 0; i < loop; i++)
-            {
-                Vector3 radial = rim[i] - exitCentre;
-                radial -= axis * Vector3.Dot(radial, axis); // keep it in the rim plane
-                outward[i] = radial.sqrMagnitude > 1e-6f ? radial.normalized : Vector3.up;
-
-                // Stop a downward spoke where it MEETS the seabed instead of letting the y-clamp slide
-                // it along at floor level. That clamp built a flat rock apron spreading forward from the
-                // mouth's bottom lip, and a sheet lying on the floor in front of the opening is exactly
-                // what the escape-corridor probes are there to catch - it failed on a triangle crossing
-                // at y=252.50, the clamp value itself. The seabed plane and the island skirt already
-                // cover that ground; the collar has no business duplicating it.
-                float descent = axis.y * SetbackRatio - outward[i].y;
-                float toFloor = descent > 1e-4f
-                    ? Mathf.Max(0f, (rim[i].y - floorY - NoiseAmplitude) / descent)
-                    : float.PositiveInfinity;
-
-                reach[i] = reachSolver(rim[i], outward[i], Mathf.Min(ReachMeters, toFloor));
-            }
-
-            // Smooth the clamped reach around the loop so the clearance bite does not show as a notch,
-            // but never let smoothing RAISE a vertex above the reach proven safe for it.
-            var solved = (float[])reach.Clone();
-            for (int pass = 0; pass < 2; pass++)
-            {
-                var smoothed = new float[loop];
-                for (int i = 0; i < loop; i++)
-                {
-                    float blended =
-                        (reach[(i - 1 + loop) % loop] + 2f * reach[i] + reach[(i + 1) % loop]) * 0.25f;
-                    smoothed[i] = Mathf.Min(blended, solved[i]);
-                }
-                reach = smoothed;
-            }
-
-            // 🔴 RE-VALIDATE. Reach scales BOTH the outward and the setback term, so shortening it does
-            // not walk a vertex back along the ray it was tested on - it puts it on a different ray.
-            // Smoothing therefore invalidates the first solve even though it only ever lowers values,
-            // which is how a ring-3 vertex ended up 0.18 m inside the tunnel. Solving again from the
-            // smoothed value is what makes the tested set and the built set the same set.
-            for (int i = 0; i < loop; i++)
-                reach[i] = reachSolver(rim[i], outward[i], reach[i]);
-
-            minReach = reach.Min();
-            maxReach = reach.Max();
+                angles[i] = endSection.AngleOf(rim[i]);
 
             int rings = RingCount + 1;
             var vertices = new Vector3[loop * rings];
             var uvs = new Vector2[loop * rings];
+            roofClearance = float.PositiveInfinity;
+
             for (int ring = 0; ring < rings; ring++)
             {
+                if (ring == 0)
+                {
+                    for (int i = 0; i < loop; i++)
+                    {
+                        vertices[i] = rim[i];
+                        uvs[i] = new Vector2(rim[i].x, rim[i].z) / 12f;
+                    }
+                    continue;
+                }
+
                 float t = ring / (float)RingCount;
+                float distance = Mathf.Max(0f, endDistance - ring * StepMeters);
+                float fraction = Mathf.Lerp(StartFraction, EndFraction, (ring - 1) / (float)(RingCount - 1));
+                Section section = sample(distance);
+
+                // How much room the ceiling clamp has at this station. Reported so a future change to
+                // CrestY or to Z6's profile cannot quietly start clamping vertices back into the tunnel.
+                roofClearance = Mathf.Min(roofClearance,
+                    CrestY - (section.centre.y + section.halfHeight));
+
                 for (int i = 0; i < loop; i++)
                 {
-                    Vector3 point = Evaluate(rim[i], outward[i], axis, reach[i], t, floorY);
+                    Vector3 nominal = section.At(fraction, angles[i]);
+
+                    // Outward-only break-up: the multiplier is never below 1, so "outside the tunnel"
+                    // survives it.
+                    float noise01 = Mathf.PerlinNoise(
+                        nominal.x / NoiseWavelength + 13.7f, nominal.z / NoiseWavelength + 5.1f);
+                    Vector3 point = section.At(fraction * (1f + NoiseAmplitude * noise01 * t), angles[i]);
+                    point.y = Mathf.Min(point.y, CrestY);
+
                     int index = ring * loop + i;
                     vertices[index] = point;
-                    uvs[index] = new Vector2(point.x, point.z) / 30f;
+                    uvs[index] = new Vector2(point.x, point.z) / 12f;
                 }
             }
 
@@ -283,38 +314,6 @@ namespace Varco.Exterior.EditorTools
             mesh.SetTriangles(triangles, 0);
             return mesh;
         }
-
-        /// <summary>
-        /// The collar's surface, as one function of (rim vertex, outward direction, reach, ring
-        /// parameter). Both the loft and the clearance solver call this, so what gets tested is exactly
-        /// what gets built.
-        /// </summary>
-        public static Vector3 Evaluate(Vector3 rimPoint, Vector3 outward, Vector3 axis,
-            float reach, float t, float floorY)
-        {
-            Vector3 point = rimPoint + outward * (reach * t) - axis * (reach * SetbackRatio * t);
-
-            // Displacement ramps from zero at the rim, so ring 0 stays exactly on the shell, AND scales
-            // with the spoke's own reach.
-            //
-            // 🔴 The reach term is not cosmetic. Without it the break-up is a fixed +-3.5 m no matter how
-            // short the spoke is, so a spoke the clearance solver has shortened to nothing still gets
-            // displaced - and half the time inwards, straight into the tunnel. That is a violation the
-            // solver cannot fix by shortening further, because shortening does not reduce it. It showed
-            // up as a ring-3 vertex sitting 0.78 m deeper into the tunnel than its own rim.
-            float amplitude = NoiseAmplitude * Mathf.SmoothStep(0f, 1f, t)
-                              * Mathf.Clamp01(reach / ReachMeters);
-            float noise = Mathf.PerlinNoise(
-                point.x / NoiseWavelength + 13.7f, point.z / NoiseWavelength + 5.1f) - 0.5f;
-            point += outward * (noise * 2f * amplitude);
-            point.y = Mathf.Clamp(point.y, floorY, CrestY);
-            return point;
-        }
-
-        public static float MinimumReach => MinReachMeters;
-        public static float DesiredReach => ReachMeters;
-        public static float Margin => ClearanceMargin;
-        public static int Rings => RingCount;
 
         private static Vector3Int Quantise(Vector3 point)
         {
