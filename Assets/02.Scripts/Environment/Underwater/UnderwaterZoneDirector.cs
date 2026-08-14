@@ -505,7 +505,12 @@ namespace Varco.Underwater
             }
 
             if (driveDirectionalLight && directionalLight != null)
+            {
                 directionalLight.intensity = profile.directionalIntensity * lightMultiplier;
+                // The scene has exactly one light, authored cold-blue for the cave. Left undriven it
+                // also lit the island and headland, which is why dry land read teal from outside.
+                directionalLight.color = profile.directionalColor;
+            }
 
             // Profile colours are already linear, and Shader.SetGlobal* applies no conversion, so they
             // are passed through untouched.

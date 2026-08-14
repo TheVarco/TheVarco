@@ -16,8 +16,12 @@ namespace Varco.Underwater
         /// moved every colour from sRGB to linear radiance and replaced the absolute absorption vector
         /// with a relative tint, so a version-1 asset deserialises into fields that still exist but now
         /// mean something different - it has to be regenerated, not migrated field by field.
+        ///
+        /// Version 12 added UnderwaterZoneProfile.directionalColor, which the director now writes to the
+        /// scene's only light. A version-11 asset has no value stored for it, so it must be regenerated
+        /// rather than trusted - the field decides whether the sun is daylight or cave-blue.
         /// </summary>
-        private const int CurrentDataVersion = 11;
+        private const int CurrentDataVersion = 12;
 
         [SerializeField] private int dataVersion;
         [SerializeField] private List<UnderwaterZoneProfile> zones = new List<UnderwaterZoneProfile>();
@@ -257,11 +261,19 @@ namespace Varco.Underwater
                     // 수면 위 프레임이 이 앰비언트를 그대로 받는다. 동굴 존들(3.0-3.6)은 톤매핑
                     // 전제의 심해 값이라, 그 수준이면 야외 지형·산체가 흰색으로 날아간다 - 야외는
                     // 디렉셔널 라이트가 주광이고 앰비언트는 채움광 수준이어야 한다.
-                    ambientSky = new Color(1.3000f, 1.6000f, 1.9500f),
-                    ambientEquator = new Color(0.7150f, 0.8800f, 1.0725f),
-                    ambientGround = new Color(0.2600f, 0.3200f, 0.3900f),
+                    // 청록 캐스트 제거 (4세션차). 예전 값은 B/R 1.5였는데, 수면 위 물체는 앰비언트가
+                    // 채움광이므로 그 편차가 섬·산체·야자수를 그대로 파랗게 칠했다. 총 밝기는 유지한 채
+                    // B/R만 1.1로 낮춘다. 지면 바운스는 모래에서 오므로 오히려 따뜻해야 맞다.
+                    ambientSky = new Color(1.5500f, 1.6000f, 1.7000f),
+                    ambientEquator = new Color(0.8600f, 0.8800f, 0.9400f),
+                    ambientGround = new Color(0.3400f, 0.3100f, 0.2600f),
                     ambientIntensity = 1.00f,
                     directionalIntensity = 1.40f,
+                    // 🔴 씬에는 디렉셔널 라이트가 하나뿐이고 그 색 (0.62, 0.82, 1.00)은 동굴용 한색이다.
+                    // 존별로 구동하기 전까지 그 파란 태양이 물 밖 지형까지 칠하고 있었다 - 사용자가 보고한
+                    // "물 밖인데도 청록/파랑" 증상의 주원인. 여기서만 노을 스카이박스(SKy 22)에 맞는
+                    // 따뜻한 주광으로 바꾸고, Z1-Z6은 필드 기본값을 그대로 물려받아 기준선이 움직이지 않는다.
+                    directionalColor = new Color(1.00f, 0.95f, 0.86f),
                     // 얕은 물이라 빨강이 오래 살아남는다 - 심해 단서의 역함수가 곧 "밖으로 나왔다"는 단서
                     extinctionTint = new Vector3(1.4f, 1.01f, 1.0f),
                     refraction = 0.0022f,
@@ -269,11 +281,15 @@ namespace Varco.Underwater
                     causticStrength = 0.45f,
                     postExposure = 0.10f,
                     contrast = 0f,
-                    saturation = 5f,
+                    // 채도 +5는 남은 색편차를 증폭하기만 했다. 야외는 스카이박스와 지형 알베도가 이미
+                    // 충분히 채도가 있으므로 중립으로 둔다.
+                    saturation = 0f,
                     colorFilter = Color.white,
                     bloomIntensity = 0.30f,
                     vignetteIntensity = 0.12f,
-                    whiteBalanceTemperature = -5f,
+                    // 음수 temperature는 파랑을 민다 (URP ColorUtils.ColorBalanceToLMSCoeffs 확인, §2-E).
+                    // 동굴에서는 의도한 것이지만 야외에서는 청록 캐스트에 그대로 얹혔다.
+                    whiteBalanceTemperature = 0f,
                     whiteBalanceTint = 0f,
                     particleDensityScale = 0.40f,
                     shaftIntensity = 1.00f,

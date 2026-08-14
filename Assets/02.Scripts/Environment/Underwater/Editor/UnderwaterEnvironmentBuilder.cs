@@ -624,9 +624,14 @@ namespace Varco.Underwater.EditorTools
 
             UnderwaterZoneProfile baseline = zoneSet.Zones.Count > 0 ? zoneSet.Zones[0] : zoneSet.Fallback;
 
-            // Filtered blue-white surface light instead of the warm terrestrial default. Intensity is
-            // the Z1 baseline; the director takes over per zone at runtime.
-            directional.color = new Color(0.62f, 0.82f, 1f);
+            // Filtered blue-white surface light instead of the warm terrestrial default. Colour and
+            // intensity are the Z1 baseline; the director takes over per zone at runtime.
+            //
+            // The colour used to be the literal (0.62, 0.82, 1) here, which made this the only place the
+            // scene's single light got its hue - so the exterior inherited cave-blue and dry land read
+            // teal. It is a profile field now, and Z1's value is still exactly that literal, so this
+            // bake is unchanged while the exterior profile can differ.
+            directional.color = baseline.directionalColor;
             directional.intensity = baseline.directionalIntensity;
             directional.shadows = LightShadows.Soft;
             directional.shadowStrength = 0.72f;

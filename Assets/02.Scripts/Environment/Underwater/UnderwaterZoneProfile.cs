@@ -43,6 +43,12 @@ namespace Varco.Underwater
         [Tooltip("Directional light intensity for this zone. Z4 drops this to zero for the blackout fault.")]
         [Range(0f, 6f)] public float directionalIntensity = 1.5f;
 
+        [Tooltip("Directional light colour for this zone. The scene has exactly ONE light and it was " +
+                 "authored cold-blue (0.62, 0.82, 1.00) for the cave, which also painted the open-air " +
+                 "island, headland and palms blue once the exterior existed. Driving the colour per zone " +
+                 "lets the exterior use daylight while the cave keeps the value it already had.")]
+        [ColorUsage(false)] public Color directionalColor = new Color(0.62f, 0.82f, 1.00f);
+
         [Header("Screen Pass")]
         [Tooltip("Relative per-channel extinction. Blue is the reference at 1.0; red must be the " +
                  "largest so it is lost first, which is the deep-water cue. Absolute magnitude is " +
@@ -118,6 +124,7 @@ namespace Varco.Underwater
             ambientGround = Color.Lerp(a.ambientGround, b.ambientGround, t);
             ambientIntensity = Mathf.Lerp(a.ambientIntensity, b.ambientIntensity, t);
             directionalIntensity = Mathf.Lerp(a.directionalIntensity, b.directionalIntensity, t);
+            directionalColor = Color.Lerp(a.directionalColor, b.directionalColor, t);
 
             extinctionTint = Vector3.Lerp(a.extinctionTint, b.extinctionTint, t);
             refraction = Mathf.Lerp(a.refraction, b.refraction, t);
