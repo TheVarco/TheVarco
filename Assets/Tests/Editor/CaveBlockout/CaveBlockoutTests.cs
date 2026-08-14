@@ -142,8 +142,17 @@ namespace CaveBlockout.Tests
             Assert.That(summary.boundaryLoopCount, Is.EqualTo(1));
         }
 
+        /// <summary>
+        /// Uses the shape resolved from Submarine_final.prefab, not a shape spelled out here.
+        ///
+        /// This assembly cannot see SubmarineController - an assembly definition cannot reference the
+        /// predefined assemblies - so the hull arrives through CaveClearanceValidator.HullProvider,
+        /// registered by SubmarineHullProbeProvider. Do not "simplify" this by passing a literal
+        /// CaveHullProbe: a hardcoded hull that drifted away from the prefab is the defect this test
+        /// now guards against.
+        /// </summary>
         [Test]
-        public void SubmarineProxy_ClearsMainAndBranchRoutesInBothDirections()
+        public void RealSubmarineHull_ClearsMainAndBranchRoutesInBothDirections()
         {
             FindRoutes(out CaveRoute mainRoute, out CaveRoute branches);
             bool passed = CaveClearanceValidator.ValidateAll(mainRoute, branches, out string details);

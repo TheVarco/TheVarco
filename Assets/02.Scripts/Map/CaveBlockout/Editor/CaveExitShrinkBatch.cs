@@ -8,7 +8,8 @@ using UnityEngine.Splines;
 namespace CaveBlockout.Editor
 {
     /// <summary>
-    /// Shrinks the cave exit mouth from 85 x 50 to 24 x 16 metres, confining the taper to roughly the
+    /// Shrinks the cave exit mouth from the Z6 chamber's cross-section down to the mouth size, confining
+    /// the taper to roughly the
     /// last 15 m of the route so the Z6 climax stretch (490-564 m, whose whirlpool spacing was designed
     /// against an 85 m chamber) keeps its full width.
     ///
@@ -35,10 +36,15 @@ namespace CaveBlockout.Editor
         private const string MainMapPath = "Assets/01.Scenes/MainMap.unity";
         private const string PlayScenePath = "Assets/01.Scenes/MainScene_final.unity";
 
-        private const float ExitWidth = 24f;
-        private const float ExitHeight = 16f;
-        private const float HoldWidth = 85f;
-        private const float HoldHeight = 50f;
+        // Grown by CaveBlockoutPreset.CrossSectionGrowth along with every other cross-section, because
+        // the submarine that is actually in the game is 6.55 m across and 16.23 m long and could not get
+        // out of a 24 x 16 m mouth - and driving out of it is the win condition. Without this the pass is
+        // dead code on a fresh blockout: the final knot now reads 127.5 and the guard below would refuse
+        // with "final knot width is 127.5, expected 85".
+        private const float ExitWidth = 36f;
+        private const float ExitHeight = 24f;
+        private const float HoldWidth = 127.5f;
+        private const float HoldHeight = 75f;
 
         public static void ShrinkExitMainMapBatch()
         {

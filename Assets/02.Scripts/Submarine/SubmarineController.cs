@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CaveBlockout;
 using Fusion;
 using Fusion.Addons.Physics;
 using UnityEngine;
@@ -65,6 +66,10 @@ public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
     [Tooltip("로컬 Z축 방향 캡슐 전체 길이")]
     [SerializeField, Min(0.02f)] private float collisionProbeHeight = 5.5f;
     [SerializeField, Min(0f)] private float collisionSkinWidth = 0.05f;
+
+    // 끼임 검사가 "런타임이 한 틱에 시도하는 회전량"을 알아야 해서 필요한 값.
+    // Photon Fusion의 시뮬레이션 틱레이트(NetworkProjectConfig.fusion)와 같아야 한다.
+    private const float ClearanceSimulationTickRate = 64f;
 
     [Header("Collision Damage")]
     [SerializeField, Min(0f)] private float minimumDamageSpeed = 3f;
@@ -1034,18 +1039,33 @@ public class SubmarineController : NetworkBehaviour, IExternalMotionReceiver
         out Vector3 pointB,
         out float radius)
     {
-        // Transform 스케일과 회전을 반영해 월드 캡슐 치수 계산
-        Vector3 scale = transform.lossyScale;
-        float radialScale = Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y));
-        float lengthScale = Mathf.Abs(scale.z);
+        // Transform 스케일과 회전을 반영해 월드 캡슐 치수 계산.
+        // 계산 자체는 CaveHullProbe에 한 벌만 두고 여기서 위임한다 — 동굴 클리어런스
+        // 검증기가 같은 함수를 쓰지 않으면 검증이 실제와 다른 도형을 검사하게 된다.
+        BuildHullProbe(transform.lossyScale).GetWorldCapsule(position, rotation, out pointA, out pointB, out radius);
+    }
 
-        radius = collisionProbeRadius * radialScale;
-        float halfLineLength = Mathf.Max(0f, collisionProbeHeight * lengthScale * 0.5f - radius);
-        Vector3 center = position + rotation * Vector3.Scale(collisionProbeCenter, scale);
-        Vector3 axisOffset = rotation * Vector3.forward * halfLineLength;
-
-        pointA = center + axisOffset;
-        pointB = center - axisOffset;
+    /// <summary>
+    /// 이 잠수함의 선체를 동굴 클리어런스 검증기가 쓰는 형태로 기술한다.
+    ///
+    /// 검증기가 수치를 자기 쪽에 복사해 두면 안 된다. 실제로 그렇게 돼 있었고, 검증기
+    /// 프록시는 MAP_GUIDE의 "기준 잠수정 6x3x3 m"을 옮긴 3x3x6 대칭 박스였다. 프리팹이
+    /// 쓰는 캡슐은 그보다 9% 넓고 35% 길며 중심이 3 m 뒤에 있어서, 통과 검사가 존재하지
+    /// 않는 잠수함을 검사하고 늘 PASS를 냈다. 이 메서드가 유일한 출처다.
+    ///
+    /// 프리팹을 로드해 이 값을 뽑는 쪽은 SubmarineHullProbeProvider다.
+    /// </summary>
+    public CaveHullProbe BuildHullProbe(Vector3 lossyScale)
+    {
+        return CaveHullProbe.FromLocal(
+            collisionProbeRadius,
+            collisionProbeHeight,
+            collisionProbeCenter,
+            lossyScale,
+            maxYawSpeed / ClearanceSimulationTickRate,
+            collisionMask,
+            maxVerticalSpeed / Mathf.Max(0.01f, maxForwardSpeed),
+            $"{name} collision probe");
     }
 
     /// <summary>

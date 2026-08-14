@@ -51,7 +51,7 @@ namespace CaveBlockout.Editor
                 lastValidation = CaveBlockoutValidator.Validate(mainRoute, branches);
             }
 
-            if (GUILayout.Button("Validate 6 x 3 x 3m Clearance"))
+            if (GUILayout.Button("Validate Real Submarine Hull Clearance"))
             {
                 FindRoutes(out CaveRoute mainRoute, out CaveRoute branches);
                 bool passed = CaveClearanceValidator.ValidateAll(mainRoute, branches, out clearanceResult);

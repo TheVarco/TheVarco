@@ -1769,15 +1769,6 @@ MonoBehaviour:
     surfaceRotation: {x: -0.016284088, y: 0.69089466, z: 0.044636875, w: -0.7213923}
     scale: 6.70562
     zoneId: Z5
-  - id: 5f47866b5dad41dc96b365e0f64901fd
-    paletteId: FacetedBlueRamp
-    routeId: MainRoute
-    routeDistance: 439.00446
-    angleDegrees: 206.78189
-    surfaceOffset: -0.36232355
-    surfaceRotation: {x: 0.1544903, y: 0.98428226, z: 0.026222907, w: -0.081445746}
-    scale: 6.133856
-    zoneId: Z5
   - id: a5c76cc8c41a4bf693c37f82e0d32e35
     paletteId: FacetedBlueRamp
     routeId: MainRoute
@@ -2956,15 +2947,6 @@ MonoBehaviour:
     surfaceOffset: -0.19082367
     surfaceRotation: {x: -0.082161635, y: 0.99198985, z: 0.08146939, w: 0.050679035}
     scale: 3.8555791
-    zoneId: Z3
-  - id: a4326aae11704c52a4682e47bdf2e97d
-    paletteId: StylizedVeinedRock
-    routeId: MainRoute
-    routeDistance: 186.59541
-    angleDegrees: -60.375587
-    surfaceOffset: -0.35070658
-    surfaceRotation: {x: 0.055270832, y: 0.42881915, z: 0.1989522, w: -0.87947565}
-    scale: 4.4558682
     zoneId: Z3
   - id: ccf13382809a4c1997a0876e7318bc6d
     paletteId: StylizedVeinedRock

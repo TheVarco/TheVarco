@@ -149,9 +149,17 @@ namespace CaveBlockout.Editor
                 Debug.LogWarning("CAVE_BLOCKOUT: " + issue);
         }
 
-        public static void ValidateMainMapBatch()
+        public static void ValidateMainMapBatch() => ValidateScene(MainMapPath);
+
+        /// <summary>
+        /// The play scene carries its own copy of the route, so validating MainMap alone only proves the
+        /// authoring scene is sound. They are meant to agree, and this is how a disagreement surfaces.
+        /// </summary>
+        public static void ValidateMainSceneFinalBatch() => ValidateScene(PlayScenePath);
+
+        private static void ValidateScene(string scenePath)
         {
-            EditorSceneManager.OpenScene(MainMapPath, OpenSceneMode.Single);
+            EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
             CaveRoute[] routes = UnityEngine.Object.FindObjectsByType<CaveRoute>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             CaveRoute mainRoute = routes.FirstOrDefault(route => route.Definitions.Any(definition => definition.isMainRoute));
             CaveRoute branches = routes.FirstOrDefault(route => route != mainRoute);
@@ -160,7 +168,13 @@ namespace CaveBlockout.Editor
             CaveValidationSummary summary = UnityEngine.Object.FindFirstObjectByType<CaveValidationSummary>(FindObjectsInactive.Include);
             bool geometryPassed = summary != null && summary.triangleCount < 50000 && summary.boundaryLoopCount == 1 &&
                                   summary.nonManifoldEdgeCount == 0 && summary.windingMismatchCount == 0 && summary.degenerateTriangleCount == 0;
-            Debug.Log($"CAVE_VALIDATION route={(routeResult.Passed ? "PASS" : "FAIL")} clearance={(clearancePassed ? "PASS" : "FAIL")} triangles={(summary != null ? summary.triangleCount : -1)} boundaryLoops={(summary != null ? summary.boundaryLoopCount : -1)}");
+            Debug.Log($"CAVE_VALIDATION scene={scenePath} route={(routeResult.Passed ? "PASS" : "FAIL")} clearance={(clearancePassed ? "PASS" : "FAIL")} triangles={(summary != null ? summary.triangleCount : -1)} boundaryLoops={(summary != null ? summary.boundaryLoopCount : -1)}");
+            // Recorded so a widening run can be compared against the pre-change baseline by value, not
+            // by "still inside the allowed range" - the range checks pass no matter how wide a throat gets.
+            Debug.Log($"CAVE_VALIDATION_METRICS scene={scenePath} length={routeResult.routeLength:F4} " +
+                      $"rise={routeResult.totalRise:F4} slope={routeResult.maximumSlope:F4} " +
+                      $"radius={routeResult.minimumTurnRadius:F4} minWidth={routeResult.minimumWidth:F4} " +
+                      $"minHeight={routeResult.minimumHeight:F4}");
             Debug.Log(clearanceDetails);
             if (!routeResult.Passed || !clearancePassed || !geometryPassed)
                 throw new InvalidOperationException(string.Join("\n", routeResult.issues.Concat(new[] { clearanceDetails })));

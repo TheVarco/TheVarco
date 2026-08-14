@@ -92,15 +92,24 @@ namespace CaveHazard.EditorTools
             new VentStationSpec { id = "Z5_Vent_S1", distance = 355f, cross = false, scale = 1.5f,
                 anglesA = new[] { 180f }, startDelay = 0.0f },
 
-            new VentStationSpec { id = "Z5_Vent_S2", distance = 369f, cross = false, scale = 1.9f,
+            // 1.9 until the cave's cross-sections grew 1.5x for the real submarine hull; the floor moved
+            // out with them and the jet stopped short of the swim line by 0.51 m.
+            new VentStationSpec { id = "Z5_Vent_S2", distance = 369f, cross = false, scale = 2.05f,
                 anglesA = new[] { 194f }, startDelay = 1.2f },
 
             // The bulge. 225 deg is the closest surface here (14.3 m) against 24.7 m straight down.
             new VentStationSpec { id = "Z5_Vent_S3", distance = 414f, cross = false, scale = 2.4f,
                 anglesA = new[] { 218f }, startDelay = 0.6f },
 
-            new VentStationSpec { id = "Z5_Vent_S4", distance = 431f, cross = true, scale = 2.2f,
-                anglesA = new[] { 156f }, anglesB = new[] { 206f }, startDelay = 0.0f },
+            // 2.2 and 156/206 before the cross-sections grew 1.5x, which left both jets short - group A
+            // by 8.69 m. Most of it is bought back by moving the mounts rather than by stretching the
+            // asset further, but the two flanks do not behave alike here and the angles are measured, not
+            // mirrored: the section is rolled at 431 m, so surface depth *rises* as group A swings away
+            // from straight down (156 deg reads 21.9 m, 142 deg reads 24.5 m) while group B gets nearer
+            // (206 deg reads 18.7 m, 220 deg reads 15.6 m). Hence an asymmetric pair. Same reasoning as
+            // S3 at the bulge, where 218 beat straight down by 10 m.
+            new VentStationSpec { id = "Z5_Vent_S4", distance = 431f, cross = true, scale = 2.5f,
+                anglesA = new[] { 174f }, anglesB = new[] { 220f }, startDelay = 0.0f },
 
             // 152/208 rather than the 168/192 this started at. The exit throat has closed back to a
             // ~7 m radius by here, so a 24-degree separation put the two 2.2 m-wide jets 3.09 m apart

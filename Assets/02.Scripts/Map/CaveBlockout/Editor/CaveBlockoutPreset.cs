@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
@@ -47,15 +48,109 @@ namespace CaveBlockout.Editor
         ///
         /// Modelled result: 584 m, rise 260.0, slope 28.8, radius 23.4, reverse drop 0.
         /// </summary>
+        /// <summary>
+        /// How much every cross-section grew over the values in MAP_GUIDE.md's zone table.
+        ///
+        /// The guide's dimensions were derived from a 6 x 3 x 3 m reference submarine. The submarine that
+        /// is actually in the game has been scaled 2x on its prefab root since it was created
+        /// (Submarine_final.prefab, m_LocalScale 2, commit 36788de - two cockpits and a walkable
+        /// interior), which makes its collision hull 6.55 m across and 16.23 m long with 14.11 m of reach
+        /// behind its pivot. Measured against the cave as authored, that hull has to shrink to 0.67x
+        /// before any flyable path exists at all, and every zone boundary blocks it outright
+        /// (Z1-Z2 admits 0.99x, Z2-Z3 only 0.74x - which is exactly where it wedged).
+        ///
+        /// The level owner chose to grow the cave rather than shrink the submarine, since the 2x scale is
+        /// what makes the interior habitable. 1/0.67 is 1.49, so the cross-sections grow by 1.5.
+        ///
+        /// The centreline is untouched: length, rise, slope and turn radius are properties of the spline
+        /// and must come out of a rebuild bit-identical.
+        /// </summary>
+        public const float CrossSectionGrowth = 1.5f;
+
         public static readonly ZoneSpec[] Zones =
         {
-            new ZoneSpec("Z1", 55f, 24.9f, new Vector2(35f, 20f), -7.5f, 13.5f),
-            new ZoneSpec("Z2", 90f, 40.7f, new Vector2(65f, 30f), 18.5f, 56.5f),
-            new ZoneSpec("Z3", 120f, 54.3f, new Vector2(25f, 25f), 34.5f, -11.5f),
-            new ZoneSpec("Z4", 80f, 36.2f, new Vector2(18f, 18f), -42.5f, -40f),
-            new ZoneSpec("Z5", 110f, 49.7f, new Vector2(30f, 60f), 0f, 45.5f),
-            new ZoneSpec("Z6", 120f, 54.2f, new Vector2(85f, 50f), 56.5f, 11f)
+            new ZoneSpec("Z1", 55f, 24.9f, new Vector2(52.5f, 30f), -7.5f, 13.5f),
+            new ZoneSpec("Z2", 90f, 40.7f, new Vector2(97.5f, 45f), 18.5f, 56.5f),
+            new ZoneSpec("Z3", 120f, 54.3f, new Vector2(37.5f, 37.5f), 34.5f, -11.5f),
+            new ZoneSpec("Z4", 80f, 36.2f, new Vector2(27f, 27f), -42.5f, -40f),
+            new ZoneSpec("Z5", 110f, 49.7f, new Vector2(45f, 90f), 0f, 45.5f),
+            new ZoneSpec("Z6", 120f, 54.2f, new Vector2(127.5f, 75f), 56.5f, 11f)
         };
+
+        /// <summary>The guide's original cross-sections, kept so the growth factor stays auditable.</summary>
+        public static readonly Vector2[] GuideZoneSizes =
+        {
+            new Vector2(35f, 20f),
+            new Vector2(65f, 30f),
+            new Vector2(25f, 25f),
+            new Vector2(18f, 18f),
+            new Vector2(30f, 60f),
+            new Vector2(85f, 50f)
+        };
+
+        /// <summary>
+        /// The cross-section at a zone boundary, where the tunnel pinches between two chambers.
+        /// </summary>
+        public readonly struct BoundarySpec
+        {
+            /// <summary>Index of the shared knot on the main spline.</summary>
+            public readonly int knotIndex;
+            public readonly string boundaryId;
+            public readonly float width;
+            public readonly float height;
+            /// <summary>Heading change across the knot, in degrees. Documentation, not an input.</summary>
+            public readonly float bendDegrees;
+
+            public BoundarySpec(int knotIndex, string boundaryId, float width, float height, float bendDegrees)
+            {
+                this.knotIndex = knotIndex;
+                this.boundaryId = boundaryId;
+                this.width = width;
+                this.height = height;
+                this.bendDegrees = bendDegrees;
+            }
+        }
+
+        /// <summary>
+        /// Every zone boundary was a flat 16 x 12 m throat, and the submarine could not get through the
+        /// Z2 -> Z3 one: it wedged and stopped. Measured admissible hull scale per boundary, before this
+        /// change: Z1-Z2 0.99x, Z2-Z3 0.74x, Z3-Z4 0.82x, Z4-Z5 0.76x, Z5-Z6 0.87x. Z1-Z2 missing by a
+        /// hair is why the route felt passable right up to the point it wasn't.
+        ///
+        /// Widths fall with zone number so the route tightens as it climbs, per the difficulty gradient
+        /// the level owner asked for. The bend column is why that gradient is not the whole story: the
+        /// hull pivots ahead of its own tail by 14.11 m, so a turn of A degrees sweeps the tail
+        /// 14.11 * sin(A) sideways, and knot 8 is the hardest corner on the route despite not being the
+        /// narrowest. It holds a floor rather than continuing the taper.
+        ///
+        /// Read by BuildMainSpline for fresh blockouts and by CaveCrossSectionBatch for the two scenes
+        /// that already carry a baked route. One table, or the scenes and a rebuild disagree.
+        /// </summary>
+        public static readonly BoundarySpec[] ZoneBoundaries =
+        {
+            new BoundarySpec(2, "Z1-Z2", 27f, 19f, 5f),
+            new BoundarySpec(4, "Z2-Z3", 26f, 19f, 22f),
+            new BoundarySpec(6, "Z3-Z4", 25f, 19f, 31f),
+            new BoundarySpec(8, "Z4-Z5", 25f, 19f, 40f),
+            new BoundarySpec(10, "Z5-Z6", 24f, 18f, 11f)
+        };
+
+        /// <summary>The cross-section this table replaced, kept so the batch can recognise an un-widened route.</summary>
+        public static readonly Vector2 LegacyBoundarySize = new Vector2(16f, 12f);
+
+        public static bool TryGetBoundary(int knotIndex, out BoundarySpec spec)
+        {
+            foreach (BoundarySpec candidate in ZoneBoundaries)
+            {
+                if (candidate.knotIndex == knotIndex)
+                {
+                    spec = candidate;
+                    return true;
+                }
+            }
+            spec = default;
+            return false;
+        }
 
         public static void CreateRoutes(Transform routesRoot, out CaveRoute mainRoute, out CaveRoute branchRoutes)
         {
@@ -179,8 +274,23 @@ namespace CaveBlockout.Editor
 
                     bool midpoint = half == 0;
                     bool finalPoint = zoneIndex == Zones.Length - 1 && half == 1;
-                    widths.Add(midpoint || finalPoint ? zone.guideSize.x : 16f);
-                    heights.Add(midpoint || finalPoint ? zone.guideSize.y : 12f);
+                    if (midpoint || finalPoint)
+                    {
+                        widths.Add(zone.guideSize.x);
+                        heights.Add(zone.guideSize.y);
+                    }
+                    else
+                    {
+                        // Zone boundary. The throat cross-section comes from ZoneBoundaries so a fresh
+                        // build and an already-baked scene end up with the same tunnel.
+                        int knotIndex = points.Count - 1;
+                        if (!TryGetBoundary(knotIndex, out BoundarySpec boundary))
+                            throw new InvalidOperationException(
+                                $"No ZoneBoundaries entry for main spline knot {knotIndex}. The zone list " +
+                                "and the boundary table have drifted apart.");
+                        widths.Add(boundary.width);
+                        heights.Add(boundary.height);
+                    }
                 }
 
                 sections.Add(new CaveRouteSection
