@@ -20,6 +20,64 @@ namespace CaveBlockout.Editor
         public static Func<CaveHullProbe> HullProvider;
 
         /// <summary>
+        /// Colliders the sweep must not treat as walls, registered alongside <see cref="HullProvider"/>.
+        ///
+        /// The gate measures whether the cave admits the hull. The play scene also contains the submarine
+        /// itself, 52 pickups, three sharks and three whirlpools, all on the same layers as the rock - so
+        /// without this the answer depends on where a shark happens to be parked at author time. It did:
+        /// MainMap passed on identical geometry while MainScene_final failed on Z6_Shark_3 sitting in the
+        /// corridor at 555.9 m. Null means ignore nothing, which is correct for MainMap.
+        /// </summary>
+        public static Func<Collider, bool> IgnoreCollider;
+
+        private static readonly RaycastHit[] SweepHits = new RaycastHit[64];
+        private static readonly Collider[] OverlapHits = new Collider[64];
+
+        private static bool Ignored(Collider candidate)
+        {
+            return candidate == null || (IgnoreCollider != null && IgnoreCollider(candidate));
+        }
+
+        /// <summary>Nearest hit that is actually rock, or false if the sweep only met gameplay actors.</summary>
+        private static bool SweepHitsRock(
+            Vector3 pointA,
+            Vector3 pointB,
+            float radius,
+            Vector3 direction,
+            float distance,
+            int layerMask,
+            out RaycastHit nearest)
+        {
+            int count = Physics.CapsuleCastNonAlloc(pointA, pointB, radius, direction, SweepHits, distance,
+                layerMask, QueryTriggerInteraction.Ignore);
+            bool found = false;
+            nearest = default;
+            for (int i = 0; i < count; i++)
+            {
+                if (Ignored(SweepHits[i].collider))
+                    continue;
+                if (!found || SweepHits[i].distance < nearest.distance)
+                {
+                    nearest = SweepHits[i];
+                    found = true;
+                }
+            }
+            return found;
+        }
+
+        private static bool OverlapsRock(Vector3 pointA, Vector3 pointB, float radius, int layerMask)
+        {
+            int count = Physics.OverlapCapsuleNonAlloc(pointA, pointB, radius, OverlapHits, layerMask,
+                QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < count; i++)
+            {
+                if (!Ignored(OverlapHits[i]))
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
         /// What the optional resource branches are checked against. They are dead-end caves that
         /// players swim into for oxygen canisters, not places the submarine can turn around in, so
         /// they are held to a swimmer's clearance rather than the hull's.
@@ -359,15 +417,15 @@ namespace CaveBlockout.Editor
                     // swallowing the whole tunnel registered as clear and the margin scan happily reported
                     // that a hull four times the real one fits through a 16 x 12 m throat. Overlap is a
                     // blocked pose, and saying so is what makes the numbers mean anything.
-                    if (Physics.CheckCapsule(pointA, pointB, radius, hull.layerMask, QueryTriggerInteraction.Ignore))
+                    if (OverlapsRock(pointA, pointB, radius, hull.layerMask))
                     {
                         lastObstacle = "the hull is already inside rock at this altitude before it moves";
                         lastObstacleDistance = stationDistance;
                         continue;
                     }
 
-                    if (Physics.CapsuleCast(pointA, pointB, radius, delta.normalized, out RaycastHit hit,
-                            delta.magnitude, hull.layerMask, QueryTriggerInteraction.Ignore))
+                    if (SweepHitsRock(pointA, pointB, radius, delta.normalized, delta.magnitude,
+                            hull.layerMask, out RaycastHit hit))
                     {
                         lastObstacle = $"{hit.collider.name} at {hit.point}, normal={hit.normal}" +
                                        DescribeHitTriangle(hit);
@@ -472,7 +530,7 @@ namespace CaveBlockout.Editor
         private static bool Overlaps(CaveHullProbe hull, Vector3 position, Quaternion rotation)
         {
             hull.GetWorldCapsule(position, rotation, out Vector3 pointA, out Vector3 pointB, out float radius);
-            return Physics.CheckCapsule(pointA, pointB, radius, hull.layerMask, QueryTriggerInteraction.Ignore);
+            return OverlapsRock(pointA, pointB, radius, hull.layerMask);
         }
 
         /// <summary>

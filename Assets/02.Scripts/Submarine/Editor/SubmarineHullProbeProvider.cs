@@ -28,7 +28,40 @@ namespace Varco.Submarine.EditorTools
         static SubmarineHullProbeProvider()
         {
             CaveClearanceValidator.HullProvider = Resolve;
+            CaveClearanceValidator.IgnoreCollider = IsGameplayActor;
         }
+
+        /// <summary>
+        /// True for things the clearance sweep must not mistake for cave wall.
+        ///
+        /// The play scene puts the submarine, 52 pickups, three sharks and three whirlpools on the same
+        /// layers as the rock, so a sweep that counts them measures where a shark was parked rather than
+        /// whether the tunnel fits. MainMap holds none of them and passed on identical geometry while
+        /// MainScene_final failed on Z6_Shark_3 at 555.9 m - the same cave, two answers.
+        ///
+        /// Named roots rather than component types because the item system identifies its own group the
+        /// same way (CaveItemSpawner.ItemRoot), and because this has to recognise a shark without the cave
+        /// assembly knowing what a shark is.
+        /// </summary>
+        private static bool IsGameplayActor(Collider candidate)
+        {
+            if (candidate == null)
+                return true;
+
+            if (candidate.GetComponentInParent<SubmarineController>() != null)
+                return true;
+
+            for (Transform node = candidate.transform; node != null; node = node.parent)
+            {
+                if (node.name == ItemGroupName || node.name == PlayerGroupName)
+                    return true;
+            }
+
+            return false;
+        }
+
+        private const string ItemGroupName = "Items";
+        private const string PlayerGroupName = "Players";
 
         /// <summary>
         /// Reads the movement capsule off the prefab asset.
