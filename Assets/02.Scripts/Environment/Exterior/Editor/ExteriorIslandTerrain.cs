@@ -43,6 +43,13 @@ namespace Varco.Exterior.EditorTools
         private const string CopyTerrainPath = GeneratedFolder + "/ExteriorIsland_Terrain.asset";
 
         /// <summary>
+        /// Sand layer whose colour is in the TEXTURE rather than in a remap URP's terrain shader ignores.
+        /// It is also the texture the seabed already uses, so the waterline join matches too.
+        /// </summary>
+        private const string NeutralSandLayerPath =
+            "Assets/ThirdParty/Uber Stylized Water/Demo/Terrain/Sand.terrainlayer";
+
+        /// <summary>
         /// Exaggeration of the submerged band. 1 = the pack's own profile, 2 = 28.7 degrees at the
         /// shoreline, 4.3 = about 50. One number - retune it from the review captures.
         /// </summary>
@@ -107,6 +114,7 @@ namespace Varco.Exterior.EditorTools
 
             TerrainData copy = EnsureCopy();
             RepointScene(terrain, copy);
+            SwapSandLayer(copy);
 
             Vector3 origin = terrain.transform.position;
             Vector3 size = copy.size;
@@ -196,6 +204,56 @@ namespace Varco.Exterior.EditorTools
             Debug.Log($"EXTERIOR island: created project-owned TerrainData copy at {CopyTerrainPath}. " +
                       "The pack asset is left untouched so its own demo scenes still render.");
             return copy;
+        }
+
+        /// <summary>
+        /// Replaces the pack's Sand_Lite layer with the water pack's Sand layer on OUR TerrainData copy.
+        ///
+        /// 🔴 WHY, measured: Sand_Lite's texture is a nearly white greyscale and all of its colour lives
+        /// in m_DiffuseRemapMax = (1, 0.861, 0.355). URP's Terrain/Lit shader does not apply that remap,
+        /// so the terrain draws the raw greyscale - pale, not sand-coloured. Anything else trying to
+        /// match it then has to choose between looking like the pale terrain or looking like sand, and
+        /// either way there is a visible step where they meet. That step is what
+        /// "아직도 모래 간의 층이 생기잖아" was.
+        ///
+        /// The water pack's Sand layer has a neutral remap (1,1,1) and a texture that is already sand
+        /// coloured, so the terrain, the island skirt and the seabed can all draw the SAME texture with
+        /// no tint and agree exactly - and the sand actually looks like sand. This is the same swap the
+        /// 3rd session made for the generated island, for the same measured reason.
+        ///
+        /// Only the layer reference changes: the alphamap keeps its channel order, so the painted
+        /// sand/grass split is untouched.
+        /// </summary>
+        private static void SwapSandLayer(TerrainData data)
+        {
+            var replacement = AssetDatabase.LoadAssetAtPath<TerrainLayer>(NeutralSandLayerPath);
+            if (replacement == null)
+            {
+                Debug.LogWarning($"EXTERIOR island: no terrain layer at {NeutralSandLayerPath}, " +
+                                 "the pack's white-greyscale sand is left in place");
+                return;
+            }
+
+            TerrainLayer[] layers = data.terrainLayers;
+            int index = System.Array.FindIndex(layers, layer => layer != null &&
+                layer.name.IndexOf("sand", StringComparison.OrdinalIgnoreCase) >= 0);
+            if (index < 0)
+            {
+                Debug.LogWarning("EXTERIOR island: no sand layer on the terrain to replace");
+                return;
+            }
+            if (layers[index] == replacement)
+                return;
+
+            Debug.Log($"EXTERIOR island: terrain sand layer '{layers[index].name}' -> " +
+                      $"'{replacement.name}' (remap {layers[index].diffuseRemapMax} -> " +
+                      $"{replacement.diffuseRemapMax}, tile {layers[index].tileSize} -> " +
+                      $"{replacement.tileSize}). URP Terrain/Lit ignores the remap, so a layer that " +
+                      "carries its colour in the texture is the only way the skirt can match it.");
+
+            layers[index] = replacement;
+            data.terrainLayers = layers;
+            EditorUtility.SetDirty(data);
         }
 
         /// <summary>
