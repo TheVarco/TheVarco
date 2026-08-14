@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
 using UnityEngine.UI;
@@ -19,8 +20,8 @@ public class LobbyUI : MonoBehaviour
     [Tooltip("호스트만 누를 수 있다. 참가자에게는 회색으로 보인다")]
     [SerializeField] private Button gameStartButton;
     [SerializeField] private Button backButton;
-    [Tooltip("PlayerSlot_1 ~ 4 오브젝트를 순서대로 연결. 안의 Text는 알아서 찾는다")]
-    [SerializeField] private GameObject[] playerSlots = new GameObject[4];
+    [Tooltip("PlayerSlot_1 ~ 4를 순서대로 연결")]
+    [SerializeField] private LobbyPlayerSlot[] playerSlots = new LobbyPlayerSlot[4];
 
     [Header("로딩 화면 (씬 이동 중 오프닝 재생)")]
     [SerializeField] private GameObject loadingOverlay;
@@ -28,6 +29,11 @@ public class LobbyUI : MonoBehaviour
     [SerializeField] private VideoPlayer openingVideo;
     [Tooltip("영상이 끝나지 않아도 이 시간이 지나면 걷어낸다 (재생 실패로 영원히 막히는 걸 방지)")]
     [SerializeField] private float maxOverlaySeconds = 40f;
+
+    // ActivePlayers가 돌려주는 순서는 기계마다 다르다. 각 피어가 플레이어를 알게 된 순서라
+    // 호스트는 [1,2], 클라이언트는 [2,1]로 나오고, Fusion 문서에도 순서 보장은 없다.
+    // 그대로 그리면 같은 칸이 화면마다 다른 사람을 가리켜 "2번 칸"이라는 말이 안 통한다
+    private readonly List<PlayerRef> sortedPlayers = new List<PlayerRef>();
 
     // 씬을 넘어 들고 간 로딩 화면. 로드가 끝나면 이걸로 찾아 지운다
     private GameObject carriedOverlay;
@@ -104,27 +110,27 @@ public class LobbyUI : MonoBehaviour
     {
         if (playerSlots == null || starter == null) return;
 
+        // 부분 갱신을 하지 않고 매번 처음부터 다시 채운다.
+        // 가운데 사람이 나가면 뒷사람이 앞으로 당겨져야 하는데, 칸 하나만 비우면
+        // 가운데가 뚫린 채 남는다. 4칸뿐이라 전부 다시 그리는 게 틀릴 여지가 없다
+        sortedPlayers.Clear();
+        sortedPlayers.AddRange(starter.ActivePlayers);
+        sortedPlayers.Sort((a, b) => a.PlayerId.CompareTo(b.PlayerId));
+
         int index = 0;
-        foreach (PlayerRef player in starter.ActivePlayers)
+        foreach (PlayerRef player in sortedPlayers)
         {
             if (index >= playerSlots.Length) break;
 
-            SetSlotText(index, player == starter.LocalPlayer
-                ? $"플레이어 {player.PlayerId} (나)"
-                : $"플레이어 {player.PlayerId}");
+            if (playerSlots[index] != null)
+                playerSlots[index].SetPlayer(
+                    $"플레이어 {player.PlayerId}",
+                    player.PlayerId); // 포즈는 사람에 붙는다. 칸이 밀려도 그림은 안 바뀜
             index++;
         }
 
         for (; index < playerSlots.Length; index++)
-            SetSlotText(index, "비어있음");
-    }
-
-    private void SetSlotText(int index, string value)
-    {
-        if (playerSlots[index] == null) return;
-
-        Text label = playerSlots[index].GetComponentInChildren<Text>(true);
-        if (label != null) label.text = value;
+            if (playerSlots[index] != null) playerSlots[index].SetEmpty();
     }
 
     private void OnClickGameStart()
