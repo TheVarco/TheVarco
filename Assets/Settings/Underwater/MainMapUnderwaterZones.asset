@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea6038dd54352634390203767bea1362, type: 3}
   m_Name: MainMapUnderwaterZones
   m_EditorClassIdentifier: Varco.Underwater.Runtime::Varco.Underwater.UnderwaterZoneSet
-  dataVersion: 10
+  dataVersion: 13
   zones:
   - zoneId: Z1
     visibilityMeters: 28
@@ -23,6 +23,7 @@ MonoBehaviour:
     ambientGround: {r: 0.315, g: 0.434, b: 0.7, a: 1}
     ambientIntensity: 1
     directionalIntensity: 1.2
+    directionalColor: {r: 0.62, g: 0.82, b: 1, a: 1}
     extinctionTint: {x: 2.2, y: 1.02, z: 1}
     refraction: 0.0022
     refractionSpeed: 0.6
@@ -48,6 +49,7 @@ MonoBehaviour:
     ambientGround: {r: 0.288, g: 0.3968, b: 0.64, a: 1}
     ambientIntensity: 1.15
     directionalIntensity: 1.8
+    directionalColor: {r: 0.62, g: 0.82, b: 1, a: 1}
     extinctionTint: {x: 2.2, y: 1.02, z: 1}
     refraction: 0.002
     refractionSpeed: 0.65
@@ -73,6 +75,7 @@ MonoBehaviour:
     ambientGround: {r: 0.27, g: 0.372, b: 0.6, a: 1}
     ambientIntensity: 1.05
     directionalIntensity: 1.5
+    directionalColor: {r: 0.62, g: 0.82, b: 1, a: 1}
     extinctionTint: {x: 2.2, y: 1.02, z: 1}
     refraction: 0.003
     refractionSpeed: 0.95
@@ -98,17 +101,18 @@ MonoBehaviour:
     ambientGround: {r: 0.0204, g: 0.0411, b: 0.0538, a: 1}
     ambientIntensity: 1
     directionalIntensity: 0
+    directionalColor: {r: 0.62, g: 0.82, b: 1, a: 1}
     extinctionTint: {x: 1.6, y: 1.02, z: 1}
     refraction: 0.0016
     refractionSpeed: 0.45
     causticStrength: 0
     screenStrength: 1
-    postExposure: 0.1
-    contrast: 18
+    postExposure: 5.1
+    contrast: 6
     saturation: -20
     colorFilter: {r: 0.85, g: 0.92, b: 1, a: 1}
     bloomIntensity: 0.15
-    vignetteIntensity: 0.55
+    vignetteIntensity: 0.4
     whiteBalanceTemperature: -8
     whiteBalanceTint: -2
     particleDensityScale: 1.6
@@ -123,6 +127,7 @@ MonoBehaviour:
     ambientGround: {r: 0.324, g: 0.4464, b: 0.72, a: 1}
     ambientIntensity: 0.95
     directionalIntensity: 1.2
+    directionalColor: {r: 0.62, g: 0.82, b: 1, a: 1}
     extinctionTint: {x: 2.2, y: 1.02, z: 1}
     refraction: 0.0026
     refractionSpeed: 0.8
@@ -148,6 +153,7 @@ MonoBehaviour:
     ambientGround: {r: 0.324, g: 0.4464, b: 0.72, a: 1}
     ambientIntensity: 1.25
     directionalIntensity: 2.4
+    directionalColor: {r: 0.62, g: 0.82, b: 1, a: 1}
     extinctionTint: {x: 2.3, y: 1.02, z: 1}
     refraction: 0.0018
     refractionSpeed: 0.6
@@ -164,6 +170,32 @@ MonoBehaviour:
     particleDensityScale: 0.7
     shaftIntensity: 1.6
     bioluminescenceTint: {r: 0.3, g: 0.65, b: 1, a: 1}
+  - zoneId: Exterior
+    visibilityMeters: 45
+    fogColor: {r: 0.08, g: 0.42, b: 0.52, a: 1}
+    backgroundColor: {r: 0.3, g: 1.05, b: 1.3, a: 1}
+    ambientSky: {r: 1.55, g: 1.6, b: 1.7, a: 1}
+    ambientEquator: {r: 0.86, g: 0.88, b: 0.94, a: 1}
+    ambientGround: {r: 0.34, g: 0.31, b: 0.26, a: 1}
+    ambientIntensity: 1
+    directionalIntensity: 1.4
+    directionalColor: {r: 1, g: 0.95, b: 0.86, a: 1}
+    extinctionTint: {x: 1.4, y: 1.01, z: 1}
+    refraction: 0.0022
+    refractionSpeed: 0.7
+    causticStrength: 0.45
+    screenStrength: 1
+    postExposure: 0.1
+    contrast: 0
+    saturation: 0
+    colorFilter: {r: 1, g: 1, b: 1, a: 1}
+    bloomIntensity: 0.3
+    vignetteIntensity: 0.12
+    whiteBalanceTemperature: 0
+    whiteBalanceTint: 0
+    particleDensityScale: 0.4
+    shaftIntensity: 1
+    bioluminescenceTint: {r: 0.3, g: 0.65, b: 1, a: 1}
   fallback:
     zoneId: Fallback
     visibilityMeters: 28
@@ -174,6 +206,7 @@ MonoBehaviour:
     ambientGround: {r: 0.315, g: 0.434, b: 0.7, a: 1}
     ambientIntensity: 1
     directionalIntensity: 1.2
+    directionalColor: {r: 0.62, g: 0.82, b: 1, a: 1}
     extinctionTint: {x: 2.2, y: 1.02, z: 1}
     refraction: 0.0022
     refractionSpeed: 0.6

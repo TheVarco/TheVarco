@@ -220,6 +220,121 @@ namespace CaveBlockout.Editor.Decor
             Debug.Log(report.ToString());
         }
 
+        /// <summary>
+        /// <see cref="RebuildFromData"/> for the play scene.
+        ///
+        /// MainScene_final holds its own baked copies of the instances; the MainMap rebuild never
+        /// touches them, so after a blockout regeneration the play scene's decor is stranded on the
+        /// old surfaces. Same internals - CaveDecorSpawner.Rebuild re-projects from records and never
+        /// writes the decor set asset. Saves twice because the play scene carries Fusion
+        /// NetworkObjects whose SortKeys only settle on the second serialisation.
+        /// </summary>
+        public static void RebuildFromDataMainSceneFinal()
+        {
+            var report = new StringBuilder();
+            report.AppendLine("===== CAVE DECOR REBUILD (MainScene_final) =====");
+
+            EditorSceneManager.OpenScene("Assets/01.Scenes/MainScene_final.unity", OpenSceneMode.Single);
+            CaveDecorSet set = LoadSet(report);
+            if (set == null)
+            {
+                Debug.LogError(report.ToString());
+                return;
+            }
+
+            CaveDecorContext context = CaveDecorContext.Create();
+            report.AppendLine("rebuild: " + CaveDecorSpawner.Describe(CaveDecorSpawner.Rebuild(set, context)));
+
+            // Rebuild destroys and respawns via DestroyImmediate, which can leave the scene flagged
+            // clean; a clean scene makes SaveOpenScenes write nothing (see RetireSpecies).
+            CaveDecorSpawner.MarkSceneDirty();
+            EditorSceneManager.SaveOpenScenes();
+            CaveDecorSpawner.MarkSceneDirty();
+            EditorSceneManager.SaveOpenScenes();
+
+            // The drift baseline was dumped from MainMap, but both scenes re-project the same records
+            // onto the same shared shell asset, so the comparison is meaningful here too.
+            ReportDrift(set, context, report);
+            AppendValidation(set, context, report);
+            Debug.Log(report.ToString());
+        }
+
+        /// <summary>
+        /// The three Z5 LowpolyVolcano placements the map owner deleted by hand from MainScene_final
+        /// on 2026-08-14 (commit "Z5 화산 데코 3개 수동 제거"). Removing only the instances is not
+        /// enough: every rebuild re-projects all records, so without retiring these the next
+        /// RebuildFromData quietly resurrects the three deleted volcanoes.
+        /// </summary>
+        private static readonly string[] RetiredPlacementIds =
+        {
+            "b797a9f79b1a4c69802c1ac87b71366a",
+            "55dfbfa12e70429395482fb98aaddc63",
+            "77fb05d58e9a48f1addf266bf04e5faa"
+        };
+
+        /// <summary>
+        /// Removes <see cref="RetiredPlacementIds"/> from the decor set and deletes any surviving
+        /// instances in every cave scene. Unlike <see cref="RetireSpecies"/> this keeps the palette
+        /// entry - LowpolyVolcano itself stays in service, only these three placements go.
+        /// </summary>
+        public static void RetireManuallyDeletedPlacements()
+        {
+            var report = new StringBuilder();
+            report.AppendLine("===== CAVE DECOR RETIRE PLACEMENTS =====");
+            report.AppendLine("retiring: " + string.Join(", ", RetiredPlacementIds));
+
+            EditorSceneManager.OpenScene(MainMapPath, OpenSceneMode.Single);
+            CaveDecorSet set = LoadSet(report);
+            if (set == null)
+            {
+                Debug.LogError(report.ToString());
+                return;
+            }
+
+            // Field naming trap: the record (CaveDecorPlacement) calls it `id`; only the scene marker
+            // (CaveDecorInstance) calls it `placementId`. Same value, different names.
+            var retired = new HashSet<string>(RetiredPlacementIds);
+            int removed = set.Placements.RemoveAll(p => p != null && retired.Contains(p.id));
+            EditorUtility.SetDirty(set);
+            AssetDatabase.SaveAssets();
+            report.AppendLine($"decorSet: placements -{removed}, kept={set.Placements.Count}");
+
+            bool allMatched = removed == RetiredPlacementIds.Length;
+            foreach (string scenePath in CaveScenePaths)
+            {
+                EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+
+                var doomed = new List<GameObject>();
+                foreach (CaveDecorInstance marker in CaveDecorSpawner.FindAllInstances())
+                {
+                    if (marker != null && retired.Contains(marker.placementId))
+                        doomed.Add(marker.gameObject);
+                }
+
+                if (doomed.Count == 0)
+                {
+                    report.AppendLine($"{scenePath}: already clean");
+                    continue;
+                }
+
+                foreach (GameObject instance in doomed)
+                    UnityEngine.Object.DestroyImmediate(instance);
+
+                CaveDecorSpawner.MarkSceneDirty();
+                if (!EditorSceneManager.SaveOpenScenes())
+                {
+                    report.AppendLine($"{scenePath}: FAIL save refused");
+                    allMatched = false;
+                    continue;
+                }
+
+                report.AppendLine($"{scenePath}: deleted {doomed.Count}");
+            }
+
+            report.AppendLine(allMatched ? "RETIRE PASS" : "RETIRE WARN - counts above");
+            Debug.Log(report.ToString());
+        }
+
         public static void Validate()
         {
             var report = new StringBuilder();

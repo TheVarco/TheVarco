@@ -16,8 +16,16 @@ namespace Varco.Underwater
         /// moved every colour from sRGB to linear radiance and replaced the absolute absorption vector
         /// with a relative tint, so a version-1 asset deserialises into fields that still exist but now
         /// mean something different - it has to be regenerated, not migrated field by field.
+        ///
+        /// Version 12 added UnderwaterZoneProfile.directionalColor, which the director now writes to the
+        /// scene's only light. A version-11 asset has no value stored for it, so it must be regenerated
+        /// rather than trusted - the field decides whether the sun is daylight or cave-blue.
+        ///
+        /// Version 13 re-graded Z4. postExposure moved 0.10 -> 5.10, which is outside the range the
+        /// field used to allow, so a version-12 asset does not merely hold an older value - it holds one
+        /// that renders the zone as literal black. It has to be regenerated, not left alone.
         /// </summary>
-        private const int CurrentDataVersion = 10;
+        private const int CurrentDataVersion = 13;
 
         [SerializeField] private int dataVersion;
         [SerializeField] private List<UnderwaterZoneProfile> zones = new List<UnderwaterZoneProfile>();
@@ -156,7 +164,18 @@ namespace Varco.Underwater
                 },
 
                 // Z4 완전 암흑 단층 - 4-7m, 손전등 외 조명 0, 발광 생물 없음.
-                // 헤드라이트가 후속 작업이라 지금은 의도적으로 거의 보이지 않는 것이 정상이다.
+                //
+                // 🔴 가시거리 5.5는 MAP_GUIDE:27의 설계된 기믹이라 그대로다. 바뀐 것은 그레이딩뿐이다.
+                // 배치모드 측정 결과 Z4는 화면이 "어두운" 정도가 아니라 non-black 픽셀 0.0%, 즉 문자
+                // 그대로 (0,0,0)이었다. 원인은 안개가 아니라 노출이다. 이 존은 directionalIntensity가
+                // 0이고 앰비언트가 다른 존의 1/15라 씬 광량이 30배 낮은데, postExposure만 다른 존과
+                // 같은 0.10을 쓰고 있었다. 그 결과 프레임 전체가 ACES 토 아래로 들어가 톤매퍼가 0으로
+                // 클램프했다. 노출을 5.10으로 올리고(암순응) contrast 18 -> 6, vignette 0.55 -> 0.40으로
+                // 완화하니 물빛과 조종석이 읽히고, 잠수함 헤드라이트가 5 m 안쪽 물체를 실제로 드러낸다.
+                //
+                // 헤드라이트로 20 m 밖 동굴 벽을 밝히는 것은 여기서도 여전히 불가능하다. Z4 통로는 뱃머리
+                // 기준 전방 최근접 표면이 17-21 m인데 5.5 m 가시거리의 25 m 투과율은 1e-6이라, 스포트라이트
+                // 강도를 50,000까지 올려도 화면에 점 몇 개만 찍힌다. "가까이 가야 보인다"가 이 존의 규칙이다.
                 new UnderwaterZoneProfile
                 {
                     zoneId = "Z4",
@@ -172,12 +191,12 @@ namespace Varco.Underwater
                     refraction = 0.0016f,
                     refractionSpeed = 0.45f,
                     causticStrength = 0f,
-                    postExposure = 0.10f,
-                    contrast = 18f,
+                    postExposure = 5.10f,
+                    contrast = 6f,
                     saturation = -20f,
                     colorFilter = new Color(0.85f, 0.92f, 1.00f),
                     bloomIntensity = 0.15f,
-                    vignetteIntensity = 0.55f,
+                    vignetteIntensity = 0.40f,
                     whiteBalanceTemperature = -8f,
                     whiteBalanceTint = -2f,
                     particleDensityScale = 1.60f,
@@ -240,6 +259,55 @@ namespace Varco.Underwater
                     whiteBalanceTint = 0f,
                     particleDensityScale = 0.70f,
                     shaftIntensity = 1.60f,
+                    bioluminescenceTint = new Color(0.30f, 0.65f, 1.00f)
+                },
+
+                // Exterior - 동굴 밖 개방 수역. 존이 아니라 UnderwaterZoneDirector의 exteriorZoneId가
+                // 출구 평면을 지난 위치에서 명시적으로 찾는 프로필이다 (경로 거리는 마지막 섹션에
+                // 클램프되므로 섹션 데이터로는 도달할 수 없다). 햇빛 드는 얕은 열대 수역: 시야가 길고,
+                // 빨강이 살아 있고, 그레이딩은 중립에 가깝게 - 수면 위 컷씬 프레임이 이 그레이딩을
+                // 그대로 물려받기 때문이다.
+                new UnderwaterZoneProfile
+                {
+                    zoneId = "Exterior",
+                    visibilityMeters = 45f,
+                    fogColor = new Color(0.0800f, 0.4200f, 0.5200f),
+                    backgroundColor = new Color(0.3000f, 1.0500f, 1.3000f),
+                    // 수면 위 프레임이 이 앰비언트를 그대로 받는다. 동굴 존들(3.0-3.6)은 톤매핑
+                    // 전제의 심해 값이라, 그 수준이면 야외 지형·산체가 흰색으로 날아간다 - 야외는
+                    // 디렉셔널 라이트가 주광이고 앰비언트는 채움광 수준이어야 한다.
+                    // 청록 캐스트 제거 (4세션차). 예전 값은 B/R 1.5였는데, 수면 위 물체는 앰비언트가
+                    // 채움광이므로 그 편차가 섬·산체·야자수를 그대로 파랗게 칠했다. 총 밝기는 유지한 채
+                    // B/R만 1.1로 낮춘다. 지면 바운스는 모래에서 오므로 오히려 따뜻해야 맞다.
+                    ambientSky = new Color(1.5500f, 1.6000f, 1.7000f),
+                    ambientEquator = new Color(0.8600f, 0.8800f, 0.9400f),
+                    ambientGround = new Color(0.3400f, 0.3100f, 0.2600f),
+                    ambientIntensity = 1.00f,
+                    directionalIntensity = 1.40f,
+                    // 🔴 씬에는 디렉셔널 라이트가 하나뿐이고 그 색 (0.62, 0.82, 1.00)은 동굴용 한색이다.
+                    // 존별로 구동하기 전까지 그 파란 태양이 물 밖 지형까지 칠하고 있었다 - 사용자가 보고한
+                    // "물 밖인데도 청록/파랑" 증상의 주원인. 여기서만 노을 스카이박스(SKy 22)에 맞는
+                    // 따뜻한 주광으로 바꾸고, Z1-Z6은 필드 기본값을 그대로 물려받아 기준선이 움직이지 않는다.
+                    directionalColor = new Color(1.00f, 0.95f, 0.86f),
+                    // 얕은 물이라 빨강이 오래 살아남는다 - 심해 단서의 역함수가 곧 "밖으로 나왔다"는 단서
+                    extinctionTint = new Vector3(1.4f, 1.01f, 1.0f),
+                    refraction = 0.0022f,
+                    refractionSpeed = 0.70f,
+                    causticStrength = 0.45f,
+                    postExposure = 0.10f,
+                    contrast = 0f,
+                    // 채도 +5는 남은 색편차를 증폭하기만 했다. 야외는 스카이박스와 지형 알베도가 이미
+                    // 충분히 채도가 있으므로 중립으로 둔다.
+                    saturation = 0f,
+                    colorFilter = Color.white,
+                    bloomIntensity = 0.30f,
+                    vignetteIntensity = 0.12f,
+                    // 음수 temperature는 파랑을 민다 (URP ColorUtils.ColorBalanceToLMSCoeffs 확인, §2-E).
+                    // 동굴에서는 의도한 것이지만 야외에서는 청록 캐스트에 그대로 얹혔다.
+                    whiteBalanceTemperature = 0f,
+                    whiteBalanceTint = 0f,
+                    particleDensityScale = 0.40f,
+                    shaftIntensity = 1.00f,
                     bioluminescenceTint = new Color(0.30f, 0.65f, 1.00f)
                 }
             };

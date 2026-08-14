@@ -1706,15 +1706,6 @@ MonoBehaviour:
     surfaceRotation: {x: 0.0010010466, y: 0.5748923, z: -0.06455605, w: -0.815678}
     scale: 3.2056134
     zoneId: Z5
-  - id: b797a9f79b1a4c69802c1ac87b71366a
-    paletteId: LowpolyVolcano
-    routeId: MainRoute
-    routeDistance: 389.7974
-    angleDegrees: 157.64902
-    surfaceOffset: -0.76620626
-    surfaceRotation: {x: -0.047593784, y: 0.9305862, z: -0.050131883, w: -0.35948694}
-    scale: 8.381388
-    zoneId: Z5
   - id: f0d7552d294a49fb83acebbe84dfd526
     paletteId: LowpolyVolcano
     routeId: MainRoute
@@ -1723,24 +1714,6 @@ MonoBehaviour:
     surfaceOffset: -0.65487975
     surfaceRotation: {x: 0.026126113, y: 0.97873074, z: 0.16162387, w: 0.1236174}
     scale: 7.048759
-    zoneId: Z5
-  - id: 55dfbfa12e70429395482fb98aaddc63
-    paletteId: LowpolyVolcano
-    routeId: MainRoute
-    routeDistance: 371.46902
-    angleDegrees: 183.23322
-    surfaceOffset: -0.34849268
-    surfaceRotation: {x: -0.11526543, y: 0.9250067, z: -0.032954108, w: 0.36054197}
-    scale: 5.3422832
-    zoneId: Z5
-  - id: 77fb05d58e9a48f1addf266bf04e5faa
-    paletteId: LowpolyVolcano
-    routeId: MainRoute
-    routeDistance: 393.58133
-    angleDegrees: 214.11482
-    surfaceOffset: -0.39480236
-    surfaceRotation: {x: 0.07103148, y: 0.63161665, z: -0.06413205, w: 0.7693518}
-    scale: 5.6843896
     zoneId: Z5
   - id: ab19695a12a54bf28f1391917adec212
     paletteId: BlueStonePlatform
@@ -1795,15 +1768,6 @@ MonoBehaviour:
     surfaceOffset: -0.73991513
     surfaceRotation: {x: -0.016284088, y: 0.69089466, z: 0.044636875, w: -0.7213923}
     scale: 6.70562
-    zoneId: Z5
-  - id: 5f47866b5dad41dc96b365e0f64901fd
-    paletteId: FacetedBlueRamp
-    routeId: MainRoute
-    routeDistance: 439.00446
-    angleDegrees: 206.78189
-    surfaceOffset: -0.36232355
-    surfaceRotation: {x: 0.1544903, y: 0.98428226, z: 0.026222907, w: -0.081445746}
-    scale: 6.133856
     zoneId: Z5
   - id: a5c76cc8c41a4bf693c37f82e0d32e35
     paletteId: FacetedBlueRamp
@@ -2984,15 +2948,6 @@ MonoBehaviour:
     surfaceRotation: {x: -0.082161635, y: 0.99198985, z: 0.08146939, w: 0.050679035}
     scale: 3.8555791
     zoneId: Z3
-  - id: a4326aae11704c52a4682e47bdf2e97d
-    paletteId: StylizedVeinedRock
-    routeId: MainRoute
-    routeDistance: 186.59541
-    angleDegrees: -60.375587
-    surfaceOffset: -0.35070658
-    surfaceRotation: {x: 0.055270832, y: 0.42881915, z: 0.1989522, w: -0.87947565}
-    scale: 4.4558682
-    zoneId: Z3
   - id: ccf13382809a4c1997a0876e7318bc6d
     paletteId: StylizedVeinedRock
     routeId: MainRoute
@@ -3664,7 +3619,7 @@ MonoBehaviour:
     routeId: MainRoute
     routeDistance: 578.9949
     angleDegrees: 173.37053
-    surfaceOffset: -1.2350209
+    surfaceOffset: -3.762154
     surfaceRotation: {x: 0.039353188, y: 0.9512182, z: 0.16702706, w: 0.2563929}
     scale: 12.540513
     zoneId: Z6

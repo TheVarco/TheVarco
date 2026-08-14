@@ -142,8 +142,17 @@ namespace CaveBlockout.Tests
             Assert.That(summary.boundaryLoopCount, Is.EqualTo(1));
         }
 
+        /// <summary>
+        /// Uses the shape resolved from Submarine_final.prefab, not a shape spelled out here.
+        ///
+        /// This assembly cannot see SubmarineController - an assembly definition cannot reference the
+        /// predefined assemblies - so the hull arrives through CaveClearanceValidator.HullProvider,
+        /// registered by SubmarineHullProbeProvider. Do not "simplify" this by passing a literal
+        /// CaveHullProbe: a hardcoded hull that drifted away from the prefab is the defect this test
+        /// now guards against.
+        /// </summary>
         [Test]
-        public void SubmarineProxy_ClearsMainAndBranchRoutesInBothDirections()
+        public void RealSubmarineHull_ClearsMainAndBranchRoutesInBothDirections()
         {
             FindRoutes(out CaveRoute mainRoute, out CaveRoute branches);
             bool passed = CaveClearanceValidator.ValidateAll(mainRoute, branches, out string details);
@@ -227,9 +236,27 @@ namespace CaveBlockout.Tests
 
             float totalLength = mainRoute.Container.CalculateLength(0);
             Assert.That(CaveMeshGenerator.EvaluateMainNoiseWeight(mainRoute, 0f), Is.Zero.Within(0.0001f));
+            // Smooth leaves exitRimNoiseWeight at 0, so the exit is a clean ellipse under this preset.
             Assert.That(CaveMeshGenerator.EvaluateMainNoiseWeight(mainRoute, totalLength), Is.Zero.Within(0.0001f));
 
             mainRoute.NoiseSettings.ApplyStrongPreset();
+
+            // The two route ends are NOT symmetric, and this is the guard for that.
+            //
+            // The start is welded to a rounded cap: displacing its first ring tears the cap off, so its
+            // weight must stay exactly 0 no matter which preset is loaded.
+            //
+            // The end is the Z6 exit - an open mouth welded to nothing. It used to be forced to 0 by the
+            // same shared portalFadeDistance term, which is what made the opening a mathematically
+            // perfect ellipse. Strong now gives it a floor so the rim is rough. If someone "tidies up"
+            // by collapsing these back into one symmetric term, one of these two assertions fails.
+            Assert.That(CaveMeshGenerator.EvaluateMainNoiseWeight(mainRoute, 0f), Is.Zero.Within(0.0001f),
+                "The route start is welded to a rounded cap and must never take noise.");
+            Assert.That(CaveMeshGenerator.EvaluateMainNoiseWeight(mainRoute, totalLength),
+                Is.EqualTo(mainRoute.NoiseSettings.exitRimNoiseWeight).Within(0.0001f),
+                "The exit rim must carry exactly the configured exitRimNoiseWeight.");
+            Assert.That(mainRoute.NoiseSettings.exitRimNoiseWeight, Is.GreaterThan(0f),
+                "Strong is the shipping main-route preset; a zero rim weight means the exit is a clean ellipse again.");
             CaveBlockoutBuilder.RegenerateCurrentScene(false);
             filter = generated.GetComponentInChildren<MeshFilter>(true);
             collider = filter.GetComponent<MeshCollider>();

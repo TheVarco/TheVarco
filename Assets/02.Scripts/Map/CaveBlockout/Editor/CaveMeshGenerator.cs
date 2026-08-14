@@ -455,8 +455,20 @@ namespace CaveBlockout.Editor
         private static float EvaluateEndpointNoiseWeight(CaveNoiseSettings settings, float distance, float end)
         {
             float fade = Mathf.Max(0.1f, settings != null ? settings.portalFadeDistance : 5f);
+
+            // The START of the route is welded to a rounded cap, so it must stay at exactly 0: any
+            // displacement there tears the cap off the first ring.
             float fromStart = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(distance / fade));
-            float fromEnd = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((end - distance) / fade));
+
+            // The END is the Z6 exit - an open mouth welded to nothing, and the one place a hard zero
+            // is a liability rather than a safeguard: it is what made the opening a mathematically
+            // perfect ellipse. It gets its own ramp and its own floor so the rim can be rough while
+            // portalFadeDistance goes on protecting the side-portal welds it is shared with.
+            float exitFade = Mathf.Max(0.1f, settings != null ? settings.exitRimFadeDistance : fade);
+            float rimFloor = Mathf.Clamp01(settings != null ? settings.exitRimNoiseWeight : 0f);
+            float fromEnd = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((end - distance) / exitFade));
+            fromEnd = Mathf.Max(fromEnd, rimFloor);
+
             return Mathf.Min(fromStart, fromEnd);
         }
 

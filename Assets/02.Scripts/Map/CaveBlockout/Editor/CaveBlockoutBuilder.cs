@@ -13,6 +13,14 @@ namespace CaveBlockout.Editor
     public static class CaveBlockoutBuilder
     {
         public const string MainMapPath = "Assets/01.Scenes/MainMap.unity";
+
+        /// <summary>
+        /// The play scene. Deliberately NOT in <see cref="CaveScenePaths"/> - that list drives
+        /// build-from-scratch passes, and rebuilding the play scene's cave from defaults would discard
+        /// the authored decor, items and hazards it carries.
+        /// </summary>
+        public const string PlayScenePath = "Assets/01.Scenes/MainScene_final.unity";
+
         private static readonly string[] CaveScenePaths =
         {
             MainMapPath,
@@ -90,9 +98,21 @@ namespace CaveBlockout.Editor
         /// method leaves the branches noisy - which CaveBlockoutTests asserts against. Doing both here
         /// removes the ordering trap of "disable all noise, then re-apply strong to main only".
         /// </summary>
-        public static void ApplyAuthoredNoiseMainMapBatch()
+        public static void ApplyAuthoredNoiseMainMapBatch() => ApplyAuthoredNoise(MainMapPath, false);
+
+        /// <summary>
+        /// Same authored noise, applied to the PLAY scene.
+        ///
+        /// This exists because CaveNoiseSettings is serialized inline on each CaveRoute, per scene - it
+        /// is not a shared ScriptableObject. Adding a field (exitRimNoiseWeight, say) therefore leaves
+        /// every already-saved scene on the field's default until a preset is re-applied there, and the
+        /// two scenes do not sync. MainMap alone was not enough.
+        /// </summary>
+        public static void ApplyAuthoredNoiseMainSceneFinalBatch() => ApplyAuthoredNoise(PlayScenePath, true);
+
+        private static void ApplyAuthoredNoise(string scenePath, bool fusionDoubleSave)
         {
-            EditorSceneManager.OpenScene(MainMapPath, OpenSceneMode.Single);
+            EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
             CaveRoute[] routes = UnityEngine.Object.FindObjectsByType<CaveRoute>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             CaveRoute mainRoute = routes.FirstOrDefault(route => route.Definitions.Any(definition => definition.isMainRoute));
             if (mainRoute == null)
@@ -109,18 +129,37 @@ namespace CaveBlockout.Editor
 
             EditorSceneManager.MarkSceneDirty(mainRoute.gameObject.scene);
             CaveValidationResult result = RegenerateCurrentScene(true);
-            Debug.Log($"CAVE_AUTHORED_NOISE {(result.Passed ? "PASS" : "WARN")} " +
+
+            // The play scene carries Fusion NetworkObjects whose SortKeys are baked from GlobalObjectId
+            // on sceneSaving, and local file ids do not exist until the first serialisation - so the
+            // keys only settle on a second save.
+            if (fusionDoubleSave)
+            {
+                EditorSceneManager.MarkSceneDirty(mainRoute.gameObject.scene);
+                EditorSceneManager.SaveOpenScenes();
+            }
+
+            Debug.Log($"CAVE_AUTHORED_NOISE {(result.Passed ? "PASS" : "WARN")} scene={scenePath} " +
                       $"main(amplitude={mainRoute.NoiseSettings.amplitudeMeters:F2} gain={mainRoute.NoiseSettings.strengthGain:F2} " +
-                      $"ratio={mainRoute.NoiseSettings.maximumDisplacementRatio:F2} detail={mainRoute.NoiseSettings.visualDetailAmplitude:F2}) " +
+                      $"ratio={mainRoute.NoiseSettings.maximumDisplacementRatio:F2} detail={mainRoute.NoiseSettings.visualDetailAmplitude:F2} " +
+                      $"exitRim={mainRoute.NoiseSettings.exitRimNoiseWeight:F2}@{mainRoute.NoiseSettings.exitRimFadeDistance:F1}m) " +
                       $"branches(enabled={routes.Where(r => r != mainRoute).All(r => r.NoiseSettings.enabled)}) " +
                       $"length={result.routeLength:F1}m slope={result.maximumSlope:F1} radius={result.minimumTurnRadius:F1}");
             foreach (string issue in result.issues)
                 Debug.LogWarning("CAVE_BLOCKOUT: " + issue);
         }
 
-        public static void ValidateMainMapBatch()
+        public static void ValidateMainMapBatch() => ValidateScene(MainMapPath);
+
+        /// <summary>
+        /// The play scene carries its own copy of the route, so validating MainMap alone only proves the
+        /// authoring scene is sound. They are meant to agree, and this is how a disagreement surfaces.
+        /// </summary>
+        public static void ValidateMainSceneFinalBatch() => ValidateScene(PlayScenePath);
+
+        private static void ValidateScene(string scenePath)
         {
-            EditorSceneManager.OpenScene(MainMapPath, OpenSceneMode.Single);
+            EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
             CaveRoute[] routes = UnityEngine.Object.FindObjectsByType<CaveRoute>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             CaveRoute mainRoute = routes.FirstOrDefault(route => route.Definitions.Any(definition => definition.isMainRoute));
             CaveRoute branches = routes.FirstOrDefault(route => route != mainRoute);
@@ -129,7 +168,13 @@ namespace CaveBlockout.Editor
             CaveValidationSummary summary = UnityEngine.Object.FindFirstObjectByType<CaveValidationSummary>(FindObjectsInactive.Include);
             bool geometryPassed = summary != null && summary.triangleCount < 50000 && summary.boundaryLoopCount == 1 &&
                                   summary.nonManifoldEdgeCount == 0 && summary.windingMismatchCount == 0 && summary.degenerateTriangleCount == 0;
-            Debug.Log($"CAVE_VALIDATION route={(routeResult.Passed ? "PASS" : "FAIL")} clearance={(clearancePassed ? "PASS" : "FAIL")} triangles={(summary != null ? summary.triangleCount : -1)} boundaryLoops={(summary != null ? summary.boundaryLoopCount : -1)}");
+            Debug.Log($"CAVE_VALIDATION scene={scenePath} route={(routeResult.Passed ? "PASS" : "FAIL")} clearance={(clearancePassed ? "PASS" : "FAIL")} triangles={(summary != null ? summary.triangleCount : -1)} boundaryLoops={(summary != null ? summary.boundaryLoopCount : -1)}");
+            // Recorded so a widening run can be compared against the pre-change baseline by value, not
+            // by "still inside the allowed range" - the range checks pass no matter how wide a throat gets.
+            Debug.Log($"CAVE_VALIDATION_METRICS scene={scenePath} length={routeResult.routeLength:F4} " +
+                      $"rise={routeResult.totalRise:F4} slope={routeResult.maximumSlope:F4} " +
+                      $"radius={routeResult.minimumTurnRadius:F4} minWidth={routeResult.minimumWidth:F4} " +
+                      $"minHeight={routeResult.minimumHeight:F4}");
             Debug.Log(clearanceDetails);
             if (!routeResult.Passed || !clearancePassed || !geometryPassed)
                 throw new InvalidOperationException(string.Join("\n", routeResult.issues.Concat(new[] { clearanceDetails })));

@@ -14,6 +14,7 @@ namespace CaveHazard.EditorTools
     public static class CaveHazardBatch
     {
         private const string MainMapPath = "Assets/01.Scenes/MainMap.unity";
+        private const string PlayScenePath = "Assets/01.Scenes/MainScene_final.unity";
 
         /// <summary>
         /// Metres of slack around a hazard mount that must be free of dressing. The prop itself is
@@ -38,6 +39,28 @@ namespace CaveHazard.EditorTools
         {
             EditorSceneManager.OpenScene(MainMapPath, OpenSceneMode.Single);
             Debug.Log(BuildAll(save: true));
+        }
+
+        /// <summary>
+        /// The same pass against the play scene.
+        ///
+        /// Hazards are stored route-relative and re-projected onto whatever surface exists, but the
+        /// projection is baked at author time - so when the shell moves, the copies in MainScene_final
+        /// are left hanging where the old walls were. MainMap was the only scene this pass could reach,
+        /// which was survivable while the cave never changed shape; growing every cross-section made it
+        /// a hole. CaveDecorBatch already carries the same pair of entry points for the same reason.
+        /// </summary>
+        public static void BuildAllMainSceneFinalBatch()
+        {
+            EditorSceneManager.OpenScene(PlayScenePath, OpenSceneMode.Single);
+            Debug.Log(BuildAll(save: true));
+
+            // The rockfall spawners are Fusion NetworkObjects, and their SortKeys are baked from
+            // GlobalObjectId on sceneSaving. A freshly serialised object has no file id until the first
+            // save, so the first save writes provisional keys and only a second settles them.
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            if (!EditorSceneManager.SaveOpenScenes())
+                Debug.LogError("CAVE_HAZARD second save refused");
         }
 
         public static void ValidateBatch()
