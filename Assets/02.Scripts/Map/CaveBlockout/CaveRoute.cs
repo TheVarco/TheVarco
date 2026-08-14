@@ -25,6 +25,30 @@ namespace CaveBlockout
         [Range(0f, 0.75f)] public float visualDetailAmplitude = 0.1f;
         [Min(1f)] public float visualDetailWavelength = 4f;
 
+        /// <summary>
+        /// Share of the full noise weight the very LAST ring of the main route keeps, i.e. the Z6 exit
+        /// mouth. 0 reproduces the original behaviour: a mathematically perfect ellipse.
+        ///
+        /// This exists as its own knob because <see cref="portalFadeDistance"/> cannot be reused. That
+        /// one field also smooths the three side-portal welds and the branch ends, and the smoothing
+        /// there is load-bearing - it stops structural noise reopening a hairline crack along a weld.
+        /// The route's END is different in kind: it is an open mouth, welded to nothing, so it is free
+        /// to be as rough as the rock around it.
+        ///
+        /// Bumps go both inward and outward (noise displaces along the radial in both directions), so
+        /// raising this narrows the opening. At the 24 x 16 m exit roughly 2.4-3.6 m of displacement is
+        /// available before ApplyNoise's clamps bind, which still leaves far more than the 3 x 3 x 6 m
+        /// submarine needs - but re-run the blockout clearance validator after changing it.
+        /// </summary>
+        [Range(0f, 1f)] public float exitRimNoiseWeight;
+
+        /// <summary>
+        /// Metres over which noise ramps from <see cref="exitRimNoiseWeight"/> at the mouth up to full
+        /// strength further inside. Keeps the roughening confined to the rim instead of restyling the
+        /// whole Z6 throat, which already carries full noise.
+        /// </summary>
+        [Min(0.1f)] public float exitRimFadeDistance = 5f;
+
         public void ApplySmoothPreset()
         {
             enabled = false;
@@ -32,6 +56,7 @@ namespace CaveBlockout
             strengthGain = 1f;
             maximumDisplacementRatio = 0.15f;
             visualDetailEnabled = false;
+            exitRimNoiseWeight = 0f;
         }
 
         public void ApplyRockyPreset()
@@ -49,6 +74,7 @@ namespace CaveBlockout
             ceilingMultiplier = 1.15f;
             portalFadeDistance = 4f;
             visualDetailEnabled = false;
+            exitRimNoiseWeight = 0f;
         }
 
         public void ApplyRoughPreset()
@@ -68,6 +94,8 @@ namespace CaveBlockout
             visualDetailEnabled = true;
             visualDetailAmplitude = 0.2f;
             visualDetailWavelength = 8f;
+            exitRimNoiseWeight = 0.6f;
+            exitRimFadeDistance = 5f;
         }
 
         public void ApplyStrongPreset()
@@ -87,6 +115,10 @@ namespace CaveBlockout
             visualDetailEnabled = true;
             visualDetailAmplitude = 0.4f;
             visualDetailWavelength = 8f;
+            // The Z6 exit reads as a bored hole with a clean elliptical rim otherwise. 0.85 keeps
+            // roughly 2-3 m of displacement at the mouth, both inward and outward.
+            exitRimNoiseWeight = 0.85f;
+            exitRimFadeDistance = 5f;
         }
     }
 

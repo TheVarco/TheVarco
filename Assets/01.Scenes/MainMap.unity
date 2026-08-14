@@ -701,65 +701,6 @@ MonoBehaviour:
   placementId: 82e7418d4efc4335aedeaa93fb8b4885
   paletteId: JaggedRockSpire
   zoneId: Z3
---- !u!1 &11989231
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 11989232}
-  - component: {fileID: 11989233}
-  m_Layer: 0
-  m_Name: BlockoutValidation
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &11989232
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 11989231}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 531869407}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &11989233
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 11989231}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1ee9269448304d843989287161f62c47, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveValidationSummary
-  passed: 1
-  routeLength: 579.5649
-  totalRise: 260
-  minimumWidth: 16.003279
-  minimumHeight: 12.0060425
-  maximumSlope: 28.778091
-  minimumTurnRadius: 30.114594
-  maximumReverseDrop: 0
-  branchCount: 3
-  triangleCount: 42320
-  boundaryLoopCount: 1
-  nonManifoldEdgeCount: 0
-  windingMismatchCount: 0
-  degenerateTriangleCount: 0
-  details: PASS - Guide dimensions and route constraints are satisfied.
 --- !u!1001 &24488347
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5294,6 +5235,53 @@ MonoBehaviour:
   placementId: 059f9aa423494d0187ec104fa027be3b
   paletteId: FacetedBlueRock
   zoneId: Z3
+--- !u!1 &238621784
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 238621785}
+  - component: {fileID: 238621786}
+  m_Layer: 0
+  m_Name: Z2_GuideVolume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &238621785
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 238621784}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.23068559, y: 0.3120158, z: 0.07838074, w: 0.91830647}
+  m_LocalPosition: {x: 15.2663145, y: 45.256554, z: 86.2248}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1685813901}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &238621786
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 238621784}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d3dd760d82ff51429307e0d6cf55c27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveZoneMarker
+  zoneId: Z2
+  guideSize: {x: 65, y: 30, z: 90}
+  color: {r: 0.15, g: 0.8, b: 1, a: 0.3}
 --- !u!1001 &240268597
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5722,53 +5710,6 @@ MonoBehaviour:
   placementId: df97d15561f545ef8ffc089414d7370b
   paletteId: BlueCrystalSeaweed
   zoneId: Z2
---- !u!1 &250059914
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 250059915}
-  - component: {fileID: 250059916}
-  m_Layer: 0
-  m_Name: Z3_GuideVolume
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &250059915
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 250059914}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0.24796183, y: 0.09654108, z: 0.024842074, w: 0.96362734}
-  m_LocalPosition: {x: 79.04031, y: 92.768745, z: 152.4964}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1685813901}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &250059916
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 250059914}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4d3dd760d82ff51429307e0d6cf55c27, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveZoneMarker
-  zoneId: Z3
-  guideSize: {x: 25, y: 25, z: 120}
-  color: {r: 0.2, g: 0.9, b: 0.75, a: 0.3}
 --- !u!1 &253435369
 GameObject:
   m_ObjectHideFlags: 0
@@ -11021,7 +10962,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 11989232}
+  - {fileID: 576594285}
   m_Father: {fileID: 1319602851}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &542499164
@@ -11517,6 +11458,225 @@ MonoBehaviour:
   placementId: 6f0726dbb27e402485e986010f293c0f
   paletteId: StylizedGrassPatch
   zoneId: Z6
+--- !u!1 &560685368
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 560685369}
+  - component: {fileID: 560685372}
+  - component: {fileID: 560685371}
+  - component: {fileID: 560685370}
+  m_Layer: 0
+  m_Name: CaveShell
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!4 &560685369
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 560685368}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1916713034}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!64 &560685370
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 560685368}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 14
+  m_Mesh: {fileID: 4300000, guid: 9029f1ad23982e541bbaedf5cd5dae59, type: 2}
+--- !u!23 &560685371
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 560685368}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: a054dc8e9d1945f19bb0e5c04c781d09, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &560685372
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 560685368}
+  m_Mesh: {fileID: 4300000, guid: f9b1e5023264214408372bc0df78f6ce, type: 2}
+--- !u!1 &565380347
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 565380348}
+  - component: {fileID: 565380349}
+  m_Layer: 0
+  m_Name: Z6_GuideVolume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &565380348
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 565380347}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.23769872, y: 0.28115767, z: 0.0720969, w: 0.9269583}
+  m_LocalPosition: {x: 100.97493, y: 232.90074, z: 371.52295}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1685813901}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &565380349
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 565380347}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d3dd760d82ff51429307e0d6cf55c27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveZoneMarker
+  zoneId: Z6
+  guideSize: {x: 85, y: 50, z: 120}
+  color: {r: 1, g: 0.45, b: 0.2, a: 0.3}
+--- !u!1 &576594284
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 576594285}
+  - component: {fileID: 576594286}
+  m_Layer: 0
+  m_Name: BlockoutValidation
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &576594285
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 576594284}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 531869407}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &576594286
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 576594284}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ee9269448304d843989287161f62c47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveValidationSummary
+  passed: 1
+  routeLength: 579.5649
+  totalRise: 260
+  minimumWidth: 16.003279
+  minimumHeight: 12.0060425
+  maximumSlope: 28.778091
+  minimumTurnRadius: 30.114594
+  maximumReverseDrop: 0
+  branchCount: 3
+  triangleCount: 42320
+  boundaryLoopCount: 1
+  nonManifoldEdgeCount: 0
+  windingMismatchCount: 0
+  degenerateTriangleCount: 0
+  details: PASS - Guide dimensions and route constraints are satisfied.
 --- !u!1001 &579661702
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -18617,6 +18777,53 @@ MonoBehaviour:
   placementId: bdb5ff95613e40b49afa94e22e4cdc6a
   paletteId: StylizedVeinedRock
   zoneId: Z3
+--- !u!1 &932465293
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 932465294}
+  - component: {fileID: 932465295}
+  m_Layer: 0
+  m_Name: Z3_GuideVolume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &932465294
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 932465293}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.24796183, y: 0.09654108, z: 0.024842074, w: 0.96362734}
+  m_LocalPosition: {x: 79.04031, y: 92.768745, z: 152.4964}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1685813901}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &932465295
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 932465293}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d3dd760d82ff51429307e0d6cf55c27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveZoneMarker
+  zoneId: Z3
+  guideSize: {x: 25, y: 25, z: 120}
+  color: {r: 0.2, g: 0.9, b: 0.75, a: 0.3}
 --- !u!1001 &935161285
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -19665,53 +19872,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5959da28039223b44baf5766211d9302, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HydrothermalVent
---- !u!1 &971059921
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 971059922}
-  - component: {fileID: 971059923}
-  m_Layer: 0
-  m_Name: Z4_GuideVolume
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &971059922
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971059921}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0.21765092, y: -0.3430228, z: -0.08203648, w: 0.91007334}
-  m_LocalPosition: {x: 44.235195, y: 138.02486, z: 231.2307}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1685813901}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &971059923
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971059921}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4d3dd760d82ff51429307e0d6cf55c27, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveZoneMarker
-  zoneId: Z4
-  guideSize: {x: 18, y: 18, z: 80}
-  color: {r: 0.45, g: 0.8, b: 0.4, a: 0.3}
 --- !u!1001 &973431110
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -22266,53 +22426,6 @@ MonoBehaviour:
   placementId: 4fae440133164242a0585781f563d73f
   paletteId: BlueCrystalSeaweed
   zoneId: Z2
---- !u!1 &1102902845
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1102902846}
-  - component: {fileID: 1102902847}
-  m_Layer: 0
-  m_Name: Z5_GuideVolume
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1102902846
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1102902845}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0.24345948, y: 0.1893501, z: 0.048524823, w: 0.9500102}
-  m_LocalPosition: {x: 21.291452, y: 180.88239, z: 307.47147}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1685813901}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1102902847
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1102902845}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4d3dd760d82ff51429307e0d6cf55c27, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveZoneMarker
-  zoneId: Z5
-  guideSize: {x: 30, y: 60, z: 110}
-  color: {r: 0.85, g: 0.75, b: 0.25, a: 0.3}
 --- !u!1001 &1103322529
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -23603,6 +23716,8 @@ MonoBehaviour:
     visualDetailEnabled: 1
     visualDetailAmplitude: 0.4
     visualDetailWavelength: 8
+    exitRimNoiseWeight: 0.85
+    exitRimFadeDistance: 5
 --- !u!114 &1144344008
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28931,53 +29046,6 @@ MonoBehaviour:
   placementId: b1f6ed6dfaac498688d77c7cb5198aa1
   paletteId: StylizedGrassPatch
   zoneId: Z6
---- !u!1 &1342039414
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1342039415}
-  - component: {fileID: 1342039416}
-  m_Layer: 0
-  m_Name: Z1_GuideVolume
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1342039415
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1342039414}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0.23600297, y: 0.025527399, z: 0.006201935, w: 0.9713972}
-  m_LocalPosition: {x: -3.200117, y: 12.454243, z: 24.318783}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1685813901}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1342039416
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1342039414}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4d3dd760d82ff51429307e0d6cf55c27, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveZoneMarker
-  zoneId: Z1
-  guideSize: {x: 35, y: 20, z: 55}
-  color: {r: 0.1, g: 0.55, b: 1, a: 0.3}
 --- !u!1001 &1346464724
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -30564,53 +30632,6 @@ Transform:
   - {fileID: 1069256571}
   m_Father: {fileID: 1184423747}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1419147273
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1419147274}
-  - component: {fileID: 1419147275}
-  m_Layer: 0
-  m_Name: Z6_GuideVolume
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1419147274
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1419147273}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0.23769872, y: 0.28115767, z: 0.0720969, w: 0.9269583}
-  m_LocalPosition: {x: 100.97493, y: 232.90074, z: 371.52295}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1685813901}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1419147275
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1419147273}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4d3dd760d82ff51429307e0d6cf55c27, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveZoneMarker
-  zoneId: Z6
-  guideSize: {x: 85, y: 50, z: 120}
-  color: {r: 1, g: 0.45, b: 0.2, a: 0.3}
 --- !u!1001 &1421222084
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -31872,6 +31893,53 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 140d6bdbbbc54b0aa84adf00b71bd918, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RockSpawner
+--- !u!1 &1461627579
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1461627580}
+  - component: {fileID: 1461627581}
+  m_Layer: 0
+  m_Name: Z1_GuideVolume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1461627580
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1461627579}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.23600297, y: 0.025527399, z: 0.006201935, w: 0.9713972}
+  m_LocalPosition: {x: -3.200117, y: 12.454243, z: 24.318783}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1685813901}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1461627581
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1461627579}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d3dd760d82ff51429307e0d6cf55c27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveZoneMarker
+  zoneId: Z1
+  guideSize: {x: 35, y: 20, z: 55}
+  color: {r: 0.1, g: 0.55, b: 1, a: 0.3}
 --- !u!1001 &1472053830
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -36407,6 +36475,53 @@ MonoBehaviour:
   activeDuration: 2.5
   crossWarningLeadTime: 0.75
   aloneRecoveryDuration: 1.5
+--- !u!1 &1678922274
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1678922275}
+  - component: {fileID: 1678922276}
+  m_Layer: 0
+  m_Name: Z4_GuideVolume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1678922275
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1678922274}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.21765092, y: -0.3430228, z: -0.08203648, w: 0.91007334}
+  m_LocalPosition: {x: 44.235195, y: 138.02486, z: 231.2307}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1685813901}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1678922276
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1678922274}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d3dd760d82ff51429307e0d6cf55c27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveZoneMarker
+  zoneId: Z4
+  guideSize: {x: 18, y: 18, z: 80}
+  color: {r: 0.45, g: 0.8, b: 0.4, a: 0.3}
 --- !u!1001 &1679660629
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -36533,12 +36648,12 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1342039415}
-  - {fileID: 1775692656}
-  - {fileID: 250059915}
-  - {fileID: 971059922}
-  - {fileID: 1102902846}
-  - {fileID: 1419147274}
+  - {fileID: 1461627580}
+  - {fileID: 238621785}
+  - {fileID: 932465294}
+  - {fileID: 1678922275}
+  - {fileID: 1983248758}
+  - {fileID: 565380348}
   m_Father: {fileID: 1319602851}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1686993270
@@ -38049,53 +38164,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 6811519267582802178, guid: 91d318d14c5f3f348854bc00a17088cb, type: 3}
   m_PrefabInstance: {fileID: 1767799756}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &1775692655
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1775692656}
-  - component: {fileID: 1775692657}
-  m_Layer: 0
-  m_Name: Z2_GuideVolume
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1775692656
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1775692655}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0.23068559, y: 0.3120158, z: 0.07838074, w: 0.91830647}
-  m_LocalPosition: {x: 15.2663145, y: 45.256554, z: 86.2248}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1685813901}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1775692657
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1775692655}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4d3dd760d82ff51429307e0d6cf55c27, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveZoneMarker
-  zoneId: Z2
-  guideSize: {x: 65, y: 30, z: 90}
-  color: {r: 0.15, g: 0.8, b: 1, a: 0.3}
 --- !u!1001 &1780703700
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -40829,7 +40897,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 2134520291}
+  - {fileID: 560685369}
   m_Father: {fileID: 1319602851}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1920178117
@@ -41713,6 +41781,53 @@ MonoBehaviour:
   placementId: 89f74f652039473aadef2b09dc70ac72
   paletteId: BlueGeometricRock
   zoneId: Z1
+--- !u!1 &1983248757
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1983248758}
+  - component: {fileID: 1983248759}
+  m_Layer: 0
+  m_Name: Z5_GuideVolume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1983248758
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1983248757}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.24345948, y: 0.1893501, z: 0.048524823, w: 0.9500102}
+  m_LocalPosition: {x: 21.291452, y: 180.88239, z: 307.47147}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1685813901}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1983248759
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1983248757}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d3dd760d82ff51429307e0d6cf55c27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CaveBlockout.Runtime::CaveBlockout.CaveZoneMarker
+  zoneId: Z5
+  guideSize: {x: 30, y: 60, z: 110}
+  color: {r: 0.85, g: 0.75, b: 0.25, a: 0.3}
 --- !u!1001 &1983680799
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -42975,6 +43090,8 @@ MonoBehaviour:
     visualDetailEnabled: 0
     visualDetailAmplitude: 0.1
     visualDetailWavelength: 4
+    exitRimNoiseWeight: 0
+    exitRimFadeDistance: 5
 --- !u!114 &2066081594
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -49679,119 +49796,6 @@ MonoBehaviour:
   placementId: 18acc4533fd4491282d8e3244dc12252
   paletteId: JaggedRockSpire
   zoneId: Z3
---- !u!1 &2134520290
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2134520291}
-  - component: {fileID: 2134520294}
-  - component: {fileID: 2134520293}
-  - component: {fileID: 2134520292}
-  m_Layer: 0
-  m_Name: CaveShell
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 2147483647
-  m_IsActive: 1
---- !u!4 &2134520291
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2134520290}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1916713034}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!64 &2134520292
-MeshCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2134520290}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 14
-  m_Mesh: {fileID: 4300000, guid: 9029f1ad23982e541bbaedf5cd5dae59, type: 2}
---- !u!23 &2134520293
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2134520290}
-  m_Enabled: 1
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: a054dc8e9d1945f19bb0e5c04c781d09, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_MaskInteraction: 0
-  m_AdditionalVertexStreams: {fileID: 0}
---- !u!33 &2134520294
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2134520290}
-  m_Mesh: {fileID: 4300000, guid: f9b1e5023264214408372bc0df78f6ce, type: 2}
 --- !u!1001 &2141676779
 PrefabInstance:
   m_ObjectHideFlags: 0
