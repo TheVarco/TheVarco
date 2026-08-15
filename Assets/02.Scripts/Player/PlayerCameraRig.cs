@@ -132,10 +132,13 @@ public class PlayerCameraRig : MonoBehaviour
         Quaternion lookRotation = Quaternion.Euler(pitch, yaw, 0f);
         transform.rotation = lookRotation;
 
-        // 눈은 머리에 붙어 있어야 한다. lookRotation을 그대로 쓰면 pitch까지 반영돼서
-        // 아래를 볼 때 눈이 발밑으로 내려앉고 뒤로 밀린다 (80도에서 위 0.8m -> 위 0.14m + 뒤 0.79m).
-        // 그 상태로 바닥 근처면 카메라가 지형 안에 박힌다. 좌우(yaw)만 따라 돌면 된다
-        Vector3 eyePosition = target.position + Quaternion.Euler(0f, yaw, 0f) * eyeOffset;
+        // 눈은 머리에 붙어 있어야 하니 몸이 실제로 향한 방향을 그대로 쓴다.
+        // 카메라 회전(lookRotation)을 쓰면 걷기 모드에서 몸은 서 있는데 눈만 기울어
+        // 발밑으로 내려앉고(80도에서 위 0.8m -> 위 0.14m + 뒤 0.79m) 바닥에 박힌다.
+        // 반대로 yaw만 쓰면 헤엄칠 때 몸은 고개를 숙이는데 눈만 위에 남아 뒤통수가 보인다.
+        // PlayerController.ApplyRotation이 걷기/헤엄을 구분해 몸을 돌리므로,
+        // 그 결과를 따라가면 두 경우가 자동으로 맞는다
+        Vector3 eyePosition = target.position + target.rotation * eyeOffset;
 
         if (viewMode == ViewMode.FirstPerson)
         {

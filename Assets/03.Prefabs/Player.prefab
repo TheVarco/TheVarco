@@ -790,7 +790,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HungerStat
   maxValue: 100
-  depletionRatePerSecond: 0.025
+  depletionRatePerSecond: 0.015
   OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
