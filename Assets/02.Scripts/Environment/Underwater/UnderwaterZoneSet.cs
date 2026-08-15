@@ -115,7 +115,19 @@ namespace Varco.Underwater
                     ambientSky = new Color(1.4400f, 1.9840f, 3.2000f),
                     ambientEquator = new Color(0.7920f, 1.0912f, 1.7600f),
                     ambientGround = new Color(0.2880f, 0.3968f, 0.6400f),
-                    ambientIntensity = 1.15f,
+                    // Halved from 1.15. Z2 is the bioluminescent basin, and at 1.15 the ambient was
+                    // bright enough that the coral's own light did nothing: a point light at intensity
+                    // 100 on the rock beside a prop was invisible, and only at 250 did it register, as
+                    // specular rather than as a pool. Dropping ambient is what lets the glow read at all.
+                    // Measured at 0.58: lit pixels in the Z2 close-up went 23,625 -> 43,351 once the
+                    // prop lights were added, where at 1.15 the same lights moved almost nothing.
+                    //
+                    // postExposure is deliberately left at 0.55. Screen brightness goes roughly as
+                    // ambient * 2^postExposure and Lerp() blends the pair in log space to keep zone
+                    // crossings monotonic, so this was checked at the boundary rather than assumed: mean
+                    // blue across Z1->Z2 in MainScene_final runs 80.7 / 77.2 / 68.0 / 61.9 / 55.6, a
+                    // smooth ramp with no step. See Artifacts/GlowVariants/FINDINGS.md.
+                    ambientIntensity = 0.58f,
                     directionalIntensity = 1.80f,
                     extinctionTint = new Vector3(2.2f, 1.02f, 1.0f),
                     refraction = 0.0020f,
