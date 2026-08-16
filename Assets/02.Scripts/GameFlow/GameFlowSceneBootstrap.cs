@@ -57,6 +57,14 @@ namespace Varco.GameFlow
             else
                 Debug.LogError($"[GameFlow] {TargetSceneName} has no configured GameFlowResultUI.");
 
+            // 네트워크 체크포인트 전진 상태를 모든 로컬 화면의 알림에 연결
+            CheckpointNotificationUI checkpointNotificationUI =
+                Object.FindFirstObjectByType<CheckpointNotificationUI>(FindObjectsInactive.Include);
+            if (checkpointNotificationUI != null)
+                checkpointNotificationUI.Initialize(coordinator);
+            else
+                Debug.LogError($"[GameFlow] {TargetSceneName} has no configured CheckpointNotificationUI.");
+
             coordinator.Initialize(submarine, bridge);
         }
 
