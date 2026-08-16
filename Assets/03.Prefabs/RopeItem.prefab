@@ -130,12 +130,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RopeItem
   itemName: "\uBC27\uC904"
-  isConsumable: 1
+  isConsumable: 0
   icon: {fileID: 0}
   giveActionName: "\uC0AC\uC6A9\uD574\uC8FC\uAE30"
   holdPositionOffset: {x: 0, y: 0, z: 0}
   holdRotationOffset: {x: 0, y: 0, z: 0}
-  ropeProjectilePrefab: {fileID: 3498688313566668995, guid: 3d362de4b0fe3814ea68f3993b74549d, type: 3}
   ropeProjectilePrefabRef:
     RawGuidValue: 3d362de4b0fe3814ea68f3993b74549d
   throwDelay: 0.5
