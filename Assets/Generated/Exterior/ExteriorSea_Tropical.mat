@@ -368,7 +368,7 @@ Material:
     - _Underwater_Fade: 15
     - _WORLDSPACEDEPTH: 1
     - _WaterDepth: 0.3
-    - _Water_Depth: 1.5
+    - _Water_Depth: 12
     - _WaveHeight: 0.01
     - _WaveHeight2nd: 0.01
     - _WaveLength: 10
@@ -407,7 +407,7 @@ Material:
     - _1st_Wave_Direction: {r: 1, g: 0, b: 0, a: 0}
     - _2nd_Wave_Direction: {r: -1, g: 0, b: 1, a: 0}
     - _Color_Deep: {r: 0, g: 0.2462014, b: 0.5394797, a: 1}
-    - _Color_Shallow: {r: 0.02352938, g: 0.82328343, b: 0.9882353, a: 1}
+    - _Color_Shallow: {r: 0.02352938, g: 0.82328343, b: 0.9882353, a: 0.75}
     - _Deep_Color: {r: 0, g: 0.09093038, b: 0.674, a: 0.95686275}
     - _DistanceColor: {r: 1, g: 1, b: 1, a: 1}
     - _FarColor: {r: 0.15966535, g: 0.6787135, b: 0.8679245, a: 0}
