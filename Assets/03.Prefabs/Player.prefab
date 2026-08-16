@@ -289,6 +289,7 @@ MonoBehaviour:
   secondaryActionKey: 324
   dropKey: 103
   aimReference: {fileID: 0}
+  interactor: {fileID: 0}
   dropDistance: 1.2
   dropHeightOffset: 0
 --- !u!114 &3732126355975195756
@@ -344,7 +345,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 50f93a0260881fd46805b6d39d79532e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NewMonoBehaviourScript
-  damage: 10
+  damage: 8
   attackRange: 1.5
   attackCooldown: 0.5
   attackAngle: 60
@@ -790,7 +791,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HungerStat
   maxValue: 100
-  depletionRatePerSecond: 0.015
+  depletionRatePerSecond: 0.01
   OnValueChanged:
     m_PersistentCalls:
       m_Calls: []

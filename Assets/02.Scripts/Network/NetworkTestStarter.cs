@@ -71,6 +71,9 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
     private NetworkRunner runner;
     private PlayerCameraRig localCameraRig;
     private bool inLobby;
+    // 대기방을 거치지 않고 곧장 게임 씬으로 들어가는 경우(혼자 하기 등).
+    // 오프닝과 스폰 지연은 대기방 여부와 상관없이 "게임 씬에 들어가는가"로 판단해야 한다
+    private bool enteringGameScene;
     private bool spawnReleased;
     private float spawnReleaseTimer = -1f; // 음수면 대기 중 아님
 
@@ -337,7 +340,11 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
         if (!UsesLobby || mode == GameMode.Single)
         {
             SceneRef gameScene = GetGameSceneRef();
-            if (gameScene.IsValid) args.Scene = gameScene;
+            if (gameScene.IsValid)
+            {
+                args.Scene = gameScene;
+                enteringGameScene = true;
+            }
         }
 
         StartGameResult result = await runner.StartGame(args);
@@ -384,7 +391,11 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
         if (runner == null || !runner.IsServer) return;
 
         SceneRef gameScene = GetGameSceneRef();
-        if (gameScene.IsValid) runner.LoadScene(gameScene);
+        if (gameScene.IsValid)
+        {
+            enteringGameScene = true;
+            runner.LoadScene(gameScene);
+        }
     }
 
     // 대기방에서 나갈 때. 세션을 닫고 인트로 씬을 처음부터 다시 연다.
@@ -396,6 +407,7 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
     public void LeaveSession()
     {
         inLobby = false;
+        enteringGameScene = false;
         spawnReleased = false;
         spawnReleaseTimer = -1f;
 
@@ -423,7 +435,7 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
         // 대기방에 있는 동안은 스폰하지 않는다. 안 그러면 인트로 씬에 캐릭터가 생기고
         // 카메라가 그쪽으로 붙어서 대기 화면이 가려진다.
         // 오프닝이 도는 동안도 마찬가지 — 화면을 못 보는 채로 적에게 맞는다
-        if (inLobby && !spawnReleased) return;
+        if ((inLobby || enteringGameScene) && !spawnReleased) return;
 
         SpawnPlayer(player);
     }
@@ -656,7 +668,7 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
 
         // 대기방을 거쳐 왔으면 오프닝이 끝날 때까지 기다린다 (LobbyUI가 ReleasePlayerSpawn을 부름).
         // 신호가 안 오는 경우를 대비해 여기서 안전망 타이머를 켠다
-        if (inLobby)
+        if (inLobby || enteringGameScene)
         {
             spawnReleaseTimer = 0f;
             return;
@@ -682,8 +694,10 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
     // 버튼을 누른 사람만 로딩 화면을 띄우면 나머지는 인트로 씬이 사라지는 걸 그대로 보게 된다
     public void OnSceneLoadStart(NetworkRunner runner)
     {
-        // 세션에 붙는 중 일어나는 초기 씬 동기화까지 잡으면 대기방이 뜨기도 전에 로딩 화면이 깜빡인다
-        if (!inLobby) return;
+        // 대기방을 거쳐 오든(inLobby) 혼자 바로 들어가든(enteringGameScene) 오프닝은 똑같이 덮는다.
+        // 클라이언트가 세션에 붙는 중 일어나는 초기 씬 동기화는 둘 다 false라 그대로 걸러진다
+        // (그때 잡으면 대기방이 뜨기도 전에 로딩 화면이 깜빡인다)
+        if (!inLobby && !enteringGameScene) return;
 
         SceneLoadStarted?.Invoke();
     }
