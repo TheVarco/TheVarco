@@ -207,9 +207,27 @@ namespace CaveBlockout.Editor.Decor
                 surfaces = CaveSurfaceKind.Floor | CaveSurfaceKind.Wall,
                 normalAlignment = 1f,
                 maxTiltDegrees = 6f,
-                zoneMaterials = new Dictionary<string, string>
+                // Was a zoneMaterials pointer at a hand-made material with an empty _EmissionMap. URP/Lit
+                // multiplies emission by that map, so an empty one meant every texel emitted the same
+                // 2.85 and the prop rendered as a solid cyan cut-out - the same defect Z5's volcano had.
+                // Reported from the scene view and then reproduced through the game camera: see
+                // Artifacts/GlowVariants/A0_control__CLOSE.png, captured with ACES and Z2 grading on and
+                // clipped at 0.00%, which rules out clipping and leaves shoulder compression.
+                //
+                // Unlike Z5 the intensity is left alone. Z5 cut to a fifth because its albedo is dark
+                // volcanic rock; these corals have bright atlases, so modulation alone restores the form
+                // and a cut on top made them read as ordinary dim props (A1 vs the x0.5 capture).
+                emissiveVariants = new[]
                 {
-                    { "Z2", ArtPassMaterialRoot + "/Z2_LowPolyBlueCoral_Emissive.mat" }
+                    new EmissiveVariant
+                    {
+                        zoneId = "Z2",
+                        materialPathOverride = ArtPassMaterialRoot + "/Z2_LowPolyBlueCoral_Emissive.mat",
+                        baseTint = new Color(0.15f, 0.45f, 0.55f, 1f),
+                        emission = new Color(0.3f, 2.7f, 2.85f, 1f),
+                        emissionFollowsAlbedo = true,
+                        smoothness = 0.3f
+                    }
                 }
             },
             new Entry
@@ -222,9 +240,18 @@ namespace CaveBlockout.Editor.Decor
                 surfaces = CaveSurfaceKind.Wall,
                 normalAlignment = 1f,
                 maxTiltDegrees = 6f,
-                zoneMaterials = new Dictionary<string, string>
+                // Same conversion as Low Poly Blue Coral above; this is the magenta prop in the report.
+                emissiveVariants = new[]
                 {
-                    { "Z2", ArtPassMaterialRoot + "/Z2_VioletSeaFan_Emissive.mat" }
+                    new EmissiveVariant
+                    {
+                        zoneId = "Z2",
+                        materialPathOverride = ArtPassMaterialRoot + "/Z2_VioletSeaFan_Emissive.mat",
+                        baseTint = new Color(0.25f, 0.1f, 0.4f, 1f),
+                        emission = new Color(1.5f, 0.375f, 2.25f, 1f),
+                        emissionFollowsAlbedo = true,
+                        smoothness = 0.2f
+                    }
                 }
             },
             new Entry
@@ -235,9 +262,18 @@ namespace CaveBlockout.Editor.Decor
                 sizeMetres = new Vector2(2f, 4.5f),
                 surfaces = CaveSurfaceKind.Floor | CaveSurfaceKind.Wall,
                 normalAlignment = 1f,
-                zoneMaterials = new Dictionary<string, string>
+                // Z2 only. The Z6 placements keep their imported material, which does not glow.
+                emissiveVariants = new[]
                 {
-                    { "Z2", ArtPassMaterialRoot + "/Z2_BlueCrystal_Emissive.mat" }
+                    new EmissiveVariant
+                    {
+                        zoneId = "Z2",
+                        materialPathOverride = ArtPassMaterialRoot + "/Z2_BlueCrystal_Emissive.mat",
+                        baseTint = new Color(0.1f, 0.35f, 0.55f, 1f),
+                        emission = new Color(0.1f, 1.4f, 2f, 1f),
+                        emissionFollowsAlbedo = true,
+                        smoothness = 0.4f
+                    }
                 }
             },
 
@@ -526,6 +562,7 @@ namespace CaveBlockout.Editor.Decor
                         zoneId = "Z2",
                         baseTint = new Color(0.15f, 0.45f, 0.5f, 1f),
                         emission = new Color(0.25f, 2.4f, 2.6f, 1f),
+                        emissionFollowsAlbedo = true,
                         smoothness = 0.3f
                     }
                 }
@@ -548,6 +585,7 @@ namespace CaveBlockout.Editor.Decor
                         zoneId = "Z2",
                         baseTint = new Color(0.12f, 0.38f, 0.58f, 1f),
                         emission = new Color(0.15f, 1.6f, 2.2f, 1f),
+                        emissionFollowsAlbedo = true,
                         smoothness = 0.35f
                     }
                 }
@@ -571,6 +609,7 @@ namespace CaveBlockout.Editor.Decor
                         baseTint = new Color(0.2f, 0.42f, 0.42f, 1f),
                         // Warmer than the others so the basin is not one flat cyan wash.
                         emission = new Color(1.1f, 1.9f, 1.5f, 1f),
+                        emissionFollowsAlbedo = true,
                         smoothness = 0.25f
                     }
                 }
