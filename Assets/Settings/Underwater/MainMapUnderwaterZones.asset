@@ -28,13 +28,13 @@ MonoBehaviour:
     refraction: 0.0022
     refractionSpeed: 0.6
     causticStrength: 0.08
-    screenStrength: 1
-    postExposure: 0.35
+    screenStrength: 0.641
+    postExposure: -2
     contrast: 5
     saturation: 0
     colorFilter: {r: 0.82, g: 0.95, b: 1, a: 1}
     bloomIntensity: 0.3
-    vignetteIntensity: 0.3
+    vignetteIntensity: 1
     whiteBalanceTemperature: -14
     whiteBalanceTint: 0
     particleDensityScale: 1.15
