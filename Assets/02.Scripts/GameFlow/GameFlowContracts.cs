@@ -23,6 +23,20 @@ namespace Varco.GameFlow
         void SetGameplayEnabled(bool enabled);
     }
 
+    // Transform이나 점유 관계를 변경하기 전에 스냅샷을 검증하는 선택 계약.
+    // 구현하지 않은 기존 참가자는 이전과 동일하게 복원된다.
+    public interface ICheckpointRestoreValidator
+    {
+        bool ValidateCheckpointState(object state, out string error);
+    }
+
+    // void 복원 계약을 유지하면서 참가자 내부 복원 실패를 서비스에 알리는 선택 계약.
+    public interface ICheckpointRestoreStatus
+    {
+        bool CheckpointRestoreSucceeded { get; }
+        string CheckpointRestoreError { get; }
+    }
+
     // 팀 네트워크 플레이어가 구현할 체크포인트 계약
     public interface IPlayerCheckpointParticipant : ICheckpointParticipant
     {
@@ -30,7 +44,7 @@ namespace Varco.GameFlow
         string PlayerKey { get; }
         // 전원 다운 판정용 상태
         bool IsDowned { get; }
-        // 인벤토리와 핫바 포함 여부
+        // 승인된 플레이어 스냅샷 범위 지원 여부. Carryable 핫바는 items:session이 담당한다.
         bool SupportsCompleteSnapshot { get; }
         // 잠수함 내부의 지정 위치를 이번 복원 위치로 요청
         bool TrySetCheckpointSpawnPose(Vector3 position, Quaternion rotation);

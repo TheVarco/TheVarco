@@ -27,8 +27,12 @@ public class HarvestableCreature : CarryableItem
     private Health health;                                      // 생물 체력
     private AttachmentSlot _attachedSlot;                // 현재 부착된 플레이어 슬롯
     private RigidbodyInterpolation detachedInterpolation;       // 분리 상태 Rigidbody 보간값
+    private bool hazardIsKinematic;                              // 프리팹 위험 상태 물리값
+    private RigidbodyConstraints hazardConstraints;
+    private CollisionDetectionMode hazardCollisionDetection;
+    private bool hazardColliderIsTrigger;
+    private int hazardLayer;
     private readonly List<Collider> ignoredHostColliders = new List<Collider>(); // 충돌 비활성 숙주 Collider 목록
-    private NetworkTransform networkTransform;            // 분리 상태 월드 위치 복제
 
     // 호스트 기준 생물 단계
     [Networked] private int NetworkedPhase { get; set; }
@@ -48,16 +52,25 @@ public class HarvestableCreature : CarryableItem
     {
         base.Awake();
         health = GetComponent<Health>();
-        networkTransform = GetComponent<NetworkTransform>();
 
         if (rb != null)
+        {
             detachedInterpolation = rb.interpolation;
+            hazardIsKinematic = rb.isKinematic;
+            hazardConstraints = rb.constraints;
+            hazardCollisionDetection = rb.collisionDetectionMode;
+        }
+
+        if (col != null)
+            hazardColliderIsTrigger = col.isTrigger;
+        hazardLayer = gameObject.layer;
     }
 
     // 권위 상태 게시
     // 프록시 상태 초기화
     public override void Spawned()
     {
+        base.Spawned();
         // 권위자는 현재 로컬 단계 게시
         if (Object.HasStateAuthority)
             PublishCreatureState();
@@ -69,6 +82,10 @@ public class HarvestableCreature : CarryableItem
     // 프록시 단계와 부착 갱신
     public override void Render()
     {
+        // Holder/Item Zone이 같은 프레임에 아직 생성되지 않은 경우 Carryable의
+        // pending 배치를 계속 해석한다.
+        base.Render();
+
         // 프록시만 복제 상태를 화면에 반영
         if (!Object.HasStateAuthority)
             ApplyReplicatedCreatureState();
@@ -88,7 +105,10 @@ public class HarvestableCreature : CarryableItem
 
         // 애니메이션 본 위치 기준
         if (transform.parent != anchor)
+        {
             transform.SetParent(anchor, false);
+            RestoreDefaultWorldScale();
+        }
 
         transform.localPosition = Vector3.zero;
         transform.localRotation = Quaternion.identity;
@@ -116,11 +136,19 @@ public class HarvestableCreature : CarryableItem
     /// </summary>
     public bool TryAttach(AttachmentSlot slot)
     {
+        return TryAttachInternal(slot, requireLivingCreature: true);
+    }
+
+    private bool TryAttachInternal(AttachmentSlot slot, bool requireLivingCreature)
+    {
         // 프록시의 독립 부착 판정 차단
         if (Object != null && Object.IsValid && !Object.HasStateAuthority)
             return false;
 
-        if (phase != CreaturePhase.Hazard || slot == null || health == null || health.IsDead)
+        if (phase != CreaturePhase.Hazard
+            || slot == null
+            || health == null
+            || requireLivingCreature && health.IsDead)
             return false;
 
         if (!slot.TryOccupy(attachmentSlot, this, out Transform anchor))
@@ -139,6 +167,7 @@ public class HarvestableCreature : CarryableItem
                 rb.angularVelocity = Vector3.zero;
             }
 
+            rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
             rb.isKinematic = true;
             rb.useGravity = false;
             rb.interpolation = RigidbodyInterpolation.None;
@@ -153,12 +182,38 @@ public class HarvestableCreature : CarryableItem
         transform.SetParent(anchor, false);
         transform.localPosition = Vector3.zero;
         transform.localRotation = Quaternion.identity;
+        RestoreDefaultWorldScale();
         SetLayerRecursively(gameObject, LayerMask.NameToLayer("Interaction"));
 
         OnAttached?.Invoke(slot);
+        // Carryable 배치 상태도 CreatureAttached로 맞춰 Late Join과 체크포인트가
+        // 단순 월드 아이템으로 오인하지 않게 한다.
+        CommitCreatureAttachedPlacementFromAuthority();
         // 확정된 슬롯과 단계 게시
         PublishCreatureState();
         return true;
+    }
+
+    protected override void OnAuthorityPickupConfirmed()
+    {
+        // Holder 커밋 전에 부착 관계와 위험 기능을 먼저 해제한다.
+        MakeCollectibleLocal(true);
+        base.OnAuthorityPickupConfirmed();
+    }
+
+    public override void PrepareForCheckpointRestore()
+    {
+        AttachmentSlot previousSlot = _attachedSlot;
+        if (previousSlot != null)
+        {
+            previousSlot.Release(attachmentSlot, this);
+            RestoreHostCollisions();
+            _attachedSlot = null;
+            phase = CreaturePhase.Collectible;
+            OnDetached?.Invoke(previousSlot);
+        }
+
+        base.PrepareForCheckpointRestore();
     }
 
     public override string GetInteractionPrompt()
@@ -237,7 +292,10 @@ public class HarvestableCreature : CarryableItem
         base.OnPickedUp(handSocket);
 
         if (rb != null)
+        {
+            rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
             rb.interpolation = RigidbodyInterpolation.None;
+        }
     }
 
     /// <summary>
@@ -259,12 +317,31 @@ public class HarvestableCreature : CarryableItem
             }
 
             rb.isKinematic = isNetworkProxy;
-            rb.useGravity = !isNetworkProxy;
+            rb.useGravity = false;
+            rb.constraints = RigidbodyConstraints.FreezeRotation;
             rb.interpolation = GetDetachedInterpolation();
         }
 
+        if (col != null)
+            col.isTrigger = false;
+
         SetLayerRecursively(gameObject, LayerMask.NameToLayer("Interaction"));
         // 드롭 이후 수집 단계 게시
+        PublishCreatureState();
+    }
+
+    public override void OnStored(SubmarineItemZone zone, int slotIndex)
+    {
+        phase = CreaturePhase.Collectible;
+        SetTransformReplicationEnabled(false);
+        base.OnStored(zone, slotIndex);
+
+        if (rb != null)
+        {
+            rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
+            rb.interpolation = RigidbodyInterpolation.None;
+        }
+        SetLayerRecursively(gameObject, LayerMask.NameToLayer("Interaction"));
         PublishCreatureState();
     }
 
@@ -323,6 +400,7 @@ public class HarvestableCreature : CarryableItem
 
         // 권위 변경과 게시를 함께 수행
         MakeCollectibleLocal(true);
+        CommitWorldDroppedPlacementFromAuthority(transform.position, transform.rotation);
     }
 
     // 로컬 수집 단계 전환
@@ -346,19 +424,40 @@ public class HarvestableCreature : CarryableItem
 
         _attachedSlot = null;
         phase = CreaturePhase.Collectible;
+
+        // Held/Stored/Consumed의 부모, Collider, 가시성은 Carryable 배치 상태가
+        // 단일 소유한다. 생명주기 복제 순서가 뒤늦게 도착해도 이를 월드 상태로
+        // 되돌리지 않는다.
+        bool preserveCarryablePresentation = PlacementMode is
+            CarryablePlacementMode.Held
+            or CarryablePlacementMode.Stored
+            or CarryablePlacementMode.Consumed;
+        if (preserveCarryablePresentation)
+        {
+            if (previousSlot != null)
+                OnDetached?.Invoke(previousSlot);
+            if (publish)
+                PublishCreatureState();
+            return;
+        }
+
         transform.SetParent(null, true);
         transform.position = worldPosition;
         SetTransformReplicationEnabled(true);
 
         if (col != null)
+        {
             col.enabled = true;
+            col.isTrigger = false;
+        }
 
         if (rb != null)
         {
             // 프록시는 복제 위치만 사용
             bool isNetworkProxy = Object != null && Object.IsValid && !Object.HasStateAuthority;
             rb.isKinematic = isNetworkProxy;
-            rb.useGravity = !isNetworkProxy;
+            rb.useGravity = false;
+            rb.constraints = RigidbodyConstraints.FreezeRotation;
             rb.interpolation = GetDetachedInterpolation();
             if (!rb.isKinematic)
             {
@@ -386,12 +485,12 @@ public class HarvestableCreature : CarryableItem
             return;
 
         if (IsAttached)
-            MakeCollectible();
+            MakeCollectibleLocal(true);
 
         if (targetPhase == CreaturePhase.Attached && targetSlot != null)
         {
             phase = CreaturePhase.Hazard;
-            if (TryAttach(targetSlot))
+            if (RestoreCreatureAttachedFromCheckpoint(targetSlot))
                 return;
         }
 
@@ -404,19 +503,41 @@ public class HarvestableCreature : CarryableItem
             SetTransformReplicationEnabled(true);
             if (col != null)
                 col.enabled = true;
-            if (rb != null)
-            {
-                rb.isKinematic = false;
-                rb.useGravity = false;
-                rb.interpolation = GetDetachedInterpolation();
-                rb.linearVelocity = Vector3.zero;
-                rb.angularVelocity = Vector3.zero;
-            }
+            ApplyHazardPhysicsLocal();
             PublishCreatureState();
             return;
         }
 
-        MakeCollectible();
+        MakeCollectibleLocal(true);
+    }
+
+    /// <summary>
+    /// Carryable 체크포인트 참가자가 CreatureAttached 배치를 복원할 때 사용하는
+    /// 단일 진입점. 슬롯 점유 실패 시 false를 반환해 전체 복원을 중단할 수 있다.
+    /// </summary>
+    public override bool RestoreCreatureAttachedFromCheckpoint(AttachmentSlot targetSlot)
+    {
+        if (targetSlot == null
+            || (Object != null && Object.IsValid && !Object.HasStateAuthority))
+        {
+            return false;
+        }
+
+        if (IsAttached && _attachedSlot == targetSlot)
+            return true;
+
+        if (_attachedSlot != null)
+            _attachedSlot.Release(attachmentSlot, this);
+
+        RestoreHostCollisions();
+        _attachedSlot = null;
+        phase = CreaturePhase.Hazard;
+        transform.SetParent(null, true);
+        ApplyHazardPhysicsLocal();
+        // 적 Health는 RestoreOrder 50에서 이 참가자(40)보다 나중에 복원된다.
+        // 체크포인트 당시 Attached였다는 검증을 통과했으므로 현재의 사망 플래그만으로
+        // 부착을 거절하지 않고 관계를 먼저 복원한다.
+        return TryAttachInternal(targetSlot, requireLivingCreature: false);
     }
 
     private void HandleDeath()
@@ -440,6 +561,12 @@ public class HarvestableCreature : CarryableItem
 
         if (_attachedSlot != null && requester.transform.root == _attachedSlot.transform.root)
             return;
+
+        if (!CanInteract(requester.gameObject)
+            || !IsWithinAuthorityInteractionRange(requester))
+        {
+            return;
+        }
 
         // 부착 해제와 소유자 확정을 같은 권위 처리로 실행
         MakeCollectibleLocal(true);
@@ -468,6 +595,19 @@ public class HarvestableCreature : CarryableItem
     private void ApplyReplicatedCreatureState()
     {
         CreaturePhase replicatedPhase = (CreaturePhase)NetworkedPhase;
+
+        // Carryable 배치와 생물 단계는 같은 tick에 게시되지만 프록시의 Render 적용
+        // 순서는 보장되지 않는다. Stored/Held/Consumed가 먼저 도착한 한 프레임에
+        // 이전 Hazard/Attached 단계를 적용하면 ItemZone/손 부모를 풀어버리고,
+        // 이후 PlacementRevision이 바뀌지 않아 잘못된 월드 위치에 남을 수 있다.
+        // 이 조합은 전이 중 상태이므로 Collectible 단계가 도착할 때까지 기다린다.
+        if ((PlacementMode is CarryablePlacementMode.Held
+                or CarryablePlacementMode.Stored
+                or CarryablePlacementMode.Consumed)
+            && replicatedPhase != CreaturePhase.Collectible)
+        {
+            return;
+        }
 
         if (replicatedPhase == CreaturePhase.Attached)
         {
@@ -524,6 +664,7 @@ public class HarvestableCreature : CarryableItem
                 rb.linearVelocity = Vector3.zero;
                 rb.angularVelocity = Vector3.zero;
             }
+            rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
             rb.isKinematic = true;
             rb.useGravity = false;
             rb.interpolation = RigidbodyInterpolation.None;
@@ -538,6 +679,7 @@ public class HarvestableCreature : CarryableItem
         transform.SetParent(anchor, false);
         transform.localPosition = Vector3.zero;
         transform.localRotation = Quaternion.identity;
+        RestoreDefaultWorldScale();
         SetLayerRecursively(gameObject, LayerMask.NameToLayer("Interaction"));
         OnAttached?.Invoke(slot);
     }
@@ -558,36 +700,53 @@ public class HarvestableCreature : CarryableItem
         SetTransformReplicationEnabled(true);
         if (col != null)
             col.enabled = true;
-        if (rb != null)
-        {
-            // 프록시 물리 시뮬레이션 차단
-            rb.isKinematic = Object != null && Object.IsValid && !Object.HasStateAuthority;
-            rb.useGravity = false;
-            rb.interpolation = GetDetachedInterpolation();
-            if (!rb.isKinematic)
-            {
-                rb.linearVelocity = Vector3.zero;
-                rb.angularVelocity = Vector3.zero;
-            }
-        }
+        ApplyHazardPhysicsLocal();
 
         if (previousSlot != null)
             OnDetached?.Invoke(previousSlot);
-    }
-
-    // 각 피어의 로컬 플레이어 기준점에 부착 생물 배치
-    // 부착 중 NetworkTransform Render 덮어쓰기 방지
-    // 월드 공간 복귀 시 위치 동기화 재개
-    private void SetTransformReplicationEnabled(bool enabled)
-    {
-        if (networkTransform != null)
-            networkTransform.enabled = enabled;
     }
 
     private RigidbodyInterpolation GetDetachedInterpolation()
     {
         bool isNetworkProxy = Object != null && Object.IsValid && !Object.HasStateAuthority;
         return isNetworkProxy ? RigidbodyInterpolation.None : detachedInterpolation;
+    }
+
+    /// <summary>
+    /// 문어와 성게가 프리팹에서 가진 서로 다른 위험 상태 물리를 정확히 복원한다.
+    /// 성게는 Trigger + FreezeAll + Kinematic, 문어는 FreezeRotation + Dynamic이다.
+    /// </summary>
+    private void ApplyHazardPhysicsLocal()
+    {
+        SetLayerRecursively(gameObject, hazardLayer);
+        if (col != null)
+        {
+            col.enabled = true;
+            col.isTrigger = hazardColliderIsTrigger;
+        }
+        RestoreInitialColliderCollisionMask();
+
+        if (rb == null)
+            return;
+
+        bool isNetworkProxy = Object != null && Object.IsValid && !Object.HasStateAuthority;
+        if (!rb.isKinematic)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+
+        bool targetKinematic = isNetworkProxy || hazardIsKinematic;
+        CollisionDetectionMode targetCollision = isNetworkProxy
+            ? CollisionDetectionMode.Discrete
+            : hazardCollisionDetection;
+        if (targetKinematic)
+            rb.collisionDetectionMode = targetCollision;
+        rb.isKinematic = targetKinematic;
+        rb.useGravity = false;
+        rb.constraints = hazardConstraints;
+        rb.collisionDetectionMode = targetCollision;
+        rb.interpolation = isNetworkProxy ? RigidbodyInterpolation.None : detachedInterpolation;
     }
 
     /// <summary>

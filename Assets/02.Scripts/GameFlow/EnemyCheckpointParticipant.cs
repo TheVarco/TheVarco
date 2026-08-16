@@ -2,7 +2,8 @@ using UnityEngine;
 
 namespace Varco.GameFlow
 {
-    // 상어 문어 성게 채집 생물 상태를 저장하는 참가자
+    // 상어의 기존 초기 자세 복원 동작과 적 체력을 관리하는 참가자.
+    // 문어/성게의 자세, 채집 단계, 부착 관계는 items:session이 단일 소유한다.
     [DisallowMultipleComponent]
     public sealed class EnemyCheckpointParticipant : CheckpointParticipantBehaviour
     {
@@ -13,8 +14,6 @@ namespace Varco.GameFlow
         private SharkController shark;
         private OctopusController octopus;
         private UrchinController urchin;
-        // 채집과 부착 단계 복원 대상
-        private HarvestableCreature harvestable;
         // 살아 있던 체크포인트의 상어 제거 방지 여부
         private bool preserveAfterDeath;
 
@@ -29,7 +28,6 @@ namespace Varco.GameFlow
             shark = GetComponent<SharkController>();
             octopus = GetComponent<OctopusController>();
             urchin = GetComponent<UrchinController>();
-            harvestable = GetComponent<HarvestableCreature>();
         }
 
         // 레지스트리 등록과 사망 보존 이벤트 연결
@@ -48,7 +46,7 @@ namespace Varco.GameFlow
             base.OnDisable();
         }
 
-        // 위치 체력 채집 단계 부착 슬롯 상태 캡처
+        // 공통 체력 상태 캡처
         public override object CaptureCheckpointState()
         {
             // 생존 상어는 이후 사망해도 복원 전까지 오브젝트 유지
@@ -59,47 +57,32 @@ namespace Varco.GameFlow
 
             return new EnemyState
             {
-                Position = transform.position,
-                Rotation = transform.rotation,
-                Health = GameFlowHealthUtility.Capture(health),
-                CreaturePhase = harvestable != null
-                    ? harvestable.Phase
-                    : HarvestableCreature.CreaturePhase.Hazard,
-                AttachedSlot = harvestable != null ? harvestable.AttachedSlot : null
+                Health = GameFlowHealthUtility.Capture(health)
             };
         }
 
-        // 복원 전 기존 부착 관계 해제
-        public override void PrepareForCheckpointRestore()
-        {
-            if (harvestable != null && harvestable.IsAttached)
-                harvestable.MakeCollectible();
-        }
-
-        // 위치 속도 체력 채집 단계 AI 상태 복원
+        // 상어 자세/속도와 공통 체력, 최종 AI 활성 상태 복원
         public override void RestoreCheckpointState(object state)
         {
             if (state is not EnemyState enemyState)
                 return;
 
             // 상어 최초 배치 위치 복원
-            // 나머지 적의 체크포인트 자세 유지
+            // 문어/성게 자세와 물리는 CarryableCheckpointParticipant가 먼저 복원한다.
             if (shark != null)
-                shark.RestoreInitialCheckpointPose();
-            else
-                transform.SetPositionAndRotation(enemyState.Position, enemyState.Rotation);
-            // AI 속도 저장 제외 및 동적 Rigidbody만 초기화
-            // Kinematic 성게와 부착 생물의 속도 쓰기 제외
-            if (body != null && !body.isKinematic)
             {
-                body.linearVelocity = Vector3.zero;
-                body.angularVelocity = Vector3.zero;
+                shark.RestoreInitialCheckpointPose();
+                // AI 속도는 저장하지 않고 상어의 동적 Rigidbody만 초기화한다.
+                if (body != null && !body.isKinematic)
+                {
+                    body.linearVelocity = Vector3.zero;
+                    body.angularVelocity = Vector3.zero;
+                }
             }
 
             GameFlowHealthUtility.Restore(health, enemyState.Health);
-            harvestable?.RestoreCheckpointPhase(enemyState.CreaturePhase, enemyState.AttachedSlot);
 
-            // 생존 적 AI의 Idle 상태 재시작
+            // items:session이 단계/부착을 복원한 다음 최종 AI 상태를 맞춘다.
             if (shark != null && !enemyState.Health.IsDead)
                 shark.RestoreCheckpointAI();
             octopus?.RestoreCheckpointAI();
@@ -126,11 +109,7 @@ namespace Varco.GameFlow
         // 적 오브젝트 복원 데이터
         private sealed class EnemyState
         {
-            public Vector3 Position;
-            public Quaternion Rotation;
             public HealthCheckpointState Health;
-            public HarvestableCreature.CreaturePhase CreaturePhase;
-            public AttachmentSlot AttachedSlot;
         }
     }
 }

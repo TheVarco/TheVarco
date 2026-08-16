@@ -57,8 +57,8 @@ namespace Varco.GameFlow
         // 파티 전멸 판정용 다운 상태
         public bool IsDowned => downedState != null && downedState.IsDowned;
 
-        // 이번 구현은 인벤토리와 핫바를 제외한 기본 상태만 지원
-        public bool SupportsCompleteSnapshot => false;
+        // Carryable 핫바는 items:session이 함께 저장하며 수량형 PlayerInventory는 범위에서 제외한다.
+        public bool SupportsCompleteSnapshot => true;
 
         // 플레이어 기본 상태 참조 수집
         private void Awake()

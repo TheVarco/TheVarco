@@ -36,9 +36,12 @@ public class PlayerItemGiver : NetworkBehaviour
         if (hotbar == null || lookReference == null) return;
 
         // 문구를 띄우려면 키를 누르지 않아도 매 프레임 대상을 확인해야 함
-        // 소모품(산소통, 식량 등)만 대상. 총 같은 비소모품은 "상대에게 써서 없애는" 개념이 없음
+        // 기본적으로 소모품만 대상이며, 밧줄처럼 반복 사용 가능한 장비는
+        // CanUseOnTeammate를 별도로 허용한다.
         CarryableItem active = hotbar.GetActiveItem();
-        GameObject teammate = (active != null && active.isConsumable) ? FindTeammate() : null;
+        GameObject teammate = active != null && active.CanUseOnTeammate
+            ? FindTeammate()
+            : null;
 
         // 부활 안내가 우선. 같은 문구 칸을 둘이 번갈아 덮어쓰면 깜빡임
         if (reviver == null || !reviver.HasReviveTarget)

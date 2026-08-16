@@ -42,6 +42,7 @@ public sealed class FishController : NetworkBehaviour
         states.Add(FishStateType.Idle, new FishIdleState(this));
         states.Add(FishStateType.Patrol, new FishPatrolState(this));
         states.Add(FishStateType.Held, new FishHeldState(this));
+        states.Add(FishStateType.Passive, new FishHeldState(this));
     }
 
     private void Start()
@@ -62,7 +63,9 @@ public sealed class FishController : NetworkBehaviour
 
     private void FixedUpdate()
     {
-        if (!HasSimulationAuthority || currentStateType == FishStateType.Held)
+        if (!HasSimulationAuthority
+            || currentStateType == FishStateType.Held
+            || currentStateType == FishStateType.Passive)
             return;
 
         currentState?.Update();
@@ -100,14 +103,32 @@ public sealed class FishController : NetworkBehaviour
         if (body == null)
             return;
 
-        body.linearVelocity = Vector3.zero;
-        body.angularVelocity = Vector3.zero;
+        if (!body.isKinematic)
+        {
+            body.linearVelocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
+        }
         body.useGravity = false;
+        body.collisionDetectionMode = CollisionDetectionMode.Discrete;
         body.isKinematic = true;
         body.interpolation = RigidbodyInterpolation.None;
     }
 
-    public void ResumeAfterDrop(Vector3 newHomePosition)
+    /// <summary>
+    /// 한 번 수집된 물고기를 AI 없이 수중 물리 아이템으로 유지한다.
+    /// 실제 Dynamic/Proxy 물리 설정은 CarryableItem의 드롭 처리가 담당한다.
+    /// </summary>
+    public void EnterCollectedPassiveState()
+    {
+        ChangeState(FishStateType.Passive);
+        Navigator?.StopMovement();
+    }
+
+    /// <summary>
+    /// 체크포인트가 채집 전 상태였다면 해당 위치를 새 순찰 중심으로 삼아 AI를 복원한다.
+    /// 일반 드롭 경로에서는 호출하지 않는다.
+    /// </summary>
+    public void RestoreWildCheckpointState(Vector3 newHomePosition)
     {
         HomePosition = newHomePosition;
         ConfigureSwimmingPhysics();
@@ -127,12 +148,17 @@ public sealed class FishController : NetworkBehaviour
             body.angularVelocity = Vector3.zero;
         }
 
+        if (isProxy)
+            body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
         body.isKinematic = isProxy;
         body.useGravity = false;
         body.detectCollisions = true;
         body.interpolation = isProxy
             ? RigidbodyInterpolation.None
             : RigidbodyInterpolation.Interpolate;
+        body.collisionDetectionMode = isProxy
+            ? CollisionDetectionMode.ContinuousSpeculative
+            : CollisionDetectionMode.ContinuousDynamic;
     }
 
     private void OnDrawGizmosSelected()

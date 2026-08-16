@@ -44,7 +44,17 @@ namespace Varco.GameFlow
                     return false;
                 }
 
-                states[id] = participant.CaptureCheckpointState();
+                object state = participant.CaptureCheckpointState();
+                if (participant is ICheckpointRestoreValidator validator
+                    && !validator.ValidateCheckpointState(state, out string validationError))
+                {
+                    Debug.LogError(
+                        $"[GameFlow] Checkpoint capture rejected by {id}: {validationError}");
+                    participantIds.Clear();
+                    return false;
+                }
+
+                states[id] = state;
             }
 
             participantIds.Clear();
@@ -63,32 +73,95 @@ namespace Varco.GameFlow
         // 준비 복원 완료 순서로 스냅샷 적용
         public bool Restore(IReadOnlyList<IPlayerCheckpointParticipant> players)
         {
-            if (CurrentSnapshot == null)
+            if (!ValidateRestore(players, out string validationError))
+            {
+                Debug.LogError($"[GameFlow] Checkpoint restore validation failed: {validationError}");
                 return false;
+            }
 
-            RefreshParticipants(players);
             // 낮은 순서의 기반 오브젝트부터 복원
             participants.Sort((left, right) => left.RestoreOrder.CompareTo(right.RestoreOrder));
 
-            // 좌석과 부착 관계 선해제
-            foreach (ICheckpointParticipant participant in participants)
-                participant.PrepareForCheckpointRestore();
-
-            // 참가자 키와 캡처 데이터 매칭
-            foreach (ICheckpointParticipant participant in participants)
+            try
             {
-                if (CurrentSnapshot.ParticipantStates.TryGetValue(participant.CheckpointId, out object state))
-                    participant.RestoreCheckpointState(state);
-                else
-                    Debug.LogWarning($"[GameFlow] No checkpoint state for {participant.CheckpointId}");
-            }
+                // 좌석과 부착 관계 선해제
+                foreach (ICheckpointParticipant participant in participants)
+                    participant.PrepareForCheckpointRestore();
 
-            // 좌석과 부착 관계 후연결
-            foreach (ICheckpointParticipant participant in participants)
-                participant.CompleteCheckpointRestore();
+                // 참가자 키와 캡처 데이터 매칭
+                foreach (ICheckpointParticipant participant in participants)
+                {
+                    object state = CurrentSnapshot.ParticipantStates[participant.CheckpointId];
+                    participant.RestoreCheckpointState(state);
+
+                    if (participant is ICheckpointRestoreStatus status
+                        && !status.CheckpointRestoreSucceeded)
+                    {
+                        Debug.LogError(
+                            $"[GameFlow] Checkpoint restore failed in {participant.CheckpointId}: "
+                            + status.CheckpointRestoreError);
+                        return false;
+                    }
+                }
+
+                // 좌석과 부착 관계 후연결
+                foreach (ICheckpointParticipant participant in participants)
+                    participant.CompleteCheckpointRestore();
+            }
+            catch (System.Exception exception)
+            {
+                Debug.LogException(exception);
+                return false;
+            }
 
             // Transform 변경 결과를 물리 월드에 즉시 반영
             Physics.SyncTransforms();
+            return true;
+        }
+
+        // 현재 참가자 집합과 스냅샷을 대조하고 선택 참가자의 세부 상태를 검증한다.
+        // 이 단계에서는 오브젝트, 슬롯, Transform을 변경하지 않는다.
+        public bool ValidateRestore(
+            IReadOnlyList<IPlayerCheckpointParticipant> players,
+            out string error)
+        {
+            error = null;
+            if (CurrentSnapshot == null)
+            {
+                error = "No checkpoint snapshot is available.";
+                return false;
+            }
+
+            RefreshParticipants(players);
+            participantIds.Clear();
+
+            foreach (ICheckpointParticipant participant in participants)
+            {
+                string id = participant.CheckpointId;
+                if (string.IsNullOrWhiteSpace(id) || !participantIds.Add(id))
+                {
+                    error = $"Duplicate or empty checkpoint id: {id}";
+                    participantIds.Clear();
+                    return false;
+                }
+
+                if (!CurrentSnapshot.ParticipantStates.TryGetValue(id, out object state))
+                {
+                    error = $"No checkpoint state for current participant {id}.";
+                    participantIds.Clear();
+                    return false;
+                }
+
+                if (participant is ICheckpointRestoreValidator validator
+                    && !validator.ValidateCheckpointState(state, out string validationError))
+                {
+                    error = $"{id}: {validationError}";
+                    participantIds.Clear();
+                    return false;
+                }
+            }
+
+            participantIds.Clear();
             return true;
         }
 

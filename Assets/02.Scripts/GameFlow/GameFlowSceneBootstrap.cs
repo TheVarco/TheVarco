@@ -46,7 +46,7 @@ namespace Varco.GameFlow
             GameFlowCoordinator coordinator = root.AddComponent<GameFlowCoordinator>();
 
             // 체크포인트 참가자와 구역 트리거 런타임 설치
-            InstallCheckpointParticipants(root, submarine);
+            InstallCheckpointParticipants(root, submarine, bridge);
             InstallZoneTriggers(root, coordinator);
 
             // 씬에 미리 배치하고 인스펙터에서 연결한 결과 UI 탐색
@@ -93,7 +93,10 @@ namespace Varco.GameFlow
         }
 
         // 잠수함 적 장애물 체크포인트 참가자 설치
-        private static void InstallCheckpointParticipants(GameObject root, SubmarineController submarine)
+        private static void InstallCheckpointParticipants(
+            GameObject root,
+            SubmarineController submarine,
+            IGameFlowNetworkBridge bridge)
         {
             // 잠수함은 세션 내 고정 키 사용
             SubmarineCheckpointParticipant submarineParticipant =
@@ -124,6 +127,12 @@ namespace Varco.GameFlow
                 root.AddComponent<ObstacleCheckpointParticipant>();
             obstacleParticipant.InitializeCheckpointId("obstacles:main-scene");
             obstacleParticipant.InitializeFromScene();
+
+            // Carryable 전체와 핫바/Item Zone 점유 관계는 하나의 트랜잭션으로 관리한다.
+            CarryableCheckpointParticipant carryableParticipant =
+                root.AddComponent<CarryableCheckpointParticipant>();
+            carryableParticipant.InitializeCheckpointId("items:session");
+            carryableParticipant.Initialize(bridge);
         }
 
         // CaveZoneMarker 크기를 이용한 Z1부터 Z7 트리거 설치

@@ -175,7 +175,7 @@ namespace CaveItem.EditorTools
             Center(list, CaveItemKind.Shark, "Z6", 568f, 160f, 5f, "상어 3 - 출구 직전");
 
             // ================= Submarine =================
-            // The hammer position is resolved from the BoxCollider below the submarine's HammerZone.
+            // The hammer position is resolved from the first slot of the submarine's ItemZone.
             // Keeping the authored marker in the prefab makes moving the pickup a scene-design change
             // instead of another hard-coded world offset in this layout.
             //
@@ -184,7 +184,7 @@ namespace CaveItem.EditorTools
             // bake it as a nested object - and CarryableItem.OnPickedUp immediately reparents to the
             // player's hand socket, which would tear a baked nested object out of its parent at runtime.
             Interior(list, CaveItemKind.Hammer, Vector3.zero, 90f,
-                "잠수함 HammerZone. 수리 대상인 RepairableStructure가 잠수함 루트에 있다");
+                "잠수함 ItemZone 첫 슬롯. 수리 대상인 RepairableStructure가 잠수함 루트에 있다");
 
             return list;
         }

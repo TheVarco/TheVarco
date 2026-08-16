@@ -1,130 +1,1024 @@
+using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
 
-// 산소통, 자원 등 "손에 들고 다니다가 나중에 쓰거나 내려놓는" 아이템에 붙이는 스크립트.
-// 기존 Interactable을 구현해서 PlayerInteractor(E키)로 집을 수 있게 한다.
-//
-// 네트워크에서는 "누가 들고 있는가"(HolderId)만 복제하고, 손에 붙이는 건 각 머신이
-// 자기 화면의 손 위치를 기준으로 직접 처리한다. 호스트 좌표를 복제받아 붙이면
-// 정작 아이템을 든 본인이 자기 손보다 늦게 따라오는 아이템을 보게 되기 때문.
+public enum CarryablePlacementMode
+{
+    WorldInitial,
+    WorldDropped,
+    Held,
+    Stored,
+    Consumed,
+    CreatureAttached
+}
+
+// 손, 월드, Item Zone, 소모 상태를 하나의 권위 상태로 관리하는 공용 아이템.
 [RequireComponent(typeof(Collider))]
 public class CarryableItem : NetworkBehaviour, Interactable
 {
     [Header("아이템 정보")]
     public string itemName = "산소통";
-    [Tooltip("우클릭(사용)했을 때 소모되어 사라지는 아이템인지")]
+    [Tooltip("사용했을 때 소모 상태로 전환되는 아이템인지")]
     public bool isConsumable = true;
-    [Tooltip("핫바 UI에 표시될 아이콘 (안 채우면 텍스트만 표시됨)")]
+    [Tooltip("핫바 UI에 표시될 아이콘")]
     public Sprite icon;
-    [Tooltip("팀원에게 사용할 때 안내 문구에 붙일 동사 (예: 산소통이면 '채워주기', 식량이면 '먹여주기')")]
     public string giveActionName = "사용해주기";
 
     [Header("손에 들었을 때 위치 보정")]
     public Vector3 holdPositionOffset;
     public Vector3 holdRotationOffset;
-    
+
+    [Header("Item Zone 보관 보정")]
+    public Vector3 storagePositionOffset;
+    public Vector3 storageRotationOffset;
+    [Tooltip("동굴 배치 도구가 잠수함 내부 시작 아이템으로 만든 인스턴스에만 사용")]
+    public bool startStoredInItemZone;
+
     protected Rigidbody rb { get; private set; }
     protected Collider col { get; private set; }
 
-    [Networked, OnChangedRender(nameof(OnHolderChanged))]
-    private NetworkId HolderId { get; set; } // 유효하지 않으면 바닥에 있는 상태
+    private NetworkTransform networkTransform;
+    private RigidbodyInterpolation initialInterpolation;
+    private RigidbodyConstraints initialConstraints;
+    private CollisionDetectionMode initialCollisionDetection;
+    private float initialAngularDamping;
+    private bool initialIsKinematic;
+    private bool initialUseGravity;
+    private bool initialColliderTrigger;
+    private LayerMask initialColliderExcludeLayers;
+    private Vector3 defaultWorldScale;
+    private int playerLayerMask;
+    private string localCheckpointSessionKey;
 
-    [Networked] private Vector3 DroppedPosition { get; set; }
+    private SubmarineItemZone appliedStorageZone;
+    private PlayerHotbar localHolderHotbar;
+    private SubmarineItemZone localStoredZone;
+    private int localStoredSlot = -1;
+    private CarryablePlacementMode localPlacementMode = CarryablePlacementMode.WorldInitial;
+    private Vector3 localWorldPosition;
+    private Quaternion localWorldRotation;
 
-    // 핫바 슬롯을 바꿔서 손에서 잠깐 감출 때. 기본 false = 보임
-    [Networked, OnChangedRender(nameof(OnHiddenChanged))]
-    private NetworkBool NetworkedHidden { get; set; }
+    [Networked] private CarryablePlacementMode NetworkedPlacementMode { get; set; }
+    [Networked] private NetworkId HolderId { get; set; }
+    [Networked] private NetworkId StoredSubmarineId { get; set; }
+    [Networked] private int StoredSlotPlusOne { get; set; }
+    [Networked] private Vector3 PlacementWorldPosition { get; set; }
+    [Networked] private Quaternion PlacementWorldRotation { get; set; }
+    [Networked, OnChangedRender(nameof(OnPlacementRevisionChanged))]
+    private int PlacementRevision { get; set; }
 
-    // 모든 머신에서 복제된 소유/표시 상태를 기준으로 실제 장착 여부 확인
-    // PlayerHotbar의 슬롯 배열은 입력 권한을 가진 로컬 플레이어에게만 채워지므로
-    // 호스트가 원격 플레이어의 장비를 검증할 때는 이 상태를 사용해야 한다.
-    public bool IsEquippedBy(NetworkObject holder)
+    private int lastAppliedRevision = int.MinValue;
+    private bool placementResolutionPending;
+    private bool initialStoragePending;
+
+    private bool IsNetworkActive => Object != null && Object.IsValid;
+    private bool HasPlacementAuthority => !IsNetworkActive || Object.HasStateAuthority;
+
+    public CarryablePlacementMode PlacementMode => IsNetworkActive
+        ? NetworkedPlacementMode
+        : localPlacementMode;
+    public NetworkId HolderNetworkId => IsNetworkActive ? HolderId : default;
+    public NetworkId StoredSubmarineNetworkId => IsNetworkActive ? StoredSubmarineId : default;
+    public bool IsConsumed => PlacementMode == CarryablePlacementMode.Consumed;
+    public bool IsStored => PlacementMode == CarryablePlacementMode.Stored;
+    public virtual bool CanUseOnTeammate => isConsumable;
+    public int StoredSlotIndex => IsNetworkActive ? StoredSlotPlusOne - 1 : localStoredSlot;
+    public bool IsSonarDetectable => PlacementMode is
+        CarryablePlacementMode.WorldInitial or CarryablePlacementMode.WorldDropped;
+
+    public string CheckpointSessionKey
     {
-        return holder != null
-            && holder.IsValid
-            && HolderId.IsValid
-            && HolderId == holder.Id
-            && !NetworkedHidden;
+        get
+        {
+            if (IsNetworkActive)
+                return $"network-item:{Object.Id}";
+
+            return localCheckpointSessionKey;
+        }
     }
 
     protected virtual void Awake()
     {
         rb = GetComponent<Rigidbody>();
         col = GetComponent<Collider>();
-    }
+        networkTransform = GetComponent<NetworkTransform>();
+        defaultWorldScale = transform.lossyScale;
+        localWorldPosition = transform.position;
+        localWorldRotation = transform.rotation;
+        localCheckpointSessionKey = BuildLocalCheckpointSessionKey();
 
-    // 핫바가 "이 사람이 집겠다"고 호스트에 요청할 때 호출
-    public void RequestPickup(NetworkId holder)
-    {
-        if (Object == null) return;
-        RPC_RequestPickup(holder);
-    }
+        int playerLayer = LayerMask.NameToLayer("Player");
+        playerLayerMask = playerLayer >= 0 ? 1 << playerLayer : 0;
 
-    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    private void RPC_RequestPickup(NetworkId requester)
-    {
-        if (HolderId.IsValid) return; // 동시에 집으면 먼저 도착한 쪽이 가져간다
-        HolderId = requester;
-    }
-
-    // State Authority에서만 실행되도록 (문어/성게 부착 해제, 소유자 지정 등)
-    // 서영 추가
-    protected bool TryAssignHolderFromStateAuthority(NetworkId requester)
-    {
-        // 호스트만 소유자 변경 허용
-        // 이미 점유된 아이템의 중복 획득 차단
-        if (Object == null || !Object.IsValid || !Object.HasStateAuthority || HolderId.IsValid)
-            return false;
-
-        // 요청자를 최종 소유자로 게시
-        HolderId = requester;
-        return true;
-    }
-
-    // 핫바가 내려놓을 때 호출
-    public void RequestDrop(Vector3 dropPosition)
-    {
-        if (Object == null) { OnDropped(dropPosition); return; } // 러너 없는 씬은 그 자리에서 처리
-        RPC_RequestDrop(dropPosition);
-    }
-
-    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    private void RPC_RequestDrop(Vector3 dropPosition)
-    {
-        DroppedPosition = dropPosition;
-        NetworkedHidden = false; // 바닥에 놓으면 무조건 보이게
-        HolderId = default;
-    }
-
-    // 소모품을 다 써서 없앨 때 호출
-    public void RequestDespawn()
-    {
-        if (Object == null) { Destroy(gameObject); return; }
-        RPC_RequestDespawn();
-    }
-
-    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    private void RPC_RequestDespawn()
-    {
-        Runner.Despawn(Object);
-    }
-
-    // 소유자가 바뀌면 모든 머신에서 실행. 각자 자기 화면의 손에 붙이거나 바닥에 내려놓는다
-    private void OnHolderChanged()
-    {
-        if (!Runner.TryFindObject(HolderId, out NetworkObject holder))
+        if (rb != null)
         {
-            OnDropped(DroppedPosition);
+            initialInterpolation = rb.interpolation;
+            initialConstraints = rb.constraints;
+            initialCollisionDetection = rb.collisionDetectionMode;
+            initialAngularDamping = rb.angularDamping;
+            initialIsKinematic = rb.isKinematic;
+            initialUseGravity = rb.useGravity;
+        }
+
+        if (col != null)
+        {
+            initialColliderTrigger = col.isTrigger;
+            initialColliderExcludeLayers = col.excludeLayers;
+        }
+    }
+
+    protected virtual void Start()
+    {
+        if (!IsNetworkActive)
+        {
+            if (startStoredInItemZone)
+                TryStoreInitialItem();
+            else
+                ApplyPlacementState(true);
+        }
+    }
+
+    public override void Spawned()
+    {
+        if (Object.HasStateAuthority && PlacementRevision == 0)
+        {
+            NetworkedPlacementMode = CarryablePlacementMode.WorldInitial;
+            PlacementWorldPosition = transform.position;
+            PlacementWorldRotation = transform.rotation;
+            PlacementRevision = 1;
+        }
+
+        if (Object.HasStateAuthority
+            && startStoredInItemZone
+            && PlacementMode == CarryablePlacementMode.WorldInitial)
+        {
+            initialStoragePending = true;
+            TryStoreInitialItem();
+        }
+
+        ApplyPlacementState(true);
+    }
+
+    public override void FixedUpdateNetwork()
+    {
+        if (!Object.HasStateAuthority || !initialStoragePending)
+            return;
+
+        if (PlacementMode != CarryablePlacementMode.WorldInitial)
+        {
+            initialStoragePending = false;
             return;
         }
 
+        TryStoreInitialItem();
+    }
+
+    public override void Render()
+    {
+        if (placementResolutionPending)
+            ApplyPlacementState(true);
+    }
+
+    public bool IsEquippedBy(NetworkObject holder)
+    {
+        if (holder == null || !holder.IsValid
+            || PlacementMode != CarryablePlacementMode.Held
+            || !HolderId.IsValid || HolderId != holder.Id)
+        {
+            return false;
+        }
+
         PlayerHotbar hotbar = holder.GetComponent<PlayerHotbar>();
-        if (hotbar == null || hotbar.handSocket == null) return;
+        return hotbar != null && hotbar.IsItemInActiveSlot(this);
+    }
 
-        OnPickedUp(hotbar.handSocket);
+    public void RequestPickup(NetworkId holder)
+    {
+        if (!IsNetworkActive)
+            return;
+        RPC_RequestPickup(holder);
+    }
 
-        // 슬롯 관리는 들고 있는 본인 머신에서만 (내 인벤토리는 내가 안다)
-        if (holder.HasInputAuthority) hotbar.RegisterPickedUpItem(this);
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority, HostMode = RpcHostMode.SourceIsHostPlayer)]
+    private void RPC_RequestPickup(NetworkId requester, RpcInfo info = default)
+    {
+        if (PlacementMode is CarryablePlacementMode.Held
+            or CarryablePlacementMode.Consumed
+            or CarryablePlacementMode.CreatureAttached)
+        {
+            return;
+        }
+
+        if (!TryResolveRequester(
+                requester,
+                info,
+                out NetworkObject requesterObject,
+                out PlayerHotbar hotbar))
+        {
+            return;
+        }
+
+        // 클라이언트 UI 판정만 신뢰하지 않고, Host가 생물 단계와 거리까지 다시 확인한다.
+        if (!CanInteract(requesterObject.gameObject)
+            || !IsWithinAuthorityInteractionRange(requesterObject))
+        {
+            return;
+        }
+
+        if (!hotbar.TryReserveItemFromAuthority(this, out int slot))
+        {
+            RPC_RequestRejected(requester, 0);
+            return;
+        }
+
+        ReleaseCurrentStorageReservation();
+        OnAuthorityPickupConfirmed();
+        if (!CommitPlacement(
+                CarryablePlacementMode.Held,
+                requester,
+                default,
+                -1,
+                transform.position,
+                transform.rotation))
+        {
+            hotbar.RemoveItemFromAuthority(this);
+            return;
+        }
+
+        hotbar.RefreshRestoredVisibility();
+        hotbar.SelectSlotFromAuthority(slot);
+    }
+
+    protected virtual void OnAuthorityPickupConfirmed() { }
+
+    protected bool TryAssignHolderFromStateAuthority(NetworkId requester)
+    {
+        if (!HasPlacementAuthority
+            || PlacementMode is CarryablePlacementMode.Held or CarryablePlacementMode.Consumed)
+        {
+            return false;
+        }
+
+        if (!IsNetworkActive)
+            return false;
+        if (!Runner.TryFindObject(requester, out NetworkObject requesterObject))
+            return false;
+
+        if (!CanInteract(requesterObject.gameObject)
+            || !IsWithinAuthorityInteractionRange(requesterObject))
+        {
+            return false;
+        }
+
+        PlayerHotbar hotbar = requesterObject.GetComponent<PlayerHotbar>();
+        if (hotbar == null || !hotbar.TryReserveItemFromAuthority(this, out _))
+            return false;
+
+        ReleaseCurrentStorageReservation();
+        OnAuthorityPickupConfirmed();
+        bool committed = CommitPlacement(
+            CarryablePlacementMode.Held,
+            requester,
+            default,
+            -1,
+            transform.position,
+            transform.rotation);
+        if (committed)
+            hotbar.SelectSlotFromAuthority(hotbar.GetSlotOfItem(this));
+        return committed;
+    }
+
+    public void RequestRelease(NetworkId requester, int requestedSlot)
+    {
+        if (!IsNetworkActive)
+        {
+            ReleaseLocal(requestedSlot);
+            return;
+        }
+
+        RPC_RequestRelease(requester, requestedSlot);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority, HostMode = RpcHostMode.SourceIsHostPlayer)]
+    private void RPC_RequestRelease(NetworkId requester, int requestedSlot, RpcInfo info = default)
+    {
+        if (PlacementMode != CarryablePlacementMode.Held
+            || HolderId != requester
+            || !TryResolveRequester(requester, info, out NetworkObject requesterObject, out PlayerHotbar hotbar)
+            || hotbar.GetSlotOfItem(this) != requestedSlot)
+        {
+            return;
+        }
+
+        PlayerController player = requesterObject.GetComponent<PlayerController>();
+        SubmarineItemZone zone = SubmarineItemZone.FindForPlayer(player);
+        if (zone != null)
+        {
+            if (!zone.TryReserve(this, out int slotIndex))
+            {
+                RPC_RequestRejected(requester, 1);
+                return;
+            }
+
+            if (!hotbar.RemoveItemFromAuthority(this))
+            {
+                zone.Release(this);
+                return;
+            }
+
+            CommitPlacement(
+                CarryablePlacementMode.Stored,
+                default,
+                zone.SubmarineId,
+                slotIndex,
+                transform.position,
+                transform.rotation);
+            return;
+        }
+
+        if (!hotbar.RemoveItemFromAuthority(this))
+            return;
+
+        Vector3 dropPosition = hotbar.GetAuthorityDropPosition();
+        CommitPlacement(
+            CarryablePlacementMode.WorldDropped,
+            default,
+            default,
+            -1,
+            dropPosition,
+            transform.rotation);
+    }
+
+    public void RequestConsume(NetworkId requester, int requestedSlot)
+    {
+        if (!IsNetworkActive)
+        {
+            if (localHolderHotbar != null)
+                localHolderHotbar.RemoveItemFromAuthority(this);
+            CommitPlacement(
+                CarryablePlacementMode.Consumed,
+                default,
+                default,
+                -1,
+                transform.position,
+                transform.rotation);
+            return;
+        }
+
+        RPC_RequestConsume(requester, requestedSlot);
+    }
+
+    // 기존 외부 호출부 호환용. 실제로 Despawn하지 않고 소프트 소비한다.
+    public void RequestDespawn()
+    {
+        int slot = -1;
+        if (IsNetworkActive && HolderId.IsValid
+            && Runner.TryFindObject(HolderId, out NetworkObject holderObject))
+        {
+            slot = holderObject.GetComponent<PlayerHotbar>()?.GetSlotOfItem(this) ?? -1;
+        }
+        else if (localHolderHotbar != null)
+        {
+            slot = localHolderHotbar.GetSlotOfItem(this);
+        }
+
+        RequestConsume(IsNetworkActive ? HolderId : default, slot);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority, HostMode = RpcHostMode.SourceIsHostPlayer)]
+    private void RPC_RequestConsume(NetworkId requester, int requestedSlot, RpcInfo info = default)
+    {
+        if (PlacementMode != CarryablePlacementMode.Held
+            || HolderId != requester
+            || !TryResolveRequester(requester, info, out _, out PlayerHotbar hotbar)
+            || hotbar.GetSlotOfItem(this) != requestedSlot)
+        {
+            return;
+        }
+
+        if (!hotbar.RemoveItemFromAuthority(this))
+            return;
+
+        ReleaseCurrentStorageReservation();
+        CommitPlacement(
+            CarryablePlacementMode.Consumed,
+            default,
+            default,
+            -1,
+            transform.position,
+            transform.rotation);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_RequestRejected(NetworkId requester, int reason)
+    {
+        if (!requester.IsValid
+            || !Runner.TryFindObject(requester, out NetworkObject requesterObject)
+            || !requesterObject.HasInputAuthority)
+        {
+            return;
+        }
+
+        string message = reason == 1
+            ? "Item Zone이 가득 찼습니다"
+            : "핫바가 가득 찼습니다";
+        requesterObject.GetComponent<PlayerInteractor>()?.ShowTemporaryPrompt(message);
+    }
+
+    private bool TryResolveRequester(
+        NetworkId requester,
+        RpcInfo info,
+        out NetworkObject requesterObject,
+        out PlayerHotbar hotbar)
+    {
+        requesterObject = null;
+        hotbar = null;
+        if (!requester.IsValid || !Runner.TryFindObject(requester, out requesterObject))
+            return false;
+        if (info.Source != PlayerRef.None && requesterObject.InputAuthority != info.Source)
+            return false;
+
+        hotbar = requesterObject.GetComponent<PlayerHotbar>();
+        return hotbar != null;
+    }
+
+    protected bool IsWithinAuthorityInteractionRange(NetworkObject requesterObject)
+    {
+        if (requesterObject == null || col == null || !col.enabled)
+            return false;
+
+        PlayerInteractor requesterInteractor = requesterObject.GetComponent<PlayerInteractor>();
+        if (requesterInteractor == null)
+            return false;
+
+        Transform reference = requesterInteractor.lookReference != null
+            ? requesterInteractor.lookReference
+            : requesterObject.transform;
+        Vector3 closestPoint = col.ClosestPoint(reference.position);
+        float allowedRange = Mathf.Max(0f, requesterInteractor.interactRange) + 0.5f;
+        return (closestPoint - reference.position).sqrMagnitude
+            <= allowedRange * allowedRange;
+    }
+
+    private void ReleaseLocal(int requestedSlot)
+    {
+        PlayerHotbar hotbar = localHolderHotbar;
+        if (hotbar == null || hotbar.GetSlotOfItem(this) != requestedSlot)
+            return;
+
+        PlayerController player = hotbar.GetComponent<PlayerController>();
+        SubmarineItemZone zone = SubmarineItemZone.FindForPlayer(player);
+        if (zone != null)
+        {
+            if (!zone.TryReserve(this, out int slotIndex))
+            {
+                hotbar.interactor?.ShowTemporaryPrompt("Item Zone이 가득 찼습니다");
+                return;
+            }
+
+            hotbar.RemoveItemFromAuthority(this);
+            CommitPlacement(
+                CarryablePlacementMode.Stored,
+                default,
+                default,
+                slotIndex,
+                transform.position,
+                transform.rotation,
+                zone);
+            return;
+        }
+
+        hotbar.RemoveItemFromAuthority(this);
+        CommitPlacement(
+            CarryablePlacementMode.WorldDropped,
+            default,
+            default,
+            -1,
+            hotbar.GetAuthorityDropPosition(),
+            transform.rotation);
+    }
+
+    private void OnPlacementRevisionChanged()
+    {
+        ApplyPlacementState(false);
+    }
+
+    private void ApplyPlacementState(bool force)
+    {
+        int revision = IsNetworkActive ? PlacementRevision : 0;
+        if (!force && !placementResolutionPending && lastAppliedRevision == revision)
+            return;
+
+        lastAppliedRevision = revision;
+        placementResolutionPending = false;
+
+        switch (PlacementMode)
+        {
+            case CarryablePlacementMode.WorldInitial:
+                OnInitialWorld(CurrentPlacementWorldPosition, CurrentPlacementWorldRotation);
+                break;
+
+            case CarryablePlacementMode.WorldDropped:
+                OnDropped(CurrentPlacementWorldPosition);
+                transform.rotation = CurrentPlacementWorldRotation;
+                RestoreDefaultWorldScale();
+                break;
+
+            case CarryablePlacementMode.Held:
+                if (!TryResolveHolderHotbar(out PlayerHotbar holderHotbar)
+                    || holderHotbar.handSocket == null)
+                {
+                    ApplyPendingPresentation();
+                    return;
+                }
+
+                localHolderHotbar = holderHotbar;
+                OnPickedUp(holderHotbar.handSocket);
+                holderHotbar.RefreshRestoredVisibility();
+                break;
+
+            case CarryablePlacementMode.Stored:
+                SubmarineItemZone zone = ResolveStoredZone();
+                if (zone == null || StoredSlotIndex < 0)
+                {
+                    ApplyPendingPresentation();
+                    return;
+                }
+
+                OnStored(zone, StoredSlotIndex);
+                break;
+
+            case CarryablePlacementMode.Consumed:
+                OnConsumed();
+                break;
+
+            case CarryablePlacementMode.CreatureAttached:
+                ApplyCreatureAttachedPresentation();
+                break;
+        }
+    }
+
+    private Vector3 CurrentPlacementWorldPosition => IsNetworkActive
+        ? PlacementWorldPosition
+        : localWorldPosition;
+    private Quaternion CurrentPlacementWorldRotation => IsNetworkActive
+        ? PlacementWorldRotation
+        : localWorldRotation;
+
+    private bool TryResolveHolderHotbar(out PlayerHotbar hotbar)
+    {
+        hotbar = localHolderHotbar;
+        if (!IsNetworkActive)
+            return hotbar != null;
+
+        if (!HolderId.IsValid || !Runner.TryFindObject(HolderId, out NetworkObject holderObject))
+            return false;
+
+        hotbar = holderObject.GetComponent<PlayerHotbar>();
+        return hotbar != null && hotbar.GetSlotOfItem(this) >= 2;
+    }
+
+    private void ApplyPendingPresentation()
+    {
+        placementResolutionPending = true;
+        ClearStoredPresentation();
+        SetTransformReplicationEnabled(false);
+        StopBodyForAttachment();
+        if (col != null)
+            col.enabled = false;
+        ApplyVisible(false);
+    }
+
+    protected virtual void OnInitialWorld(Vector3 position, Quaternion rotation)
+    {
+        ClearStoredPresentation();
+        localHolderHotbar = null;
+        transform.SetParent(null, true);
+        transform.SetPositionAndRotation(position, rotation);
+        RestoreDefaultWorldScale();
+
+        if (col != null)
+        {
+            col.enabled = true;
+            col.isTrigger = initialColliderTrigger;
+            col.excludeLayers = initialColliderExcludeLayers;
+        }
+
+        if (rb != null)
+        {
+            StopVelocityIfDynamic();
+            bool proxy = IsNetworkActive && !Object.HasStateAuthority;
+            bool targetKinematic = proxy || initialIsKinematic;
+            CollisionDetectionMode targetCollision = proxy
+                && initialCollisionDetection == CollisionDetectionMode.ContinuousDynamic
+                    ? CollisionDetectionMode.ContinuousSpeculative
+                    : initialCollisionDetection;
+            if (targetKinematic)
+                rb.collisionDetectionMode = targetCollision;
+            rb.isKinematic = targetKinematic;
+            rb.useGravity = initialUseGravity;
+            rb.constraints = initialConstraints;
+            rb.angularDamping = initialAngularDamping;
+            rb.interpolation = proxy ? RigidbodyInterpolation.None : initialInterpolation;
+            rb.collisionDetectionMode = targetCollision;
+        }
+
+        SetTransformReplicationEnabled(true);
+        ApplyVisible(true);
+    }
+
+    public virtual void OnPickedUp(Transform handSocket)
+    {
+        ClearStoredPresentation();
+        SetTransformReplicationEnabled(false);
+        StopBodyForAttachment();
+
+        if (col != null)
+        {
+            col.enabled = false;
+            col.isTrigger = initialColliderTrigger;
+            col.excludeLayers = initialColliderExcludeLayers;
+        }
+
+        transform.SetParent(handSocket, false);
+        transform.localPosition = holdPositionOffset;
+        transform.localRotation = Quaternion.Euler(holdRotationOffset);
+        RestoreDefaultWorldScale();
+        RefreshHeldVisibility();
+    }
+
+    public virtual void OnDropped(Vector3 dropPosition)
+    {
+        ClearStoredPresentation();
+        localHolderHotbar = null;
+        transform.SetParent(null, true);
+        transform.position = dropPosition;
+        RestoreDefaultWorldScale();
+
+        if (col != null)
+        {
+            col.enabled = true;
+            col.isTrigger = false;
+            col.excludeLayers = initialColliderExcludeLayers | playerLayerMask;
+        }
+
+        if (rb != null)
+        {
+            StopVelocityIfDynamic();
+            bool proxy = IsNetworkActive && !Object.HasStateAuthority;
+            rb.isKinematic = proxy;
+            rb.useGravity = false;
+            rb.linearDamping = 1f;
+            rb.angularDamping = initialAngularDamping;
+            rb.constraints = initialConstraints;
+            rb.interpolation = proxy ? RigidbodyInterpolation.None : initialInterpolation;
+            rb.collisionDetectionMode = proxy
+                ? CollisionDetectionMode.ContinuousSpeculative
+                : CollisionDetectionMode.ContinuousDynamic;
+        }
+
+        SetTransformReplicationEnabled(true);
+        ApplyVisible(true);
+    }
+
+    public virtual void OnStored(SubmarineItemZone zone, int slotIndex)
+    {
+        if (zone == null || slotIndex < 0)
+            return;
+
+        if (appliedStorageZone != zone)
+            ClearStoredPresentation();
+
+        localHolderHotbar = null;
+        appliedStorageZone = zone;
+        zone.RegisterStoredItem(this, slotIndex);
+        SetTransformReplicationEnabled(false);
+        StopBodyForAttachment();
+
+        if (col != null)
+        {
+            col.enabled = true;
+            col.isTrigger = true;
+            col.excludeLayers = initialColliderExcludeLayers | playerLayerMask;
+        }
+
+        transform.SetParent(zone.transform, false);
+        transform.localPosition = zone.GetSlotLocalPosition(slotIndex) + storagePositionOffset;
+        transform.localRotation = Quaternion.Euler(zone.DefaultItemRotation + storageRotationOffset);
+        RestoreDefaultWorldScale();
+        ApplyVisible(true);
+    }
+
+    protected virtual void OnConsumed()
+    {
+        ClearStoredPresentation();
+        localHolderHotbar = null;
+        transform.SetParent(null, true);
+        RestoreDefaultWorldScale();
+        SetTransformReplicationEnabled(false);
+        StopBodyForAttachment();
+        if (col != null)
+            col.enabled = false;
+        ApplyVisible(false);
+    }
+
+    protected virtual void ApplyCreatureAttachedPresentation()
+    {
+        ClearStoredPresentation();
+        localHolderHotbar = null;
+        SetTransformReplicationEnabled(false);
+        StopBodyForAttachment();
+        if (col != null)
+        {
+            col.enabled = true;
+            col.excludeLayers = initialColliderExcludeLayers;
+        }
+        RestoreDefaultWorldScale();
+        ApplyVisible(true);
+    }
+
+    public void RefreshHeldVisibility()
+    {
+        if (PlacementMode != CarryablePlacementMode.Held)
+            return;
+
+        bool visible = TryResolveHolderHotbar(out PlayerHotbar hotbar)
+            && hotbar.IsSlotActiveForPresentation(hotbar.GetSlotOfItem(this));
+        ApplyVisible(visible);
+    }
+
+    public void SetVisible(bool visible)
+    {
+        ApplyVisible(visible);
+    }
+
+    private void ApplyVisible(bool visible)
+    {
+        foreach (Renderer itemRenderer in GetComponentsInChildren<Renderer>(true))
+            itemRenderer.enabled = visible;
+    }
+
+    protected void StopBodyForAttachment()
+    {
+        if (rb == null)
+            return;
+
+        StopVelocityIfDynamic();
+        // ContinuousDynamic은 Kinematic Rigidbody에서 지원되지 않는다.
+        // 먼저 안전한 모드로 되돌려 상태 전환 경고를 막는다.
+        rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
+        rb.isKinematic = true;
+        rb.useGravity = false;
+        rb.interpolation = RigidbodyInterpolation.None;
+    }
+
+    private void StopVelocityIfDynamic()
+    {
+        if (rb == null || rb.isKinematic)
+            return;
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
+    }
+
+    protected void SetTransformReplicationEnabled(bool enabled)
+    {
+        if (networkTransform != null)
+            networkTransform.enabled = enabled;
+    }
+
+    private bool CommitPlacement(
+        CarryablePlacementMode mode,
+        NetworkId holder,
+        NetworkId submarine,
+        int storedSlot,
+        Vector3 worldPosition,
+        Quaternion worldRotation,
+        SubmarineItemZone localZone = null)
+    {
+        if (!HasPlacementAuthority)
+            return false;
+
+        SubmarineItemZone previousZone = ResolveStoredZone();
+        if (previousZone != null
+            && (mode != CarryablePlacementMode.Stored
+                || previousZone != localZone && (!submarine.IsValid || previousZone.SubmarineId != submarine)
+                || StoredSlotIndex != storedSlot))
+        {
+            previousZone.Release(this);
+        }
+
+        if (IsNetworkActive)
+        {
+            NetworkedPlacementMode = mode;
+            HolderId = holder;
+            StoredSubmarineId = mode == CarryablePlacementMode.Stored ? submarine : default;
+            StoredSlotPlusOne = mode == CarryablePlacementMode.Stored ? storedSlot + 1 : 0;
+            PlacementWorldPosition = worldPosition;
+            PlacementWorldRotation = worldRotation;
+            PlacementRevision++;
+        }
+        else
+        {
+            localPlacementMode = mode;
+            localStoredZone = mode == CarryablePlacementMode.Stored ? localZone : null;
+            localStoredSlot = mode == CarryablePlacementMode.Stored ? storedSlot : -1;
+            localWorldPosition = worldPosition;
+            localWorldRotation = worldRotation;
+            if (mode != CarryablePlacementMode.Held)
+                localHolderHotbar = null;
+        }
+
+        ApplyPlacementState(true);
+        return true;
+    }
+
+    protected bool CommitCreatureAttachedPlacementFromAuthority()
+    {
+        return CommitPlacement(
+            CarryablePlacementMode.CreatureAttached,
+            default,
+            default,
+            -1,
+            transform.position,
+            transform.rotation);
+    }
+
+    protected bool CommitWorldDroppedPlacementFromAuthority(Vector3 position, Quaternion rotation)
+    {
+        return CommitPlacement(
+            CarryablePlacementMode.WorldDropped,
+            default,
+            default,
+            -1,
+            position,
+            rotation);
+    }
+
+    private void ReleaseCurrentStorageReservation()
+    {
+        ResolveStoredZone()?.Release(this);
+    }
+
+    private SubmarineItemZone ResolveStoredZone()
+    {
+        if (IsNetworkActive)
+            return SubmarineItemZone.FindBySubmarineId(StoredSubmarineId, Runner);
+        return localStoredZone;
+    }
+
+    public bool IsStoredIn(SubmarineItemZone zone)
+    {
+        if (zone == null || PlacementMode != CarryablePlacementMode.Stored)
+            return false;
+        if (IsNetworkActive)
+            return zone.SubmarineId.IsValid && zone.SubmarineId == StoredSubmarineId;
+        return localStoredZone == zone;
+    }
+
+    private void ClearStoredPresentation()
+    {
+        appliedStorageZone?.Release(this);
+        appliedStorageZone = null;
+    }
+
+    private void TryStoreInitialItem()
+    {
+        if (!HasPlacementAuthority || PlacementMode != CarryablePlacementMode.WorldInitial)
+            return;
+
+        NetworkRunner runner = IsNetworkActive ? Runner : null;
+        SubmarineItemZone zone = SubmarineItemZone.FindContainingPoint(transform.position, runner);
+        if (zone == null
+            || IsNetworkActive && !zone.SubmarineId.IsValid
+            || !zone.TryReserve(this, out int slotIndex))
+        {
+            return;
+        }
+
+        CommitPlacement(
+            CarryablePlacementMode.Stored,
+            default,
+            IsNetworkActive ? zone.SubmarineId : default,
+            slotIndex,
+            transform.position,
+            transform.rotation,
+            zone);
+        initialStoragePending = false;
+    }
+
+    protected void RestoreDefaultWorldScale()
+    {
+        transform.localScale = Vector3.one;
+        Vector3 inheritedWorldScale = transform.lossyScale;
+        transform.localScale = new Vector3(
+            DivideScale(defaultWorldScale.x, inheritedWorldScale.x),
+            DivideScale(defaultWorldScale.y, inheritedWorldScale.y),
+            DivideScale(defaultWorldScale.z, inheritedWorldScale.z));
+    }
+
+    protected void RestoreInitialColliderCollisionMask()
+    {
+        if (col != null)
+            col.excludeLayers = initialColliderExcludeLayers;
+    }
+
+    private string BuildLocalCheckpointSessionKey()
+    {
+        string path = $"{gameObject.name}[{transform.GetSiblingIndex()}]";
+        Transform current = transform.parent;
+        while (current != null)
+        {
+            path = $"{current.name}[{current.GetSiblingIndex()}]/{path}";
+            current = current.parent;
+        }
+        return $"scene-item:{gameObject.scene.handle}:{path}";
+    }
+
+    private static float DivideScale(float desiredWorldScale, float inheritedWorldScale)
+    {
+        return Mathf.Abs(inheritedWorldScale) > 0.0001f
+            ? desiredWorldScale / inheritedWorldScale
+            : desiredWorldScale;
+    }
+
+    public virtual void PrepareForCheckpointRestore()
+    {
+        ClearStoredPresentation();
+        placementResolutionPending = false;
+        SetTransformReplicationEnabled(false);
+        StopBodyForAttachment();
+        if (col != null)
+            col.enabled = false;
+        transform.SetParent(null, true);
+    }
+
+    public bool RestoreWorldFromCheckpoint(
+        CarryablePlacementMode mode,
+        Vector3 position,
+        Quaternion rotation)
+    {
+        if (mode is not (CarryablePlacementMode.WorldInitial or CarryablePlacementMode.WorldDropped))
+            return false;
+        ReleaseCurrentStorageReservation();
+        return CommitPlacement(mode, default, default, -1, position, rotation);
+    }
+
+    public bool RestoreHeldFromCheckpoint(PlayerHotbar hotbar, int slotNumber)
+    {
+        if (hotbar == null || !HasPlacementAuthority
+            || !hotbar.RestoreItemToExactSlot(slotNumber, this))
+        {
+            return false;
+        }
+
+        localHolderHotbar = hotbar;
+        NetworkId holder = hotbar.Object != null && hotbar.Object.IsValid
+            ? hotbar.Object.Id
+            : default;
+        return CommitPlacement(
+            CarryablePlacementMode.Held,
+            holder,
+            default,
+            -1,
+            transform.position,
+            transform.rotation);
+    }
+
+    public bool RestoreStoredFromCheckpoint(SubmarineItemZone zone, int slotIndex)
+    {
+        if (zone == null || !HasPlacementAuthority || !zone.TryReserveExact(this, slotIndex))
+            return false;
+
+        return CommitPlacement(
+            CarryablePlacementMode.Stored,
+            default,
+            IsNetworkActive ? zone.SubmarineId : default,
+            slotIndex,
+            transform.position,
+            transform.rotation,
+            zone);
+    }
+
+    public bool RestoreConsumedFromCheckpoint()
+    {
+        ReleaseCurrentStorageReservation();
+        return CommitPlacement(
+            CarryablePlacementMode.Consumed,
+            default,
+            default,
+            -1,
+            transform.position,
+            transform.rotation);
+    }
+
+    public virtual bool RestoreCreatureAttachedFromCheckpoint(AttachmentSlot slot)
+    {
+        return false;
+    }
+
+    public void RefreshCheckpointPresentation()
+    {
+        ApplyPlacementState(true);
     }
 
     public virtual string GetInteractionPrompt()
@@ -134,7 +1028,13 @@ public class CarryableItem : NetworkBehaviour, Interactable
 
     public virtual bool CanInteract(GameObject interactor)
     {
-        // 핫바에 빈 슬롯(2 또는 3)이 있어야 주울 수 있음
+        if (PlacementMode is CarryablePlacementMode.Held
+            or CarryablePlacementMode.Consumed
+            or CarryablePlacementMode.CreatureAttached)
+        {
+            return false;
+        }
+
         PlayerHotbar hotbar = interactor.GetComponent<PlayerHotbar>();
         return hotbar != null && hotbar.HasFreeSlot();
     }
@@ -150,90 +1050,23 @@ public class CarryableItem : NetworkBehaviour, Interactable
         hotbar.TryAddItem(this);
     }
 
-    // 손에 붙을 때 PlayerCarrier가 호출
-    public virtual void OnPickedUp(Transform handSocket)
-    {
-        if (rb != null) rb.isKinematic = true;   // 물리 영향 끄기 (손에 붙어서 따라다녀야 하므로)
-        if (col != null) col.enabled = false;    // 들고 있는 동안은 다시 집히거나 부딪히지 않게
-
-        transform.SetParent(handSocket);
-        transform.localPosition = holdPositionOffset;
-        transform.localRotation = Quaternion.Euler(holdRotationOffset);
-    }
-
-    // 내려놓을 때 PlayerHotbar가 호출. dropPosition으로 몸에서 떨어진 안전한 위치로 옮긴 뒤 물리를 켬
-    // (안 옮기면 손 위치 = 몸 Collider 근처라서, 물리가 켜지자마자 겹쳐서 튕겨나갈 수 있음)
-    public virtual void OnDropped(Vector3 dropPosition)
-    {
-        transform.SetParent(null);
-        transform.position = dropPosition;
-
-        if (col != null) col.enabled = true;
-        if (rb != null)
-        {
-            rb.isKinematic = false;
-            rb.useGravity = true; // 프리팹 설정에 상관없이 내려놓으면 확실히 중력 받아 떨어지게 함
-        }
-    }
-
-    // 내려놓지는 않고, 다른 핫바 슬롯으로 바꿨을 때 화면에서만 잠깐 숨기는 용도
-    public void SetVisible(bool visible)
-    {
-        ApplyVisible(visible); // 내 화면엔 즉시 반영
-        if (Object == null) return;
-
-        RPC_RequestHidden(!visible); // 나머지 머신에도 전파 (안 하면 상대는 안 든 아이템까지 계속 보임)
-    }
-
-    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    private void RPC_RequestHidden(NetworkBool hidden) => NetworkedHidden = hidden;
-
-    private void OnHiddenChanged() => ApplyVisible(!NetworkedHidden);
-
-    private void ApplyVisible(bool visible)
-    {
-        Renderer[] renderers = GetComponentsInChildren<Renderer>();
-        foreach (Renderer r in renderers)
-        {
-            r.enabled = visible;
-        }
-    }
-
-    // "사용"했을 때 실제로 일어나는 효과.
-    // user = 사용한 사람(아이템을 든 사람), target = 효과가 실제로 적용될 대상.
-    // 자기 자신에게 쓰면 user == target, 팀원에게 주면 target이 그 팀원이 됨.
-    // 산소통이라면 이 함수를 오버라이드해서 target의 산소를 채우는 로직을 넣게 됨
     public virtual void OnUse(GameObject user, GameObject target)
     {
         Debug.Log($"[CarryableItem] {itemName} 사용함 (대상: {target.name})");
     }
 
-    // 좌클릭했을 때 실행. 기본 아이템(산소통 등)은 "자기 자신에게 사용"이 곧 좌클릭 동작임.
-    // 무기류는 이 함수를 재정의해서 발사 등 완전히 다른 동작으로 바꿈.
-    // 반환값(true/false)은 "이 행동 이후 아이템을 핫바에서 제거(소모)할지"를 PlayerHotbar에게 알려주는 용도.
     public virtual bool OnPrimaryAction(GameObject user, Transform aimReference)
     {
-        // 애니메이터에 없는 파라미터(HasWeapon/Attack)를 호출하면 경고만 나므로 제거하고,
-        // 실제로 존재하는 MeleeWeapon 스테이트를 네트워크 경로로 재생한다 (원격에서도 보이게)
         if (user != null)
         {
             PlayerController controller = user.GetComponent<PlayerController>();
             if (controller != null)
                 controller.PlayMotionState(Animator.StringToHash("MeleeWeapon"));
         }
-        OnUse(user, user); // 기본은 자기 자신을 대상으로 사용
+        OnUse(user, user);
         return isConsumable;
     }
-    
-    // 좌클릭을 누르고 있는 동안 매 프레임 호출
-    // 망치처럼 충전 시간이 필요한 아이템만 적용
-    public virtual void OnPrimaryHeld(GameObject user, Transform aimReference, bool isHeld)
-    {
-    }
 
-    // 우클릭을 누르고 있는 동안 매 프레임 호출됨 (조준처럼 "누르고 있는 동안 지속되는" 동작용).
-    // 기본 아이템은 우클릭에 반응 안 함. 무기류가 재정의해서 조준 등을 구현.
-    public virtual void OnSecondaryHeld(GameObject user, Transform aimReference, bool isHeld)
-    {
-    }
+    public virtual void OnPrimaryHeld(GameObject user, Transform aimReference, bool isHeld) { }
+    public virtual void OnSecondaryHeld(GameObject user, Transform aimReference, bool isHeld) { }
 }

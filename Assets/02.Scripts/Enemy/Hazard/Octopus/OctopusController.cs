@@ -127,6 +127,20 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
         if (!HasSimulationAuthority)
             return;
 
+        // 채집/부착 단계에서는 이전 Patrol/Chase 상태가 한 프레임이라도 남아
+        // 수집 아이템을 움직이지 않게 즉시 수동 상태로 맞춘다.
+        if (harvestable != null
+            && harvestable.Phase != HarvestableCreature.CreaturePhase.Hazard)
+        {
+            OctopusStateType passiveState = harvestable.Phase
+                == HarvestableCreature.CreaturePhase.Attached
+                    ? OctopusStateType.Attached
+                    : OctopusStateType.Dead;
+            if (currentStateType != passiveState)
+                ChangeState(passiveState);
+            return;
+        }
+
         currentState?.Update();
     }
 
@@ -224,7 +238,8 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
 
     private void HandleAttached(AttachmentSlot slot)
     {
-        UpdateAnimation(true);
+        Targeting?.ClearTarget();
+        ChangeState(OctopusStateType.Attached);
         ShowLocalVisionBlocker(slot);
     }
 
@@ -273,10 +288,21 @@ public class OctopusController : MonoBehaviour, IEnemyTargetFilter
     // 생존 위험 단계면 대기 상태에서 재시작
     public void RestoreCheckpointAI()
     {
-        UpdateAnimation(false);
         Targeting?.ClearTarget();
+
+        if (harvestable != null
+            && harvestable.Phase == HarvestableCreature.CreaturePhase.Attached)
+        {
+            ChangeState(OctopusStateType.Attached);
+            ShowLocalVisionBlocker(harvestable.AttachedSlot);
+            return;
+        }
+
+        HideLocalVisionBlocker();
         ChangeState(
-            !health.IsDead && harvestable.Phase == HarvestableCreature.CreaturePhase.Hazard
+            !health.IsDead
+            && harvestable != null
+            && harvestable.Phase == HarvestableCreature.CreaturePhase.Hazard
                 ? OctopusStateType.Idle
                 : OctopusStateType.Dead);
     }

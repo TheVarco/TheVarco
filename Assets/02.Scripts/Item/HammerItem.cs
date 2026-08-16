@@ -325,6 +325,18 @@ public class HammerItem : CarryableItem
             progressUI.Hide();
     }
 
+    public override void PrepareForCheckpointRestore()
+    {
+        base.PrepareForCheckpointRestore();
+        ClearCurrentTarget();
+        nextNetworkRepairRefresh = 0f;
+        currentUser = null;
+        userAnimator = null;
+
+        if (repairAudioSource != null)
+            repairAudioSource.Stop();
+    }
+
     // 아이템 비활성화 시 수리 점유 해제
     private void OnDisable()
     {

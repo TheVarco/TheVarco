@@ -12,7 +12,7 @@ namespace CaveItem.EditorTools
     /// </summary>
     public static class CaveItemResolver
     {
-        private const string HammerZoneName = "HammerZone";
+        private const string ItemZoneName = "ItemZone";
 
         /// <summary>
         /// How much daylight a Centerline body needs between itself and the wall.
@@ -165,22 +165,21 @@ namespace CaveItem.EditorTools
             Vector3 position;
             if (placement.kind == CaveItemKind.Hammer)
             {
-                Transform hammerZone = FindDescendant(submarine, HammerZoneName);
-                if (hammerZone == null)
+                Transform itemZoneTransform = FindDescendant(submarine, ItemZoneName);
+                if (itemZoneTransform == null)
                 {
-                    failure = $"no '{HammerZoneName}' under the submarine";
+                    failure = $"no '{ItemZoneName}' under the submarine";
                     return false;
                 }
 
-                BoxCollider spawnCollider = hammerZone.GetComponentInChildren<BoxCollider>(true);
-                if (spawnCollider == null)
+                SubmarineItemZone itemZone = itemZoneTransform.GetComponent<SubmarineItemZone>();
+                if (itemZone == null)
                 {
-                    failure = $"'{HammerZoneName}' has no BoxCollider in its hierarchy";
+                    failure = $"'{ItemZoneName}' has no SubmarineItemZone component";
                     return false;
                 }
 
-                // Respect the collider's Center as well as every parent transform and scale.
-                position = spawnCollider.transform.TransformPoint(spawnCollider.center);
+                position = itemZone.GetSlotWorldPosition(0);
             }
             else
             {

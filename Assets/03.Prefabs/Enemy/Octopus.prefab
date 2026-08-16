@@ -18,6 +18,7 @@ GameObject:
   - component: {fileID: 100008}
   - component: {fileID: 100009}
   - component: {fileID: 100010}
+  - component: {fileID: 900000000000000206}
   - component: {fileID: 100011}
   - component: {fileID: 100012}
   - component: {fileID: 100013}
@@ -147,7 +148,7 @@ Rigidbody:
   m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 1
-  m_Constraints: 0
+  m_Constraints: 112
   m_CollisionDetection: 2
 --- !u!114 &100006
 MonoBehaviour:
@@ -159,7 +160,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 028ccbe486ab7f54d9363e4511be20b6, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::Health
   maxHealth: 30
   hitAnimationCooldown: 0.5
@@ -191,6 +192,9 @@ MonoBehaviour:
   giveActionName: "\uC0AC\uC6A9\uD574\uC8FC\uAE30"
   holdPositionOffset: {x: 0, y: 0, z: 0}
   holdRotationOffset: {x: 0, y: 0, z: 0}
+  storagePositionOffset: {x: 0, y: 0, z: 0}
+  storageRotationOffset: {x: 0, y: 0, z: 0}
+  startStoredInItemZone: 0
   phase: 0
   attachmentSlot: 0
   healthRestoreAmount: 20
@@ -249,6 +253,20 @@ MonoBehaviour:
   obstacleLayer:
     serializedVersion: 2
     m_Bits: 64
+--- !u!114 &900000000000000206
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f2e5c90963840a3a39a4b3264392991, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::SonarTarget
+  category: 1
+  detectionPoint: {fileID: 0}
 --- !u!114 &100011
 MonoBehaviour:
   m_ObjectHideFlags: 0

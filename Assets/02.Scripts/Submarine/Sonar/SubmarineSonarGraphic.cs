@@ -56,6 +56,7 @@ public sealed class SubmarineSonarGraphic : MaskableGraphic
     private Color creatureColor = new Color(1f, 0.28f, 0.08f, 1f);
     private Color itemColor = new Color(0.35f, 1f, 0.32f, 1f);
     private Color pointOfInterestColor = new Color(0.12f, 0.95f, 0.9f, 1f);
+    private Color equipmentColor = new Color(1f, 0.82f, 0.12f, 1f);
 
     [Header("Readability")]
     [Tooltip("높이 화살표의 크기")]
@@ -72,7 +73,8 @@ public sealed class SubmarineSonarGraphic : MaskableGraphic
         Color pulse,
         Color creature,
         Color item,
-        Color pointOfInterest)
+        Color pointOfInterest,
+        Color equipment)
     {
         backgroundColor = background;
         gridColor = grid;
@@ -80,6 +82,7 @@ public sealed class SubmarineSonarGraphic : MaskableGraphic
         creatureColor = creature;
         itemColor = item;
         pointOfInterestColor = pointOfInterest;
+        equipmentColor = equipment;
         SetVerticesDirty();
     }
 
@@ -174,6 +177,8 @@ public sealed class SubmarineSonarGraphic : MaskableGraphic
                 return creatureColor;
             case SonarTargetCategory.Item:
                 return itemColor;
+            case SonarTargetCategory.Equipment:
+                return equipmentColor;
             default:
                 return pointOfInterestColor;
         }

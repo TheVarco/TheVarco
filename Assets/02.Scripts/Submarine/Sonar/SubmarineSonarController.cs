@@ -56,6 +56,7 @@ public sealed class SubmarineSonarController : NetworkBehaviour
     [SerializeField] private Color creatureColor = new Color(1f, 0.28f, 0.08f, 1f);
     [SerializeField] private Color itemColor = new Color(0.35f, 1f, 0.32f, 1f);
     [SerializeField] private Color pointOfInterestColor = new Color(0.12f, 0.95f, 0.9f, 1f);
+    [SerializeField] private Color equipmentColor = new Color(1f, 0.82f, 0.12f, 1f);
 
     [Header("Events")]
     [Tooltip("각 핑이 시작될 때 호출")]
@@ -102,7 +103,8 @@ public sealed class SubmarineSonarController : NetworkBehaviour
             pulseColor,
             creatureColor,
             itemColor,
-            pointOfInterestColor);
+            pointOfInterestColor,
+            equipmentColor);
     }
 
     // 로컬 소나 첫 핑 시점 초기화

@@ -8,7 +8,8 @@ public enum SonarTargetCategory
 {
     Creature,
     Item,
-    PointOfInterest
+    PointOfInterest,
+    Equipment
 }
 
 /// <summary>
@@ -27,15 +28,19 @@ public sealed class SonarTarget : MonoBehaviour
 
     // 적이나 파괴 가능한 대상이라면 사망 여부를 탐지 가능 상태에 반영
     private Health health;
+    private CarryableItem carryableItem;
 
     public static IReadOnlyCollection<SonarTarget> ActiveTargets => RegisteredTargets;
     public SonarTargetCategory Category => category;
     public Vector3 Position => detectionPoint != null ? detectionPoint.position : transform.position;
-    public bool IsDetectable => isActiveAndEnabled && (health == null || !health.IsDead);
+    public bool IsDetectable => isActiveAndEnabled
+        && (carryableItem == null || carryableItem.IsSonarDetectable)
+        && (carryableItem != null || health == null || !health.IsDead);
 
     private void Awake()
     {
         health = GetComponentInParent<Health>();
+        carryableItem = GetComponentInParent<CarryableItem>();
     }
 
     private void OnEnable()

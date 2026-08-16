@@ -23,6 +23,7 @@ public sealed class EnemyHealthNetworkSync : NetworkBehaviour, IDamageRouter
     private Health health; // 같은 오브젝트의 로컬 체력
     private SharkController shark; // 상어 전용 연출 대상
     private OctopusController octopus; // 문어 전용 연출 대상
+    private HarvestableCreature harvestable; // 채집 후 피해를 받지 않는 문어/성게
     private int renderedAttackSequence; // 마지막으로 재생한 공격 번호
     private int renderedAiState; // 마지막으로 적용한 AI 상태
     private bool subscribed; // 체력 이벤트 구독 여부
@@ -37,6 +38,7 @@ public sealed class EnemyHealthNetworkSync : NetworkBehaviour, IDamageRouter
         health = GetComponent<Health>();
         shark = GetComponent<SharkController>();
         octopus = GetComponent<OctopusController>();
+        harvestable = GetComponent<HarvestableCreature>();
         body = GetComponent<Rigidbody>();
     }
 
@@ -140,6 +142,14 @@ public sealed class EnemyHealthNetworkSync : NetworkBehaviour, IDamageRouter
     // 비호스트 피해 전달 판정
     public bool RouteDamage(DamageInfo damageInfo)
     {
+        // 한 번 채집 가능한 상태가 된 문어/성게는 음식 아이템이다.
+        // Host의 직접 피해와 Client의 피해 RPC를 모두 여기서 소비한다.
+        if (harvestable != null
+            && harvestable.Phase == HarvestableCreature.CreaturePhase.Collectible)
+        {
+            return true;
+        }
+
         if (Object == null || !Object.IsValid || Object.HasStateAuthority)
             return false;
 
@@ -170,6 +180,13 @@ public sealed class EnemyHealthNetworkSync : NetworkBehaviour, IDamageRouter
         Vector3 point,
         Vector3 normal)
     {
+        // 단계 변경 직전에 전송된 피해 RPC도 채집 완료 뒤에는 적용하지 않는다.
+        if (harvestable != null
+            && harvestable.Phase == HarvestableCreature.CreaturePhase.Collectible)
+        {
+            return;
+        }
+
         GameObject source = null;
         // 공격자 네트워크 오브젝트 복원
         if (sourceId.IsValid && Runner.TryFindObject(sourceId, out NetworkObject sourceObject))

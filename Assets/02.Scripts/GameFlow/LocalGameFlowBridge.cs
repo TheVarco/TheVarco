@@ -167,6 +167,8 @@ namespace Varco.GameFlow
             private readonly PlayerSeatController seatController;
             // 게임 정지 전 입력 컴포넌트 활성 상태
             private readonly Dictionary<MonoBehaviour, bool> inputStates = new();
+            // Failed -> Restoring 전환처럼 false가 연속 적용되어 원래 입력 상태를 잃는 것을 방지
+            private bool gameplayEnabled = true;
 
             // 기존 플레이어 컴포넌트를 읽기 전용으로 연결
             public LegacyPlayerCheckpointParticipant(PlayerDownedState downedState)
@@ -186,8 +188,8 @@ namespace Varco.GameFlow
             public string CheckpointId { get; }
             public int RestoreOrder => 100;
             public bool IsDowned => downedState != null && downedState.IsDowned;
-            // 인벤토리와 핫바를 저장하지 않으므로 불완전 상태 반환
-            public bool SupportsCompleteSnapshot => false;
+            // Carryable 핫바는 items:session이 함께 저장하며 수량형 PlayerInventory는 범위에서 제외한다.
+            public bool SupportsCompleteSnapshot => true;
 
             // 위치 생존 수치 다운 상태 캡처
             public object CaptureCheckpointState()
@@ -265,6 +267,10 @@ namespace Varco.GameFlow
             {
                 if (downedState == null)
                     return;
+                if (gameplayEnabled == enabled)
+                    return;
+
+                gameplayEnabled = enabled;
 
                 MonoBehaviour[] behaviours = downedState.GetComponents<MonoBehaviour>();
                 // 정지 직전 활성 상태를 저장하고 입력 차단

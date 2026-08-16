@@ -14,10 +14,10 @@ namespace CaveItem.EditorTools
     ///
     /// The checks worth understanding before changing a number:
     ///
-    ///   Reachability. None of the four pickup prefabs has a Rigidbody, so nothing ever settles - the
-    ///   transform the tool writes is exactly what ships. There is no physics safety net, and a tank
-    ///   half-sunk into rock stays half-sunk forever, silently un-pickable because PlayerInteractor's
-    ///   obstruction ray hits the shell first.
+    ///   Reachability. Pickup prefabs now have Rigidbody components for underwater drops, but their
+    ///   authored world state is Kinematic. The transform the tool writes is therefore still exactly
+    ///   what ships: a tank half-sunk into rock stays half-sunk forever and can be silently un-pickable
+    ///   because PlayerInteractor's obstruction ray hits the shell first.
     ///
     ///   Hazard keep-out re-derives the hazard mounts by calling CaveHazardLayout.Build() and casting
     ///   them, rather than hard-coding the distances the item layout was written against. If someone

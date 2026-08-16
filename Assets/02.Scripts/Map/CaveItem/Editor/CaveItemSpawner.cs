@@ -91,6 +91,13 @@ namespace CaveItem.EditorTools
                 spawned.transform.localScale = placement.scale;
                 spawned.name = placement.id;
 
+                if (placement.anchor == CaveItemAnchor.SubmarineInterior
+                    && spawned.TryGetComponent(out CarryableItem carryable))
+                {
+                    carryable.startStoredInItemZone = true;
+                    EditorUtility.SetDirty(carryable);
+                }
+
                 result.instances.Add(spawned);
                 result.spawned++;
             }

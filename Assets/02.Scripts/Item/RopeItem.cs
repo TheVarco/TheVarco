@@ -5,6 +5,8 @@ using UnityEngine;
 // 이미 누군가와 연결되어 있는 상태면, 좌클릭이 "던지기"가 아니라 "연결 해제"로 동작함 (토글 방식).
 public class RopeItem : CarryableItem
 {
+    public override bool CanUseOnTeammate => true;
+
     [Header("발사 설정 (밸런싱용)")]
     [Tooltip("호스트가 스폰할 밧줄 프리팹 (NetworkObject가 붙어 있어야 함)")]
     public NetworkPrefabRef ropeProjectilePrefabRef;
@@ -17,6 +19,14 @@ public class RopeItem : CarryableItem
     public float muzzleForwardOffset = 1f;
 
     private float cooldownTimer = 0f;
+    private Animator pendingThrowAnimator;
+
+    protected override void Awake()
+    {
+        base.Awake();
+        // 밧줄은 투척 후 사라지는 소모품이 아니라 연결/해제를 반복하는 장비다.
+        isConsumable = false;
+    }
 
     void Update()
     {
@@ -50,23 +60,14 @@ public class RopeItem : CarryableItem
             if (anim != null)
             {
                 anim.SetTrigger("Throw");
+                pendingThrowAnimator = anim;
                 Debug.Log($"[RopeItem] SetTrigger('Throw') 실행됨! ({throwDelay}초 후 밧줄 던지기)");
             }
         }
 
         // 3. 지정된 throwDelay 초 후 밧줄 투사체 생성
         if (user != null && user.activeInHierarchy)
-        {
-            MonoBehaviour runner = user.GetComponent<MonoBehaviour>();
-            if (runner != null)
-            {
-                runner.StartCoroutine(DelayedThrowRoutine(user, aimReference, throwDelay));
-            }
-            else
-            {
-                StartCoroutine(DelayedThrowRoutine(user, aimReference, throwDelay));
-            }
-        }
+            StartCoroutine(DelayedThrowRoutine(user, aimReference, throwDelay));
 
         cooldownTimer = throwCooldown + throwDelay;
         return false;
@@ -75,7 +76,24 @@ public class RopeItem : CarryableItem
     private System.Collections.IEnumerator DelayedThrowRoutine(GameObject user, Transform aimReference, float delay)
     {
         yield return new WaitForSeconds(delay);
+        pendingThrowAnimator = null;
         Throw(user, aimReference);
+    }
+
+    public override void PrepareForCheckpointRestore()
+    {
+        base.PrepareForCheckpointRestore();
+
+        StopAllCoroutines();
+
+        if (pendingThrowAnimator != null)
+            pendingThrowAnimator.ResetTrigger("Throw");
+        pendingThrowAnimator = null;
+        cooldownTimer = 0f;
+
+        // 투사체는 GameFlowTransientCleanup이 제거하고, 이미 성립한 연결은
+        // PlayerRopeTarget의 복제 상태까지 여기서 초기화한다.
+        PlayerRopeTarget.ClearAllForCheckpointRestore();
     }
 
     private void Throw(GameObject user, Transform aimReference)

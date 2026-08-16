@@ -31,12 +31,20 @@ public class PlayerInteractor : NetworkBehaviour
     private bool interactionLocked; // 서영 추가
     private string lockedPrompt; // 서영 추가
     private string overridePrompt; // 부활 안내처럼 상호작용을 막지 않고 문구만 덮어쓰는 용도
+    private string temporaryPrompt; // Item Zone 가득 참처럼 잠깐만 보여줄 상태 안내
+    private float temporaryPromptUntil;
     private int unlockedFrame = -1; // 잠금이 풀린 프레임 번호 (그 프레임엔 새 상호작용 입력을 안 받음)
 
     void Update()
     {
         // 내 캐릭터가 아니면(원격 플레이어) 로컬 입력을 읽지 않음. 비네트워크 씬에선 Object가 null이라 그대로 동작
         if (Object != null && !Object.HasInputAuthority) return;
+
+        if (!string.IsNullOrEmpty(temporaryPrompt) && Time.time >= temporaryPromptUntil)
+        {
+            temporaryPrompt = null;
+            PublishPrompt();
+        }
 
         if (interactionLocked) // 서영 추가
             return;
@@ -64,9 +72,18 @@ public class PlayerInteractor : NetworkBehaviour
         PublishPrompt();
     }
 
+    public void ShowTemporaryPrompt(string prompt, float duration = 1.5f)
+    {
+        temporaryPrompt = prompt;
+        temporaryPromptUntil = Time.time + Mathf.Max(0.1f, duration);
+        PublishPrompt();
+    }
+
     private void PublishPrompt()
     {
-        string text = !string.IsNullOrEmpty(overridePrompt)
+        string text = !string.IsNullOrEmpty(temporaryPrompt)
+            ? temporaryPrompt
+            : !string.IsNullOrEmpty(overridePrompt)
             ? overridePrompt
             : (currentTarget != null ? currentTarget.GetInteractionPrompt() : null);
 

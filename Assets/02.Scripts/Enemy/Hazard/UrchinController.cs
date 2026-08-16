@@ -29,6 +29,9 @@ public class UrchinController : MonoBehaviour
     {
         harvestable.OnAttached += HandleAttached;
         harvestable.OnDetached += HandleDetached;
+
+        // Late Join이나 체크포인트 복원 직후 이미 붙어 있는 상태일 수 있다.
+        SynchronizeCheckpointLifecycle();
     }
 
     private void OnDisable()
@@ -46,7 +49,19 @@ public class UrchinController : MonoBehaviour
         if (!HasSimulationAuthority)
             return;
 
-        if (!harvestable.IsAttached || attachedPlayerHealth == null)
+        if (!harvestable.IsAttached)
+        {
+            attachedPlayerHealth = null;
+            damageTimer = 0f;
+            return;
+        }
+
+        if (attachedPlayerHealth == null)
+            attachedPlayerHealth = harvestable.AttachedSlot != null
+                ? harvestable.AttachedSlot.GetComponent<Health>()
+                : null;
+
+        if (attachedPlayerHealth == null)
             return;
 
         if (attachedPlayerHealth.IsDead)
@@ -101,6 +116,26 @@ public class UrchinController : MonoBehaviour
     private void HandleDetached(AttachmentSlot slot)
     {
         attachedPlayerHealth = null;
+        damageTimer = 0f;
+    }
+
+    /// <summary>
+    /// 체크포인트/복제 적용 뒤 피해 대상과 타이머를 현재 CreaturePhase에 맞춘다.
+    /// Collectible 및 Hazard 상태에서는 이전 숙주 참조가 남지 않는다.
+    /// </summary>
+    public void SynchronizeCheckpointLifecycle()
+    {
+        if (harvestable != null && harvestable.IsAttached)
+        {
+            attachedPlayerHealth = harvestable.AttachedSlot != null
+                ? harvestable.AttachedSlot.GetComponent<Health>()
+                : null;
+        }
+        else
+        {
+            attachedPlayerHealth = null;
+        }
+
         damageTimer = 0f;
     }
 

@@ -296,10 +296,19 @@ namespace Varco.GameFlow
     private IEnumerator RestoreCheckpointRoutine()
     {
         // 입력 차단과 상태 복원과 물리 반영과 입력 재개 순서로 실행
+            IReadOnlyList<IPlayerCheckpointParticipant> players = bridge.Players;
+            // 슬롯/로스터 불일치가 있으면 월드에 손대지 않고 기존 실패 화면을 유지한다.
+            if (!checkpointService.ValidateRestore(players, out string validationError))
+            {
+                Debug.LogError(
+                    $"[GameFlow] Checkpoint restore was rejected before mutation: {validationError}",
+                    this);
+                yield break;
+            }
+
             // 모든 참가자 입력과 시뮬레이션 차단
             GameFailureReason restoreFailureReason = FailureReason;
             TransitionTo(GameFlowState.Restoring, GameFailureReason.None);
-            IReadOnlyList<IPlayerCheckpointParticipant> players = bridge.Players;
             checkpointService.SetGameplayEnabled(false, players);
             yield return null;
 
@@ -309,7 +318,14 @@ namespace Varco.GameFlow
                 ? submarine.CheckpointTeleportRequestSequence
                 : 0;
             // 저장된 참가자 상태 적용
-            checkpointService.Restore(players);
+            if (!checkpointService.Restore(players))
+            {
+                Debug.LogError(
+                    "[GameFlow] Checkpoint restore failed. Gameplay remains disabled on the failure screen.",
+                    this);
+                TransitionTo(GameFlowState.Failed, restoreFailureReason);
+                yield break;
+            }
             // 잠수함 NetworkRigidbody Teleport 완료 State Authority Fusion Tick 대기
             // 비네트워크 복원은 요청 없음
             ulong submarineTeleportSequence = submarine != null

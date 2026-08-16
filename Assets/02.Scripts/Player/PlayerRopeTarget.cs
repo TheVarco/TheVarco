@@ -49,6 +49,17 @@ public class PlayerRopeTarget : NetworkBehaviour
         return null;
     }
 
+    /// <summary>
+    /// 체크포인트에는 일시적인 밧줄 연결을 저장하지 않는다. State Authority가
+    /// 복제 ID를 지우고 각 피어는 OnPullerChanged를 통해 조인트/비주얼을 정리한다.
+    /// </summary>
+    public static void ClearAllForCheckpointRestore()
+    {
+        PlayerRopeTarget[] targets = Active.ToArray();
+        foreach (PlayerRopeTarget target in targets)
+            target?.ClearForCheckpointRestore();
+    }
+
     public bool IsRopeAttached => ropePuller != null;
 
     // 당기는 쪽. PlayerWhirlpoolState가 "구조자도 같이 갇혀있는지" 확인하는 데 씀
@@ -113,6 +124,20 @@ public class PlayerRopeTarget : NetworkBehaviour
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     private void RPC_RequestDetach() => PullerId = default;
+
+    public void ClearForCheckpointRestore()
+    {
+        if (Object != null && Object.IsValid && !Object.HasStateAuthority)
+            return;
+
+        if (Object != null && Object.IsValid)
+        {
+            PullerId = default;
+            AttachedLeash = 0f;
+        }
+
+        ClearLocalRope(true);
+    }
 
     // PullerId가 바뀌면 모든 머신에서 실행. 각자 자기 화면에 로프를 만들고 조인트를 건다
     private void OnPullerChanged()

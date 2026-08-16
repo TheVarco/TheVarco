@@ -18,6 +18,7 @@ public class RangedWeaponItem : CarryableItem
     public float muzzleForwardOffset = 1f;
 
     private float cooldownTimer = 0f;
+    private Animator pendingFireAnimator;
 
     void Update()
     {
@@ -42,23 +43,14 @@ public class RangedWeaponItem : CarryableItem
             if (anim != null)
             {
                 anim.SetTrigger("Ranged");
+                pendingFireAnimator = anim;
                 Debug.Log($"[RangedWeaponItem] SetTrigger('Ranged') 실행됨! (1초 후 발사 예정)");
             }
         }
 
         // 1초 딜레이 후 실제 총알 발사 실행
         if (user != null && user.activeInHierarchy)
-        {
-            MonoBehaviour runner = user.GetComponent<MonoBehaviour>();
-            if (runner != null)
-            {
-                runner.StartCoroutine(DelayedFireRoutine(user, aimReference, 1.0f));
-            }
-            else
-            {
-                StartCoroutine(DelayedFireRoutine(user, aimReference, 1.0f));
-            }
-        }
+            StartCoroutine(DelayedFireRoutine(user, aimReference, 1.0f));
 
         cooldownTimer = fireCooldown; // 딜레이 시간(1초) 포함 쿨타임 처리
         return false;
@@ -67,7 +59,23 @@ public class RangedWeaponItem : CarryableItem
     private System.Collections.IEnumerator DelayedFireRoutine(GameObject user, Transform aimReference, float delay)
     {
         yield return new WaitForSeconds(delay);
+        pendingFireAnimator = null;
         Fire(user, aimReference);
+    }
+
+    public override void PrepareForCheckpointRestore()
+    {
+        base.PrepareForCheckpointRestore();
+
+        // 코루틴을 플레이어가 아닌 아이템이 소유하므로 체크포인트 복원 때
+        // 예약된 총알이 뒤늦게 생성되는 일을 확실히 막을 수 있다.
+        // fireCooldown이 delay보다 짧게 설정된 경우 여러 예약이 동시에 존재할 수 있다.
+        StopAllCoroutines();
+
+        if (pendingFireAnimator != null)
+            pendingFireAnimator.ResetTrigger("Ranged");
+        pendingFireAnimator = null;
+        cooldownTimer = 0f;
     }
 
     // 우클릭 홀드 = 조준(줌 + 몸 정렬). CarryableItem의 기본(아무것도 안 함)을 대체함

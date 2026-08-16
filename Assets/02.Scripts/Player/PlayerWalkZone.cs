@@ -23,6 +23,11 @@ public class PlayerWalkZone : MonoBehaviour
     private readonly Dictionary<PlayerController, float> playersInZone = new Dictionary<PlayerController, float>();
     private readonly List<PlayerController> iterationBuffer = new List<PlayerController>();
 
+    public bool ContainsPlayer(PlayerController player)
+    {
+        return player != null && playersInZone.ContainsKey(player);
+    }
+
     private void OnTriggerEnter(Collider other)
     {
         PlayerController controller = other.GetComponentInParent<PlayerController>();
