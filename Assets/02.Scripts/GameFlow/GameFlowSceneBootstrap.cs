@@ -174,6 +174,18 @@ namespace Varco.GameFlow
             exitObject.transform.SetParent(finalZoneMarker.transform, false);
             exitObject.transform.localPosition =
                 Vector3.forward * (finalZoneMarker.guideSize.z * 0.48f);
+
+            // Z6 전체 체크포인트 볼륨은 그대로 두고, 끝의 얇은 성공 Trigger만
+            // 상어의 순찰/추격 쿼리가 감지하는 장애물 레이어로 사용한다.
+            if (finalZone == 6)
+            {
+                int obstacleLayer = LayerMask.NameToLayer("Obstacle");
+                if (obstacleLayer >= 0)
+                    exitObject.layer = obstacleLayer;
+                else
+                    Debug.LogError("[GameFlow] Obstacle layer was not found for the Z6 exit boundary.");
+            }
+
             BoxCollider exitCollider = exitObject.AddComponent<BoxCollider>();
             exitCollider.isTrigger = true;
             exitCollider.size = new Vector3(

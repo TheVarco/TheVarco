@@ -79,11 +79,36 @@ public class EnemyNavigator : MonoBehaviour
         direction = direction.normalized;
         float reachableDistance = maxDistance;
 
-        if (Physics.SphereCast(origin, enemyData.patrolProbeRadius, direction, out RaycastHit hit, maxDistance, obstacleLayer))
+        if (Physics.SphereCast(
+                origin,
+                enemyData.patrolProbeRadius,
+                direction,
+                out RaycastHit hit,
+                maxDistance,
+                obstacleLayer,
+                QueryTriggerInteraction.Collide))
         {
             reachableDistance = Mathf.Max(0f, hit.distance - enemyData.patrolWallBuffer);
         }
 
         return origin + direction * reachableDistance;
+    }
+
+    /// <summary>
+    /// 지정 방향의 가까운 이동 경로가 벽 또는 AI 전용 Trigger 경계에 막혔는지 반환.
+    /// </summary>
+    public bool IsPathBlocked(Vector3 origin, Vector3 direction, float distance)
+    {
+        if (direction.sqrMagnitude <= 0.001f || distance <= 0f)
+            return false;
+
+        return Physics.SphereCast(
+            origin,
+            enemyData.patrolProbeRadius,
+            direction.normalized,
+            out _,
+            distance,
+            obstacleLayer,
+            QueryTriggerInteraction.Collide);
     }
 }

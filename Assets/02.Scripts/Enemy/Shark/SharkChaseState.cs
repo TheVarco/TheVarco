@@ -56,8 +56,21 @@ public class SharkChaseState : ISharkState
         }
 
         // 사거리 밖이면 기본 속도 + 추격 보너스로 접근
+        float chaseSpeed = shark.MoveSpeed + ChaseSpeedBonus;
+        float boundaryLookAhead = chaseSpeed * Time.fixedDeltaTime + shark.Data.patrolWallBuffer;
+        if (shark.Navigator.IsPathBlocked(
+                shark.transform.position,
+                direction,
+                boundaryLookAhead))
+        {
+            // Z6 출구처럼 통과 가능한 Trigger도 상어에게는 경계로 취급한다.
+            shark.Targeting.ClearTarget();
+            shark.ChangeState(SharkStateType.Patrol);
+            return;
+        }
+
         shark.Navigator.RotateToDirection(direction);
-        shark.Navigator.MoveToDirection(direction, shark.MoveSpeed + ChaseSpeedBonus);
+        shark.Navigator.MoveToDirection(direction, chaseSpeed);
     }
 
     public void Exit()
