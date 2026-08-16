@@ -53364,6 +53364,10 @@ MonoBehaviour:
   waitingText: {fileID: 1812498195}
   restartButton: {fileID: 791170357}
   startButton: {fileID: 1067215101}
+  successMovie: {fileID: 32900000, guid: a7d9c81e6f2345a0b4c2d1879e36fa52, type: 3}
+  prepareTimeoutSeconds: 10
+  playbackTimeoutPaddingSeconds: 10
+  unknownDurationTimeoutSeconds: 180
 --- !u!1001 &1943301617
 PrefabInstance:
   m_ObjectHideFlags: 0

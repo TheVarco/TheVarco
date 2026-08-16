@@ -82,17 +82,17 @@ namespace Varco.GameFlow
             return true;
         }
 
-        // 실행 중인 Runner 종료 후 시작 화면 이동
-        public async void ReturnToStartScene()
+        // 실행 중인 Runner에 종료를 요청하고 기다리지 않고 시작 화면 이동
+        public void ReturnToStartScene()
         {
             NetworkRunner[] runners = FindObjectsByType<NetworkRunner>(FindObjectsSortMode.None);
             foreach (NetworkRunner runner in runners)
             {
                 if (runner != null && runner.IsRunning)
-                    await runner.Shutdown();
+                    _ = runner.Shutdown();
             }
 
-            SceneManager.LoadScene("Min_Test");
+            SceneManager.LoadScene("IntroScene_final");
         }
 
         // 활성 플레이어를 탐색하고 레거시 참가자 목록 갱신
