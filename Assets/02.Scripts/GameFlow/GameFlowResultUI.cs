@@ -62,6 +62,14 @@ namespace Varco.GameFlow
             Finished
         }
 
+        private void Awake()
+        {
+            GameUIFont.Apply(titleText);
+            GameUIFont.Apply(reasonText);
+            GameUIFont.Apply(checkpointText);
+            GameUIFont.Apply(waitingText);
+        }
+
         // 게임 흐름 관리자 연결과 버튼 이벤트 등록
         public void Initialize(GameFlowCoordinator targetCoordinator)
         {

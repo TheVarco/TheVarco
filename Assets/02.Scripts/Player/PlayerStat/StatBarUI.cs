@@ -24,6 +24,17 @@ public class StatBarUI : MonoBehaviour
     void Awake()
     {
         AutoBind();
+        ApplyHatchedStyle();
+    }
+
+    private void ApplyHatchedStyle()
+    {
+        RectTransform targetFill = slider != null && slider.fillRect != null
+            ? slider.fillRect
+            : fillRect;
+
+        if (targetFill != null)
+            HatchedStatBarStyle.Ensure(gameObject, targetFill);
     }
 
     public void AutoBind()

@@ -146,7 +146,7 @@ public class PlayerTrappedIndicator : MonoBehaviour
         obj.transform.SetParent(parent, false);
 
         Text text = obj.AddComponent<Text>();
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        GameUIFont.Apply(text);
         text.text = message;
         text.fontSize = fontSize;
         text.alignment = TextAnchor.MiddleCenter;

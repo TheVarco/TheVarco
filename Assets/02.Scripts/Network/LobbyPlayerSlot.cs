@@ -20,6 +20,11 @@ public class LobbyPlayerSlot : MonoBehaviour
     [SerializeField] private Color emptyColor = new Color(1f, 1f, 1f, 0.3f);
     [SerializeField] private string emptyLabel = "비어있음";
 
+    private void Awake()
+    {
+        GameUIFont.Apply(nameText);
+    }
+
     public void SetEmpty() => Apply(emptyLabel, false);
     // 포즈를 Random으로 뽑으면 누가 들어오고 나갈 때마다 4칸을 다시 그리면서 전원 포즈가
     // 다시 굴러가고, 기계마다 난수가 달라 내 화면의 나와 친구 화면의 내가 달라진다.
