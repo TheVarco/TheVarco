@@ -16,12 +16,12 @@ MonoBehaviour:
   zones:
   - zoneId: Z1
     visibilityMeters: 28
-    fogColor: {r: 0.0356, g: 0.2216, b: 0.3409, a: 1}
+    fogColor: {r: 0.035294116, g: 0.15688442, b: 0.34117648, a: 1}
     backgroundColor: {r: 0.1422, g: 0.886, b: 1.2451, a: 1}
     ambientSky: {r: 1.575, g: 2.17, b: 3.5, a: 1}
     ambientEquator: {r: 0.8663, g: 1.1935, b: 1.925, a: 1}
     ambientGround: {r: 0.315, g: 0.434, b: 0.7, a: 1}
-    ambientIntensity: 1
+    ambientIntensity: 0.46
     directionalIntensity: 1.2
     directionalColor: {r: 0.62, g: 0.82, b: 1, a: 1}
     extinctionTint: {x: 2.2, y: 1.02, z: 1}
@@ -47,17 +47,17 @@ MonoBehaviour:
     ambientSky: {r: 1.44, g: 1.984, b: 3.2, a: 1}
     ambientEquator: {r: 0.792, g: 1.0912, b: 1.76, a: 1}
     ambientGround: {r: 0.288, g: 0.3968, b: 0.64, a: 1}
-    ambientIntensity: 1.15
-    directionalIntensity: 1.8
+    ambientIntensity: 1
+    directionalIntensity: 1
     directionalColor: {r: 0.62, g: 0.82, b: 1, a: 1}
     extinctionTint: {x: 2.2, y: 1.02, z: 1}
     refraction: 0.002
     refractionSpeed: 0.65
     causticStrength: 0.25
     screenStrength: 1
-    postExposure: 0.55
-    contrast: 4
-    saturation: 4
+    postExposure: 0.97
+    contrast: 28.2
+    saturation: -28.2
     colorFilter: {r: 0.8, g: 0.97, b: 1, a: 1}
     bloomIntensity: 0.55
     vignetteIntensity: 0.2

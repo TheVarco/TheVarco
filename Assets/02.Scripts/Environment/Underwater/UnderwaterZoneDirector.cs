@@ -12,10 +12,10 @@ namespace Varco.Underwater
     /// result into scene fog, trilight ambient, the screen-space pass globals, the camera clear
     /// colour and the global post-processing volume.
     ///
-    /// Deliberately does not write RenderSettings every frame in edit mode: RenderSettings is
-    /// serialised into the scene, so an [ExecuteAlways] Update would leave the scene permanently
-    /// dirty. Use the "Apply Preview Zone" context-menu item to preview a zone while authoring.
+    /// Edit-mode preview is opt-in per scene. This keeps gameplay scenes unchanged while allowing
+    /// Cinemachine authoring scenes to evaluate the same camera-driven atmosphere as Play Mode.
     /// </summary>
+    [ExecuteAlways]
     [DisallowMultipleComponent]
     public sealed class UnderwaterZoneDirector : MonoBehaviour
     {
@@ -83,6 +83,9 @@ namespace Varco.Underwater
         [SerializeField] private float surfaceBlendMeters = 1.5f;
 
         [Header("Authoring")]
+        [Tooltip("Evaluate and apply the tracked camera's atmosphere in Edit Mode. Enable this only " +
+                 "for authoring scenes that need Play Mode render parity, such as Cinemachine intros.")]
+        [SerializeField] private bool previewInEditMode;
         [Tooltip("Zone applied by the \"Apply Preview Zone\" context-menu item.")]
         [SerializeField] private string previewZoneId = "Z1";
 
@@ -101,6 +104,7 @@ namespace Varco.Underwater
         private bool markersSearched;
         private bool stateCaptured;
         private bool primed;
+        private bool renderCallbackSubscribed;
         /// <summary>0 fully submerged, 1 fully above <see cref="seaSurfaceY"/>. Set per resolve.</summary>
         private float aboveWaterWeight;
         private Rect panelRect = new Rect(18f, 18f, 320f, 420f);
@@ -133,17 +137,41 @@ namespace Varco.Underwater
 
         private void OnEnable()
         {
+            if (!Application.isPlaying && !previewInEditMode)
+                return;
+
             CaptureSceneState();
             ResolveReferences();
             primed = false;
-            RenderPipelineManager.beginCameraRendering += ApplyScreenPassForCamera;
+            SubscribeRenderCallback();
+
+            if (!Application.isPlaying)
+                ApplyEditModePreview();
         }
 
         private void OnDisable()
         {
-            RenderPipelineManager.beginCameraRendering -= ApplyScreenPassForCamera;
+            UnsubscribeRenderCallback();
             Shader.SetGlobalFloat(StrengthId, 0f);
             RestoreSceneState();
+        }
+
+        private void SubscribeRenderCallback()
+        {
+            if (renderCallbackSubscribed)
+                return;
+
+            RenderPipelineManager.beginCameraRendering += ApplyScreenPassForCamera;
+            renderCallbackSubscribed = true;
+        }
+
+        private void UnsubscribeRenderCallback()
+        {
+            if (!renderCallbackSubscribed)
+                return;
+
+            RenderPipelineManager.beginCameraRendering -= ApplyScreenPassForCamera;
+            renderCallbackSubscribed = false;
         }
 
         /// <summary>
@@ -181,7 +209,11 @@ namespace Varco.Underwater
         private void LateUpdate()
         {
             if (!Application.isPlaying)
+            {
+                if (previewInEditMode)
+                    ApplyEditModePreview();
                 return;
+            }
 
             if (Input.GetKeyDown(debugPanelKey))
                 showDebugPanel = !showDebugPanel;
@@ -201,6 +233,23 @@ namespace Varco.Underwater
                 current.MoveTowards(target, 1f - Mathf.Exp(-blendSpeed * Time.deltaTime));
             }
 
+            Apply(current);
+        }
+
+        /// <summary>
+        /// Uses the exact runtime resolve/apply path without temporal smoothing so moving a
+        /// Cinemachine camera or scrubbing a Timeline updates the authoring view immediately.
+        /// </summary>
+        private void ApplyEditModePreview()
+        {
+            SubscribeRenderCallback();
+            CaptureSceneState();
+            ResolveReferences();
+
+            Vector3 samplePosition = ResolveSamplePosition();
+            ResolveTargetProfile(samplePosition, target);
+            current.SetToLerp(target, target, 0f);
+            primed = true;
             Apply(current);
         }
 

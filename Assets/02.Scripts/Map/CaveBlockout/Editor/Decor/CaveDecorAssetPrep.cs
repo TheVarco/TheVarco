@@ -30,6 +30,30 @@ namespace CaveBlockout.Editor.Decor
             Debug.Log(Prepare());
         }
 
+        /// <summary>
+        /// -executeMethod entry point, so the emissive materials can be regenerated with the editor
+        /// closed. Same work as the menu item; it exists because the capture harness runs in batch mode
+        /// and a material change is only real once it has been written by this generator.
+        /// </summary>
+        public static void PrepareBatch()
+        {
+            Debug.Log(Prepare());
+        }
+
+        /// <summary>
+        /// Regenerates only the emissive materials. The full Prepare() reimports every model and texture
+        /// and rebuilds all prefabs, which is minutes of work and unnecessary when only an EmissiveVariant
+        /// in the catalog changed.
+        /// </summary>
+        public static void RebuildEmissiveBatch()
+        {
+            var report = new StringBuilder();
+            report.AppendLine("===== CAVE DECOR EMISSIVE REBUILD =====");
+            BuildEmissiveVariants(report);
+            AssetDatabase.SaveAssets();
+            Debug.Log(report.ToString());
+        }
+
         public static string Prepare()
         {
             var report = new StringBuilder();
@@ -295,9 +319,16 @@ namespace CaveBlockout.Editor.Decor
                     material.SetColor("_EmissionColor", variant.emission);
 
                     // URP/Lit multiplies _EmissionColor by _EmissionMap, so pointing it at the albedo
-                    // makes the glow follow the bake instead of covering the silhouette evenly. Left
-                    // off by default: the Z2 corals were reviewed and signed off glowing uniformly,
-                    // and turning it on for them would change three materials nobody complained about.
+                    // makes the glow follow the bake instead of covering the silhouette evenly.
+                    //
+                    // This used to be off by default because "the Z2 corals were reviewed and signed off
+                    // glowing uniformly, and nobody complained about them". That premise expired: the flat
+                    // cut-out was reported for Z2 and then reproduced through the game camera with ACES
+                    // and Z2 grading applied (Artifacts/GlowVariants/A0_control__CLOSE.png, clipped
+                    // 0.00%, so shoulder compression rather than clipping). All six Z2 variants now set
+                    // the flag, and the three that were hand-authored zoneMaterials pointers were
+                    // converted to generated variants with materialPathOverride so the GUIDs the scenes
+                    // already reference keep resolving.
                     material.SetTexture("_EmissionMap",
                         variant.emissionFollowsAlbedo ? material.GetTexture("_BaseMap") : null);
 

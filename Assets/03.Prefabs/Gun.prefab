@@ -164,7 +164,7 @@ MonoBehaviour:
   holdRotationOffset: {x: -27, y: 50, z: 111}
   projectilePrefab: {fileID: 1204494174198073114, guid: e835af6273f2bbc43a3c25a782916ab6, type: 3}
   projectilePrefabRef:
-    RawGuidValue: 00000000000000000000000000000000
+    RawGuidValue: e835af6273f2bbc43a3c25a782916ab6
   fireCooldown: 0.3
   muzzlePoint: {fileID: 0}
   muzzleForwardOffset: 1
