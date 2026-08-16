@@ -393,10 +393,12 @@ namespace Varco.Exterior.EditorTools
         /// with a void behind it, and either side of the collar's x[40, 176] footprint that void ran
         /// back indefinitely. That is the hole this constant and <see cref="BuildSeabedSheet"/> close.
         ///
-        /// 300 puts the near edge behind the whole massif. Measured off the shell: the tunnel roof is
-        /// above <see cref="SeabedLevel"/> only over z 333..430.5 (the z=330 bin tops out at 253.7, the
-        /// z=320 bin at 243.0), so past z=333 a flat 252 sheet clears the cave completely and exactly
-        /// one window has to be carved out of it.
+        /// 300 puts the near edge behind the whole massif. The cave breaks the sand plane over one
+        /// bounded window and no more, so exactly one hole has to be carved and everything behind it can
+        /// stay solid: the build reports the carve strip spanning z 323.6..430.6, which leaves this edge
+        /// about 24 m clear of it. (Binning shell vertices puts the nominal roof's crossing nearer
+        /// z=333 - the strip reaches further back because it is taken at fraction 1.05. Size this
+        /// constant against the strip, which is what the sheet actually has to clear.)
         /// </summary>
         private const float SeabedNearZ = 300f;
 
