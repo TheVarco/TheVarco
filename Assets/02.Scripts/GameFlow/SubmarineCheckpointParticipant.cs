@@ -51,10 +51,15 @@ namespace Varco.GameFlow
             for (int i = 0; i < doors.Length; i++)
                 doorStates[i] = doors[i] != null && doors[i].IsOpen;
 
-            return new SubmarineState
+            // 잠수함 이동은 Rigidbody/NetworkRigidbody가 권위 자세를 소유한다.
+            // 보간 중인 Transform은 렌더 자세이거나 이전 틱 값일 수 있으므로 저장 기준으로 사용하지 않는다.
+            Vector3 checkpointPosition = body != null ? body.position : transform.position;
+            Quaternion checkpointRotation = body != null ? body.rotation : transform.rotation;
+
+            SubmarineState state = new SubmarineState
             {
-                Position = transform.position,
-                Rotation = transform.rotation,
+                Position = checkpointPosition,
+                Rotation = checkpointRotation,
                 Health = GameFlowHealthUtility.Capture(health),
                 AccumulatedDamage = repairable != null ? repairable.CaptureCheckpointDamage() : null,
                 RepairProgress = repairable != null ? repairable.CaptureCheckpointRepairProgress() : null,
@@ -62,6 +67,11 @@ namespace Varco.GameFlow
                 DamageSequence = repairable != null ? repairable.CaptureCheckpointDamageSequence() : 0,
                 DoorStates = doorStates
             };
+
+            Debug.Log(
+                $"[GameFlow] Captured submarine checkpoint pose at {checkpointPosition}.",
+                this);
+            return state;
         }
 
         // 복원 전 모든 좌석 연결 해제
@@ -94,6 +104,10 @@ namespace Varco.GameFlow
 
             if (state is not SubmarineState submarineState)
                 return;
+
+            Debug.Log(
+                $"[GameFlow] Applying submarine checkpoint pose at {submarineState.Position}.",
+                this);
 
             // 체크포인트 재시작 시 정지 상태 적용
             // 자세 예약 전 저장 속도와 잔여 속도 제거

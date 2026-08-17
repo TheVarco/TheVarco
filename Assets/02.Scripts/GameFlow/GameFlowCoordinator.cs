@@ -203,6 +203,14 @@ namespace Varco.GameFlow
 
             CurrentCheckpointZone = zone;
             WarnIfPlayerSnapshotIsIncomplete();
+            Rigidbody reachedSubmarineBody = reachedSubmarine.GetComponent<Rigidbody>();
+            Vector3 capturedSubmarinePosition = reachedSubmarineBody != null
+                ? reachedSubmarineBody.position
+                : reachedSubmarine.transform.position;
+            Debug.Log(
+                $"[GameFlow] Checkpoint Z{zone} captured at submarine position " +
+                $"{capturedSubmarinePosition}.",
+                this);
             CheckpointChanged?.Invoke(zone);
             PublishCurrentState();
             return true;
@@ -305,6 +313,10 @@ namespace Varco.GameFlow
                     this);
                 yield break;
             }
+
+            Debug.Log(
+                $"[GameFlow] Restoring checkpoint Z{checkpointService.CurrentSnapshot.Zone}.",
+                this);
 
             // 모든 참가자 입력과 시뮬레이션 차단
             GameFailureReason restoreFailureReason = FailureReason;

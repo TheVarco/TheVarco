@@ -10,6 +10,8 @@ namespace Varco.GameFlow
     {
         // 다른 팀원 씬에 영향을 주지 않는 대상 씬 이름
         private const string TargetSceneName = "MainScene_final";
+        // 구역 경계를 통과하는 잠수함을 감지할 진행 방향 두께
+        private const float RouteBoundaryTriggerDepth = 4f;
 
         // 시작 화면 이후 대상 씬 로드도 감지하도록 이벤트 등록
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -143,48 +145,90 @@ namespace Varco.GameFlow
             carryableParticipant.Initialize(bridge);
         }
 
-        // CaveZoneMarker 크기를 이용한 Z1부터 Z7 트리거 설치
+        // 메인 CaveRoute의 실제 구역 경계에 Z2 이후 체크포인트와 마지막 출구 설치
         private static void InstallZoneTriggers(GameObject root, GameFlowCoordinator coordinator)
         {
-            CaveZoneMarker[] markers = Object.FindObjectsByType<CaveZoneMarker>(FindObjectsSortMode.None);
-            CaveZoneMarker finalZoneMarker = null;
-            int finalZone = 0;
-            foreach (CaveZoneMarker marker in markers)
+            if (!TryFindMainRoute(out CaveRoute mainRoute, out CaveRouteSplineDefinition definition))
             {
-                if (!TryParseZone(marker.zoneId, out int zone))
+                Debug.LogError("[GameFlow] A single main CaveRoute definition is required.", root);
+                return;
+            }
+
+            if (mainRoute.Container == null
+                || definition.splineIndex < 0
+                || definition.splineIndex >= mainRoute.Container.Splines.Count)
+            {
+                Debug.LogError("[GameFlow] The main CaveRoute spline index is invalid.", root);
+                return;
+            }
+
+            CaveRouteSection finalSection = null;
+            int finalZone = 0;
+            foreach (CaveRouteSection section in definition.sections)
+            {
+                if (section == null || !TryParseZone(section.zoneId, out int zone))
                     continue;
 
-                // 마커 전체 영역을 체크포인트 감지 범위로 사용
-                GameObject triggerObject = new($"CheckpointTrigger_Z{zone}");
-                triggerObject.transform.SetParent(marker.transform, false);
-                BoxCollider collider = triggerObject.AddComponent<BoxCollider>();
-                collider.isTrigger = true;
-                collider.size = marker.guideSize;
-                ZoneCheckpointTrigger trigger = triggerObject.AddComponent<ZoneCheckpointTrigger>();
-                trigger.Initialize(coordinator, zone);
+                if (zone > CheckpointZoneProgression.FirstZone)
+                {
+                    float boundaryT = mainRoute.ResolveSectionStartT(definition, section);
+                    if (!TryEvaluateRouteBoundary(
+                            mainRoute,
+                            definition.splineIndex,
+                            boundaryT,
+                            out Vector3 position,
+                            out Quaternion rotation,
+                            out Vector2 crossSectionSize))
+                    {
+                        Debug.LogError($"[GameFlow] Could not evaluate the Z{zone} route boundary.", root);
+                        continue;
+                    }
+
+                    GameObject triggerObject = new($"CheckpointTrigger_Z{zone}");
+                    triggerObject.transform.SetParent(root.transform, false);
+                    triggerObject.transform.SetPositionAndRotation(position, rotation);
+                    BoxCollider collider = triggerObject.AddComponent<BoxCollider>();
+                    collider.isTrigger = true;
+                    collider.size = new Vector3(
+                        crossSectionSize.x,
+                        crossSectionSize.y,
+                        RouteBoundaryTriggerDepth);
+                    ZoneCheckpointTrigger trigger = triggerObject.AddComponent<ZoneCheckpointTrigger>();
+                    trigger.Initialize(coordinator, zone);
+                }
 
                 if (zone > finalZone)
                 {
                     finalZone = zone;
-                    finalZoneMarker = marker;
+                    finalSection = section;
                 }
             }
 
-            // 씬에 유효한 구역 마커가 하나도 없으면 성공 출구 생성을 중단
-            if (finalZoneMarker == null)
+            if (finalSection == null)
             {
-                Debug.LogError("[GameFlow] No valid CaveZoneMarker was found.", root);
+                Debug.LogError("[GameFlow] No valid main-route zone section was found.", root);
                 return;
             }
 
-            // 씬에 실제로 존재하는 마지막 구역의 진행 방향 끝에 성공 출구 배치
-            GameObject exitObject = new($"GoalExitTrigger_Z{finalZone}");
-            exitObject.transform.SetParent(finalZoneMarker.transform, false);
-            exitObject.transform.localPosition =
-                Vector3.forward * (finalZoneMarker.guideSize.z * 0.48f);
+            float exitT = mainRoute.ResolveSectionEndT(definition, finalSection);
+            if (!TryEvaluateRouteBoundary(
+                    mainRoute,
+                    definition.splineIndex,
+                    exitT,
+                    out Vector3 exitPosition,
+                    out Quaternion exitRotation,
+                    out Vector2 exitCrossSectionSize))
+            {
+                Debug.LogError($"[GameFlow] Could not evaluate the Z{finalZone} exit boundary.", root);
+                return;
+            }
 
-            // Z6 전체 체크포인트 볼륨은 그대로 두고, 끝의 얇은 성공 Trigger만
-            // 상어의 순찰/추격 쿼리가 감지하는 장애물 레이어로 사용한다.
+            // 마지막 구역의 실제 스플라인 끝 단면에 성공 출구 배치
+            GameObject exitObject = new($"GoalExitTrigger_Z{finalZone}");
+            exitObject.transform.SetParent(root.transform, false);
+            exitObject.transform.SetPositionAndRotation(exitPosition, exitRotation);
+
+            // Z6 끝의 얇은 성공 Trigger를 상어의 순찰/추격 쿼리가 감지하는 장애물 레이어로 사용한다.
             if (finalZone == 6)
             {
                 int obstacleLayer = LayerMask.NameToLayer("Obstacle");
@@ -197,11 +241,73 @@ namespace Varco.GameFlow
             BoxCollider exitCollider = exitObject.AddComponent<BoxCollider>();
             exitCollider.isTrigger = true;
             exitCollider.size = new Vector3(
-                finalZoneMarker.guideSize.x * 0.85f,
-                finalZoneMarker.guideSize.y * 0.85f,
-                4f);
+                exitCrossSectionSize.x,
+                exitCrossSectionSize.y,
+                RouteBoundaryTriggerDepth);
             GoalExitTrigger exitTrigger = exitObject.AddComponent<GoalExitTrigger>();
             exitTrigger.Initialize(coordinator);
+        }
+
+        // 씬에서 메인 정의가 정확히 하나인 CaveRoute 탐색
+        private static bool TryFindMainRoute(
+            out CaveRoute mainRoute,
+            out CaveRouteSplineDefinition mainDefinition)
+        {
+            mainRoute = null;
+            mainDefinition = null;
+
+            CaveRoute[] routes = Object.FindObjectsByType<CaveRoute>(FindObjectsSortMode.None);
+            foreach (CaveRoute route in routes)
+            {
+                if (route == null || route.Definitions == null)
+                    continue;
+
+                foreach (CaveRouteSplineDefinition definition in route.Definitions)
+                {
+                    if (definition == null || !definition.isMainRoute)
+                        continue;
+                    if (mainDefinition != null)
+                        return false;
+
+                    mainRoute = route;
+                    mainDefinition = definition;
+                }
+            }
+
+            return mainRoute != null && mainDefinition != null;
+        }
+
+        // 스플라인 단면의 월드 자세와 실제 동굴 폭·높이 평가
+        private static bool TryEvaluateRouteBoundary(
+            CaveRoute route,
+            int splineIndex,
+            float normalizedT,
+            out Vector3 position,
+            out Quaternion rotation,
+            out Vector2 crossSectionSize)
+        {
+            position = route.Container.EvaluatePosition(splineIndex, normalizedT);
+            Vector3 tangent = route.Container.EvaluateTangent(splineIndex, normalizedT);
+            Vector3 up = route.Container.EvaluateUpVector(splineIndex, normalizedT);
+            crossSectionSize = new Vector2(
+                Mathf.Max(0.1f, route.EvaluateWidth(splineIndex, normalizedT)),
+                Mathf.Max(0.1f, route.EvaluateHeight(splineIndex, normalizedT)));
+
+            if (tangent.sqrMagnitude <= Mathf.Epsilon)
+            {
+                rotation = Quaternion.identity;
+                return false;
+            }
+
+            tangent.Normalize();
+            up = Vector3.ProjectOnPlane(up, tangent);
+            if (up.sqrMagnitude <= Mathf.Epsilon)
+                up = Vector3.ProjectOnPlane(Vector3.up, tangent);
+            if (up.sqrMagnitude <= Mathf.Epsilon)
+                up = Vector3.ProjectOnPlane(Vector3.right, tangent);
+
+            rotation = Quaternion.LookRotation(tangent, up.normalized);
+            return true;
         }
 
         // Z1부터 Z7 형식만 유효 구역으로 변환
