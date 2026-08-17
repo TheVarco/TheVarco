@@ -344,7 +344,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 50f93a0260881fd46805b6d39d79532e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NewMonoBehaviourScript
-  damage: 10
+  damage: 8
   attackRange: 1.5
   attackCooldown: 0.5
   attackAngle: 60

@@ -10,8 +10,10 @@ public class RangedWeaponItem : CarryableItem
     public GameObject projectilePrefab;
     [Tooltip("네트워크 스폰용 총알 프리팹. 비어있으면 위의 projectilePrefab으로 로컬 생성 (러너 없는 씬용)")]
     public NetworkPrefabRef projectilePrefabRef;
-    [Tooltip("다시 발사 가능해지기까지 걸리는 시간(초)")]
+    [Tooltip("발사가 끝난 뒤 다시 쏠 수 있게 되기까지의 시간(초)")]
     public float fireCooldown = 0.5f;
+    [Tooltip("좌클릭 후 실제로 총알이 나가기까지의 시간. Ranged 애니메이션에서 총을 쏘는 시점과 맞출 것")]
+    public float fireDelay = 1f;
     [Tooltip("총구가 실제로 태어나는 위치를 지정하고 싶으면 이 무기 모델의 자식으로 만들어 연결. 비워두면 조준 기준점(카메라) 위치에서 발사됨")]
     public Transform muzzlePoint;
     [Tooltip("muzzlePoint를 안 정했을 때, 조준 기준점에서 얼마나 앞에서 발사할지")]
@@ -42,25 +44,27 @@ public class RangedWeaponItem : CarryableItem
             if (anim != null)
             {
                 anim.SetTrigger("Ranged");
-                Debug.Log($"[RangedWeaponItem] SetTrigger('Ranged') 실행됨! (1초 후 발사 예정)");
+                Debug.Log($"[RangedWeaponItem] SetTrigger('Ranged') 실행됨! ({fireDelay}초 후 발사 예정)");
             }
         }
 
-        // 1초 딜레이 후 실제 총알 발사 실행
+        // 발사 모션이 총을 쏘는 시점에 맞춰 총알을 내보낸다
         if (user != null && user.activeInHierarchy)
         {
             MonoBehaviour runner = user.GetComponent<MonoBehaviour>();
             if (runner != null)
             {
-                runner.StartCoroutine(DelayedFireRoutine(user, aimReference, 1.0f));
+                runner.StartCoroutine(DelayedFireRoutine(user, aimReference, fireDelay));
             }
             else
             {
-                StartCoroutine(DelayedFireRoutine(user, aimReference, 1.0f));
+                StartCoroutine(DelayedFireRoutine(user, aimReference, fireDelay));
             }
         }
 
-        cooldownTimer = fireCooldown; // 딜레이 시간(1초) 포함 쿨타임 처리
+        // 딜레이가 끝나기 전에 또 쏠 수 있으면 코루틴이 쌓여서 총알이 줄줄이 나간다.
+        // 쿨타임은 "발사가 끝난 시점"부터 세야 한다 (RopeItem이 throwCooldown + throwDelay로 하는 것과 같음)
+        cooldownTimer = fireDelay + fireCooldown;
         return false;
     }
 
