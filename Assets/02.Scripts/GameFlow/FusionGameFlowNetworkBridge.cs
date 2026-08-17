@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Fusion;
 using Fusion.Sockets;
 using UnityEngine;
@@ -20,6 +21,9 @@ namespace Varco.GameFlow
         // 시작 화면 이동 패킷을 구분하는 고정 키
         private static readonly ReliableKey ReturnKey =
             ReliableKey.FromInts(0x56415243, 0x4F464C4F, 0x57524554, 0x55524E01);
+
+        private const string IntroSceneName = "IntroScene_final";
+        private const float ShutdownTimeoutSeconds = 5f;
 
         // 현재 참가자 목록 캐시
         private readonly List<IPlayerCheckpointParticipant> players = new();
@@ -221,17 +225,68 @@ namespace Varco.GameFlow
             return true;
         }
 
-        // Runner에 종료를 요청하고 기다리지 않고 시작 화면 로드
+        // 복귀 패킷 전송 후 Runner 종료를 제한 시간만큼 기다리고 시작 화면 로드
         private IEnumerator ReturnToStartRoutine()
         {
             returningToStart = true;
+            Debug.Log("[GameFlow] 시작 화면 복귀를 시작합니다.", this);
             yield return new WaitForSecondsRealtime(0.2f);
 
             NetworkRunner closingRunner = runner;
+            Task shutdownTask = null;
             if (closingRunner != null && closingRunner.IsRunning)
-                _ = closingRunner.Shutdown();
+            {
+                try
+                {
+                    Debug.Log("[GameFlow] NetworkRunner Shutdown을 요청합니다.", this);
+                    shutdownTask = closingRunner.Shutdown(forceShutdownProcedure: true);
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogError(
+                        $"[GameFlow] NetworkRunner Shutdown 요청 중 예외가 발생했습니다.\n{exception}",
+                        this);
+                }
+            }
 
-            SceneManager.LoadScene("IntroScene_final");
+            if (shutdownTask != null)
+            {
+                float shutdownDeadline = Time.realtimeSinceStartup + ShutdownTimeoutSeconds;
+                while (!shutdownTask.IsCompleted
+                    && Time.realtimeSinceStartup < shutdownDeadline)
+                {
+                    yield return null;
+                }
+
+                if (!shutdownTask.IsCompleted)
+                {
+                    Debug.LogWarning(
+                        $"[GameFlow] NetworkRunner Shutdown이 {ShutdownTimeoutSeconds:0.#}초 안에 " +
+                        "끝나지 않았습니다.",
+                        this);
+                }
+                else if (shutdownTask.IsFaulted)
+                {
+                    Debug.LogError(
+                        "[GameFlow] NetworkRunner Shutdown이 실패했습니다.\n" +
+                        shutdownTask.Exception,
+                        this);
+                }
+                else if (shutdownTask.IsCanceled)
+                {
+                    Debug.LogWarning("[GameFlow] NetworkRunner Shutdown이 취소되었습니다.", this);
+                }
+                else
+                {
+                    Debug.Log("[GameFlow] NetworkRunner Shutdown이 완료되었습니다.", this);
+                }
+            }
+
+            // Shutdown이 예약한 Destroy가 프레임 끝에 반영된 후 비동기 씬 로드를 시작한다.
+            yield return null;
+            Debug.Log($"[GameFlow] {IntroSceneName} 비동기 로드를 시작합니다.", this);
+            if (SceneManager.LoadSceneAsync(IntroSceneName, LoadSceneMode.Single) == null)
+                Debug.LogError($"[GameFlow] {IntroSceneName} 비동기 로드를 시작하지 못했습니다.", this);
         }
 
         // 새 참가자에게 최신 상태 전송

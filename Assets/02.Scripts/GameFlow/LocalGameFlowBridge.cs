@@ -1,5 +1,7 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Fusion;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -12,12 +14,17 @@ namespace Varco.GameFlow
     /// </summary>
     public sealed class LocalGameFlowBridge : MonoBehaviour, IGameFlowNetworkBridge
     {
+        private const string IntroSceneName = "IntroScene_final";
+        private const float ShutdownTimeoutSeconds = 5f;
+
         // 플레이어 인스턴스별 레거시 참가자 캐시
         private readonly Dictionary<int, LegacyPlayerCheckpointParticipant> playerByInstanceId = new();
         // 현재 활성 플레이어 참가자 목록
         private readonly List<IPlayerCheckpointParticipant> players = new();
         // 멀티플레이 경고 중복 방지
         private bool warnedAboutMultiplayer;
+        // 중복 시작 화면 이동 방지
+        private bool returningToStart;
 
         // 실행 중인 멀티플레이 Runner 존재 여부
         public bool IsMultiplayer => FindRunningMultiplayerRunner() != null;
@@ -82,17 +89,105 @@ namespace Varco.GameFlow
             return true;
         }
 
-        // 실행 중인 Runner에 종료를 요청하고 기다리지 않고 시작 화면 이동
+        // 영상 완료 콜백을 빠져나온 뒤 Runner를 정리하고 시작 화면 이동
         public void ReturnToStartScene()
         {
+            if (returningToStart)
+                return;
+
+            StartCoroutine(ReturnToStartRoutine());
+        }
+
+        private IEnumerator ReturnToStartRoutine()
+        {
+            returningToStart = true;
+            Debug.Log("[GameFlow] 시작 화면 복귀를 시작합니다.", this);
+
+            // VideoPlayer.loopPointReached 네이티브 콜백 안에서 씬을 언로드하지 않는다.
+            yield return null;
+
             NetworkRunner[] runners = FindObjectsByType<NetworkRunner>(FindObjectsSortMode.None);
-            foreach (NetworkRunner runner in runners)
+            List<Task> shutdownTasks = new();
+            List<string> runnerNames = new();
+            foreach (NetworkRunner activeRunner in runners)
             {
-                if (runner != null && runner.IsRunning)
-                    _ = runner.Shutdown();
+                if (activeRunner == null || !activeRunner.IsRunning)
+                    continue;
+
+                string runnerName = activeRunner.name;
+                try
+                {
+                    Debug.Log($"[GameFlow] NetworkRunner Shutdown을 요청합니다: {runnerName}", this);
+                    Task shutdownTask = activeRunner.Shutdown(forceShutdownProcedure: true);
+                    if (shutdownTask != null)
+                    {
+                        shutdownTasks.Add(shutdownTask);
+                        runnerNames.Add(runnerName);
+                    }
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogError(
+                        $"[GameFlow] NetworkRunner Shutdown 요청 중 예외가 발생했습니다: " +
+                        $"{runnerName}\n{exception}",
+                        this);
+                }
             }
 
-            SceneManager.LoadScene("IntroScene_final");
+            float shutdownDeadline = Time.realtimeSinceStartup + ShutdownTimeoutSeconds;
+            while (Time.realtimeSinceStartup < shutdownDeadline)
+            {
+                bool allCompleted = true;
+                foreach (Task shutdownTask in shutdownTasks)
+                {
+                    if (!shutdownTask.IsCompleted)
+                    {
+                        allCompleted = false;
+                        break;
+                    }
+                }
+
+                if (allCompleted)
+                    break;
+
+                yield return null;
+            }
+
+            for (int i = 0; i < shutdownTasks.Count; i++)
+            {
+                Task shutdownTask = shutdownTasks[i];
+                string runnerName = runnerNames[i];
+                if (!shutdownTask.IsCompleted)
+                {
+                    Debug.LogWarning(
+                        $"[GameFlow] NetworkRunner Shutdown이 {ShutdownTimeoutSeconds:0.#}초 안에 " +
+                        $"끝나지 않았습니다: {runnerName}",
+                        this);
+                }
+                else if (shutdownTask.IsFaulted)
+                {
+                    Debug.LogError(
+                        $"[GameFlow] NetworkRunner Shutdown이 실패했습니다: {runnerName}\n" +
+                        shutdownTask.Exception,
+                        this);
+                }
+                else if (shutdownTask.IsCanceled)
+                {
+                    Debug.LogWarning(
+                        $"[GameFlow] NetworkRunner Shutdown이 취소되었습니다: {runnerName}",
+                        this);
+                }
+                else
+                {
+                    Debug.Log($"[GameFlow] NetworkRunner Shutdown이 완료되었습니다: {runnerName}", this);
+                }
+            }
+
+            // Shutdown이 예약한 Destroy가 프레임 끝에 반영된 후 비동기 씬 로드를 시작한다.
+            yield return null;
+            Debug.Log($"[GameFlow] {IntroSceneName} 비동기 로드를 시작합니다.", this);
+            if (SceneManager.LoadSceneAsync(IntroSceneName, LoadSceneMode.Single) == null)
+                Debug.LogError($"[GameFlow] {IntroSceneName} 비동기 로드를 시작하지 못했습니다.", this);
         }
 
         // 활성 플레이어를 탐색하고 레거시 참가자 목록 갱신
