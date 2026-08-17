@@ -568,8 +568,6 @@ public class HarvestableCreature : CarryableItem
             return;
         }
 
-        // 부착 해제와 소유자 확정을 같은 권위 처리로 실행
-        MakeCollectibleLocal(true);
         TryAssignHolderFromStateAuthority(requesterId);
     }
 
