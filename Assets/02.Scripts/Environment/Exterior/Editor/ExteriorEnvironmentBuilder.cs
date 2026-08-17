@@ -381,30 +381,116 @@ namespace Varco.Exterior.EditorTools
 
         private const float SeabedSpanMeters = 800f;
 
+        /// <summary>Metres along the bearing to the sheet's centre. Sets the far edge and both sides.</summary>
+        private const float SeabedCentreOffsetMeters = 420f;
+
         /// <summary>
-        /// The seabed sheet. Generated rather than a CreatePrimitive plane so its UVs can be authored in
-        /// world metres: a primitive's UVs run 0..1 across the whole 800 m, which forced a tiling factor
-        /// on the material and made it impossible for the seabed, the skirt and the terrain to share one
-        /// scale. Generating it also drops the MeshCollider CreatePrimitive adds, which this backdrop has
-        /// no use for.
+        /// Z of the sheet's near edge - the one facing the cave.
+        ///
+        /// 🔴 This used to fall out of the centre and the span, which put it at z = 436.34: eight metres
+        /// in FRONT of the mouth. Nothing rendered between the two (the shell ends at z=430.51 and the
+        /// exit rim's lowest point is 252.29 at z=428.13), so the sand stopped in a hard straight line
+        /// with a void behind it, and either side of the collar's x[40, 176] footprint that void ran
+        /// back indefinitely. That is the hole this constant and <see cref="BuildSeabedSheet"/> close.
+        ///
+        /// 300 puts the near edge behind the whole massif. The cave breaks the sand plane over one
+        /// bounded window and no more, so exactly one hole has to be carved and everything behind it can
+        /// stay solid: the build reports the carve strip spanning z 323.6..430.6, which leaves this edge
+        /// about 24 m clear of it. (Binning shell vertices puts the nominal roof's crossing nearer
+        /// z=333 - the strip reaches further back because it is taken at fraction 1.05. Size this
+        /// constant against the strip, which is what the sheet actually has to clear.)
+        /// </summary>
+        private const float SeabedNearZ = 300f;
+
+        /// <summary>
+        /// Cross-section fraction the carved edge sits at. Above 1 for the same reason
+        /// <see cref="ExteriorExitCollar"/>'s rings are: a point at fraction &gt; 1 is outside the
+        /// nominal tunnel by definition, so "sand never appears inside the cave" is a property of the
+        /// construction rather than something a tolerance has to catch.
+        ///
+        /// 1.05 clears the shell's authored rim noise (about 1.14 m inside the nominal ellipse; the
+        /// half-height around the carve is ~37 m, so 1.05 buys 1.9 m) and stays BELOW the collar's 1.12,
+        /// which is what lets the sand run UNDER the collar's rock instead of stopping short of it and
+        /// opening a second seam.
+        /// </summary>
+        private const float SeabedCarveFraction = 1.05f;
+
+        /// <summary>Route spacing of the carve contour's stations.</summary>
+        private const float SeabedCarveStationMeters = 1f;
+
+        /// <summary>Station spacing of the check that the carve covers the whole waterline.</summary>
+        private const float SeabedVerifyStationMeters = 0.5f;
+
+        /// <summary>
+        /// How far outside the carve a nominal wall point may sit and still count as covered.
+        ///
+        /// This exists for one exact case, not as slack. At a fixed station the sand plane's height
+        /// pins the ellipse's up-component, so EVERY same-station point at y=252 lies on one straight
+        /// line along the section's right axis, whatever the fraction. At the route's last station the
+        /// hole's front boundary IS the chord between that station's two carve points, so the fraction-1
+        /// wall points land exactly ON it and a strict inside test is a coin flip. A genuine miss is
+        /// metres wide - the discarded nearest-centre gate reported 6.11 m - so 10 cm cannot hide one.
+        /// </summary>
+        private const float SeabedVerifyTouchToleranceMeters = 0.1f;
+
+        /// <summary>Radial subdivisions between the carved hole and the sheet's outer rectangle.</summary>
+        private const int SeabedRings = 8;
+
+        /// <summary>
+        /// Uniform ray count of the polar sweep. The rectangle's four corners are added to it.
+        ///
+        /// Sized by the hole, not by the sheet. The ring that follows the carve is a chord polygon, so
+        /// where the carve turns hardest it bites inside the true curve; at 192 rays the gate measured
+        /// that bite as 0.18 m at the lens's leftmost turn (route 532 m, around x=47 / z=392). The error
+        /// falls with the square of the spacing, so 512 puts it near 0.03 m - below anything the rock
+        /// sitting on top of that edge could show. The outer ring is unaffected either way: it is an
+        /// exact rectangle intersection, not a sampled curve.
+        /// </summary>
+        private const int SeabedRayCount = 512;
+
+        /// <summary>
+        /// The seabed sheet: a flat rectangle at <see cref="SeabedLevel"/> with the cave's own waterline
+        /// carved out of it.
+        ///
+        /// Generated rather than a CreatePrimitive plane so its UVs can be authored in world metres: a
+        /// primitive's UVs run 0..1 across the whole 800 m, which forced a tiling factor on the material
+        /// and made it impossible for the seabed, the skirt and the terrain to share one scale.
+        /// Generating it also drops the MeshCollider CreatePrimitive adds, which this backdrop has no
+        /// use for.
+        ///
+        /// If the carve cannot be built the sheet falls back to the original four-vertex quad stopping
+        /// short of the mouth. That leaves the gap visible, which is a cosmetic bug; guessing at a sheet
+        /// that might cross the tunnel interior is not.
         /// </summary>
         private static void BuildSeabed(Transform root, Terrain terrain)
         {
             Transform group = RecreateChild(root, "Seabed");
 
-            // Centred 420 m out along the bearing so the 800 m sheet starts ~20 m beyond the mouth.
-            // It must not slice through the cave: at y=252 it would cross the visible Z6 interior if
-            // it extended back over the route (the tunnel around 540-579 m spans y 240-260).
-            Vector3 centre = ExitPosition + Bearing * 420f + Vector3.up * (SeabedLevel - ExitPosition.y);
-            float tile = SandTileMeters(terrain);
+            Vector3 centre = ExitPosition + Bearing * SeabedCentreOffsetMeters
+                             + Vector3.up * (SeabedLevel - ExitPosition.y);
             float half = SeabedSpanMeters * 0.5f;
+            float tile = SandTileMeters(terrain);
 
+            Mesh mesh = BuildSeabedSheet(centre.x - half, centre.x + half, SeabedNearZ, centre.z + half, tile)
+                        ?? BuildSeabedQuad(centre.x - half, centre.x + half,
+                            centre.z - half, centre.z + half, tile);
+
+            var seabed = new GameObject("SeabedPlane");
+            seabed.transform.SetParent(group, false);
+            seabed.AddComponent<MeshFilter>().sharedMesh = SaveMeshAsset(mesh, SeabedMeshPath);
+            seabed.AddComponent<MeshRenderer>().sharedMaterial = EnsureSeabedMaterial(terrain);
+            seabed.isStatic = true;
+        }
+
+        /// <summary>The pre-carve sheet: one quad that stops before the cave. Fallback only.</summary>
+        private static Mesh BuildSeabedQuad(float xMin, float xMax, float zMin, float zMax, float tile)
+        {
             var corners = new[]
             {
-                new Vector3(centre.x - half, centre.y, centre.z - half),
-                new Vector3(centre.x + half, centre.y, centre.z - half),
-                new Vector3(centre.x + half, centre.y, centre.z + half),
-                new Vector3(centre.x - half, centre.y, centre.z + half)
+                new Vector3(xMin, SeabedLevel, zMin),
+                new Vector3(xMax, SeabedLevel, zMin),
+                new Vector3(xMax, SeabedLevel, zMax),
+                new Vector3(xMin, SeabedLevel, zMax)
             };
 
             var mesh = new Mesh { name = "ExteriorSeabed" };
@@ -414,12 +500,474 @@ namespace Varco.Exterior.EditorTools
             EnsureWindingTowards(mesh, Vector3.up);
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
+            return mesh;
+        }
 
-            var seabed = new GameObject("SeabedPlane");
-            seabed.transform.SetParent(group, false);
-            seabed.AddComponent<MeshFilter>().sharedMesh = SaveMeshAsset(mesh, SeabedMeshPath);
-            seabed.AddComponent<MeshRenderer>().sharedMaterial = EnsureSeabedMaterial(terrain);
-            seabed.isStatic = true;
+        /// <summary>
+        /// Rectangle minus the cave's waterline, as one welded annulus. Null if the carve or its
+        /// clearance gate fails, so the caller can fall back rather than ship a sheet through the cave.
+        ///
+        /// 🔴 THE OUTER BOUNDARY IS A RECTANGLE, NOT A CIRCLE, AND THAT IS LOAD-BEARING. A polar sweep
+        /// whose outer ring were a circle would be a 192-gon inscribed in the sheet and would cut tens
+        /// of metres inside the intended edge along the long sides - a brand new void, the exact bug
+        /// being fixed here. Because the outer radius is the EXACT ray/rectangle intersection and the
+        /// four corner directions are in the ray set, every chord of the outer ring joins two samples on
+        /// the same straight edge and therefore lies on it: the boundary is reproduced without error.
+        /// </summary>
+        private static Mesh BuildSeabedSheet(float xMin, float xMax, float zMin, float zMax, float tile)
+        {
+            SeabedCarve carve = BuildSeabedCarve(out string carveFailure);
+            if (carve == null)
+            {
+                Debug.LogError($"EXTERIOR seabed: {carveFailure}. Falling back to the uncarved quad - " +
+                               "the sand will stop short of the mouth again.");
+                return null;
+            }
+
+            Vector2 centroid = carve.Centroid;
+            if (centroid.x <= xMin || centroid.x >= xMax || centroid.y <= zMin || centroid.y >= zMax)
+            {
+                Debug.LogError($"EXTERIOR seabed: the carve's centroid {centroid} is outside the sheet " +
+                               $"x[{xMin:0.#}, {xMax:0.#}] z[{zMin:0.#}, {zMax:0.#}], so the polar sweep " +
+                               "has no annulus to build.");
+                return null;
+            }
+
+            float[] angles = BuildSweepAngles(centroid, xMin, xMax, zMin, zMax);
+            int rays = angles.Length;
+            int rings = SeabedRings + 1;
+
+            var vertices = new Vector3[rays * rings];
+            var uvs = new Vector2[rays * rings];
+            float tightestHole = float.PositiveInfinity;
+            float widestHole = 0f;
+
+            for (int ray = 0; ray < rays; ray++)
+            {
+                var direction = new Vector2(Mathf.Cos(angles[ray]), Mathf.Sin(angles[ray]));
+
+                if (!TryRaySegmentsFarthest(centroid, direction, carve.Segments,
+                        out float inner, out int hits))
+                {
+                    Debug.LogError($"EXTERIOR seabed: ray {ray} at {angles[ray] * Mathf.Rad2Deg:0.#} deg " +
+                                   "misses the carve strip entirely, so the centroid is not inside it.");
+                    return null;
+                }
+                tightestHole = Mathf.Min(tightestHole, inner);
+                widestHole = Mathf.Max(widestHole, inner);
+
+                float outer = RayRectangleDistance(centroid, direction, xMin, xMax, zMin, zMax);
+                if (outer <= inner * 1.001f)
+                {
+                    Debug.LogError($"EXTERIOR seabed: the carve reaches the sheet edge on ray {ray} " +
+                                   $"(hole {inner:0.#} m, edge {outer:0.#} m). Push SeabedNearZ back.");
+                    return null;
+                }
+
+                for (int ring = 0; ring < rings; ring++)
+                {
+                    // Geometric so the triangles are fine against the rock and coarsen outward. The
+                    // sheet is dead flat and its UVs are linear in world space, so the far triangles
+                    // being large costs nothing.
+                    float radius = inner * Mathf.Pow(outer / inner, ring / (float)SeabedRings);
+                    if (ring == SeabedRings)
+                        radius = outer;
+
+                    Vector2 point = centroid + direction * radius;
+                    int index = ring * rays + ray;
+                    vertices[index] = new Vector3(point.x, SeabedLevel, point.y);
+                    uvs[index] = point / tile;
+                }
+            }
+
+            var triangles = new List<int>(rays * SeabedRings * 6);
+            for (int ring = 0; ring < SeabedRings; ring++)
+            {
+                for (int ray = 0; ray < rays; ray++)
+                {
+                    int next = (ray + 1) % rays;
+                    int a = ring * rays + ray;
+                    int b = ring * rays + next;
+                    int c = (ring + 1) * rays + ray;
+                    int d = (ring + 1) * rays + next;
+                    triangles.Add(a); triangles.Add(c); triangles.Add(b);
+                    triangles.Add(b); triangles.Add(c); triangles.Add(d);
+                }
+            }
+
+            var mesh = new Mesh { name = "ExteriorSeabed" };
+            mesh.SetVertices(vertices);
+            mesh.SetUVs(0, uvs);
+            mesh.SetTriangles(triangles, 0);
+            EnsureWindingTowards(mesh, Vector3.up);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+
+            var innerRing = new Vector2[rays];
+            for (int ray = 0; ray < rays; ray++)
+                innerRing[ray] = new Vector2(vertices[ray].x, vertices[ray].z);
+
+            if (!VerifySeabedSheet(mesh, innerRing, out string violation))
+            {
+                Debug.LogError($"EXTERIOR seabed: {violation}. Falling back to the uncarved quad.");
+                UnityEngine.Object.DestroyImmediate(mesh);
+                return null;
+            }
+
+            Debug.Log($"EXTERIOR seabed: x[{xMin:0.#}, {xMax:0.#}] z[{zMin:0.#}, {zMax:0.#}] at y " +
+                      $"{SeabedLevel:0.#}, carve {carve.Right.Count} stations over z " +
+                      $"{carve.Points.Min(p => p.y):0.#}..{carve.Points.Max(p => p.y):0.#} " +
+                      $"(widest {carve.Points.Max(p => p.x) - carve.Points.Min(p => p.x):0.#} m), " +
+                      $"{rays} rays x {rings} rings = {mesh.vertexCount} verts / " +
+                      $"{mesh.triangles.Length / 3} tris, hole radius {tightestHole:0.#}..{widestHole:0.#} m " +
+                      $"from {centroid}");
+            return mesh;
+        }
+
+        /// <summary>
+        /// Where the tunnel breaks the sand plane: one chord per station, plus the chains joining their
+        /// ends, as a swept strip of segments in XZ.
+        ///
+        /// The chord is closed form, no search. <see cref="ExteriorExitCollar.Section"/>'s right vector
+        /// is cross(tangent, up), so right.y is ALWAYS zero and a point's height on the section ellipse
+        /// depends on the angle's sine alone:
+        ///
+        ///     y(angle) = centre.y + halfHeight * fraction * sin(angle) * up.y
+        ///
+        /// Solve that for y = 252 and the station yields two points, one either side. Everything on the
+        /// plane that is inside THAT section lies on the segment between them, and it also follows that
+        /// a fraction-1 chord is contained in the same station's fraction-1.05 chord: the up-component
+        /// is fixed by the height, so only the right-component varies, as hw*sqrt(f^2 - k^2), which
+        /// grows with f. That containment, station by station, is the whole safety argument.
+        ///
+        /// 🔴 THE CHAINS ARE NOT THE OUTLINE, AND TREATING THEM AS ONE IS A BUG I SHIPPED AND THE GATE
+        /// CAUGHT. Walking one chain out and the other back looks like a lens and usually is, but where
+        /// the route turns hard - around route 525 m here - the chain cusps: its z reaches a minimum of
+        /// 391.6 and comes back. Raising the fraction slides a point along the section's right axis,
+        /// which near that cusp runs nearly ALONG the chain rather than out of it, so the fraction-1
+        /// curve dips to z=390.2, a metre and a half OUTSIDE the fraction-1.05 chain. A hole bounded by
+        /// the chains leaves sand standing inside the cave there.
+        ///
+        /// So the region is described as what it actually is - the union of the chords - and the sweep
+        /// takes the farthest hit over every segment of the strip. That over-covers where the strip
+        /// folds, which is the safe direction, and it restores the station-by-station containment above
+        /// as a property of the construction.
+        ///
+        /// The two ends are not alike. Going back the tunnel sinks until the plane clears its roof and
+        /// the chords shrink to nothing. Going forward there is nothing to pinch: the nominal profile at
+        /// the route end is 36 x 24 on a centre at y=260, so its floor is at 249.3 and the window is
+        /// still open when the route runs out. The front is therefore closed by that last station's own
+        /// chord, which lands within a few tenths of a metre of the real rim's lowest vertex (252.29 at
+        /// z=428.13) - the sand runs right in under the lip.
+        /// </summary>
+        private sealed class SeabedCarve
+        {
+            public readonly List<Vector2> Left = new List<Vector2>();
+            public readonly List<Vector2> Right = new List<Vector2>();
+            public readonly List<(Vector2 from, Vector2 to)> Segments =
+                new List<(Vector2 from, Vector2 to)>();
+            public Vector2 Centroid;
+
+            /// <summary>Chords first, then both chains - together the swept strip's whole skeleton.</summary>
+            public void Seal()
+            {
+                for (int i = 0; i < Right.Count; i++)
+                {
+                    Segments.Add((Right[i], Left[i]));
+                    if (i == 0)
+                        continue;
+                    Segments.Add((Right[i - 1], Right[i]));
+                    Segments.Add((Left[i - 1], Left[i]));
+                }
+
+                var sum = Vector2.zero;
+                for (int i = 0; i < Right.Count; i++)
+                    sum += (Right[i] + Left[i]) * 0.5f;
+                Centroid = sum / Right.Count;
+            }
+
+            public IEnumerable<Vector2> Points => Right.Concat(Left);
+        }
+
+        private static SeabedCarve BuildSeabedCarve(out string failure)
+        {
+            if (!TryBuildRouteSampler(out Func<float, ExteriorExitCollar.Section> sample,
+                    out float endDistance, out string routeFailure))
+            {
+                failure = routeFailure;
+                return null;
+            }
+
+            var carve = new SeabedCarve();
+            bool opened = false;
+            bool closed = false;
+            int extraWindows = 0;
+
+            for (float distance = endDistance; distance >= 0f; distance -= SeabedCarveStationMeters)
+            {
+                ExteriorExitCollar.Section section = sample(distance);
+                float denominator = section.halfHeight * SeabedCarveFraction * section.up.y;
+
+                // A vertical tunnel would put the plane parallel to the section's own height axis. The
+                // route never does that here, and pretending otherwise would divide by ~0.
+                float sine = Mathf.Abs(denominator) < 1e-4f
+                    ? float.NaN
+                    : (SeabedLevel - section.centre.y) / denominator;
+
+                if (float.IsNaN(sine) || sine < -1f || sine > 1f)
+                {
+                    // Entirely below the plane. Going back from the mouth that is what ends the window;
+                    // it cannot happen before the window opens, because the window is already open at
+                    // the route end (see the summary).
+                    if (opened)
+                        closed = true;
+                    continue;
+                }
+
+                if (closed)
+                {
+                    extraWindows++;
+                    continue;
+                }
+
+                opened = true;
+                float angle = Mathf.Asin(sine);
+                Vector3 positive = section.At(SeabedCarveFraction, angle);
+                Vector3 negative = section.At(SeabedCarveFraction, Mathf.PI - angle);
+                carve.Right.Add(new Vector2(positive.x, positive.z));
+                carve.Left.Add(new Vector2(negative.x, negative.z));
+            }
+
+            if (!opened)
+            {
+                failure = "the route never crosses y=" + SeabedLevel.ToString("0.#") +
+                          ", so there is nothing to carve and the sheet would be wrong either way";
+                return null;
+            }
+            if (extraWindows > 0)
+            {
+                failure = $"the route crosses y={SeabedLevel:0.#} in more than one window " +
+                          $"({extraWindows} further stations behind the first). One swept strip cannot " +
+                          "describe that - the carve needs to become one strip per window.";
+                return null;
+            }
+            if (carve.Right.Count < 2)
+            {
+                failure = $"the carve collapsed to {carve.Right.Count} station(s)";
+                return null;
+            }
+
+            carve.Seal();
+            failure = null;
+            return carve;
+        }
+
+        /// <summary>Uniform directions plus the four corners, so the outer ring lands exactly on them.</summary>
+        private static float[] BuildSweepAngles(Vector2 centroid,
+            float xMin, float xMax, float zMin, float zMax)
+        {
+            var angles = new List<float>(SeabedRayCount + 4);
+            for (int i = 0; i < SeabedRayCount; i++)
+                angles.Add(i * Mathf.PI * 2f / SeabedRayCount);
+
+            foreach (Vector2 corner in new[]
+                     {
+                         new Vector2(xMin, zMin), new Vector2(xMax, zMin),
+                         new Vector2(xMax, zMax), new Vector2(xMin, zMax)
+                     })
+            {
+                float angle = Mathf.Atan2(corner.y - centroid.y, corner.x - centroid.x);
+                angles.Add(angle < 0f ? angle + Mathf.PI * 2f : angle);
+            }
+
+            angles.Sort();
+
+            var distinct = new List<float>(angles.Count);
+            foreach (float angle in angles)
+            {
+                if (distinct.Count > 0 && angle - distinct[distinct.Count - 1] < 1e-4f)
+                    continue;
+                distinct.Add(angle);
+            }
+            // The wrap-around pair has to stay distinct too, or the last quad column is degenerate.
+            if (distinct.Count > 1 && distinct[0] + Mathf.PI * 2f - distinct[distinct.Count - 1] < 1e-4f)
+                distinct.RemoveAt(distinct.Count - 1);
+
+            return distinct.ToArray();
+        }
+
+        /// <summary>
+        /// Farthest intersection of a ray with a set of segments, and how many it found.
+        ///
+        /// Farthest, not nearest, and over the strip's whole skeleton rather than an outline: a ray from
+        /// inside crosses most of the chords on its way out, and stopping at the nearest one would leave
+        /// sand standing inside the cave. Overshooting only eats sand that the collar's rock is sitting
+        /// on anyway. That also makes the containment argument trivial - any point of the strip lies on
+        /// some chord, so the farthest hit along the ray through it is at least as far out as it is.
+        /// </summary>
+        private static bool TryRaySegmentsFarthest(Vector2 origin, Vector2 direction,
+            List<(Vector2 from, Vector2 to)> segments, out float distance, out int hits)
+        {
+            distance = 0f;
+            hits = 0;
+
+            foreach ((Vector2 from, Vector2 to) in segments)
+            {
+                Vector2 edge = to - from;
+
+                float denominator = direction.x * edge.y - direction.y * edge.x;
+                if (Mathf.Abs(denominator) < 1e-9f)
+                    continue;
+
+                Vector2 delta = from - origin;
+                float along = (delta.x * edge.y - delta.y * edge.x) / denominator;
+                float across = (delta.x * direction.y - delta.y * direction.x) / denominator;
+                if (along < 0f || across < 0f || across > 1f)
+                    continue;
+
+                hits++;
+                if (along > distance)
+                    distance = along;
+            }
+
+            return hits > 0 && distance > 0f;
+        }
+
+        /// <summary>Distance from a point inside the rectangle to its border along a direction.</summary>
+        private static float RayRectangleDistance(Vector2 origin, Vector2 direction,
+            float xMin, float xMax, float zMin, float zMax)
+        {
+            float best = float.PositiveInfinity;
+            if (direction.x > 1e-9f)
+                best = Mathf.Min(best, (xMax - origin.x) / direction.x);
+            else if (direction.x < -1e-9f)
+                best = Mathf.Min(best, (xMin - origin.x) / direction.x);
+            if (direction.y > 1e-9f)
+                best = Mathf.Min(best, (zMax - origin.y) / direction.y);
+            else if (direction.y < -1e-9f)
+                best = Mathf.Min(best, (zMin - origin.y) / direction.y);
+            return best;
+        }
+
+        /// <summary>
+        /// Two tests: the hole covers the tunnel's whole waterline, and no sand triangle lies across
+        /// the corridor.
+        ///
+        /// 🔴 WHY NOT <see cref="ExteriorClearance.Intrusion"/> PER VERTEX, THE WAY THE COLLAR AND THE
+        /// HEADLAND ARE GATED. It was tried and it is the wrong instrument for this surface, measured:
+        /// it called the contour point (58.95, 252, 387.26) 6.11 m INSIDE the tunnel, and sliding it 12 m
+        /// sideways only bought it back to 3.05 m. That is not a near miss to be tuned away. Intrusion
+        /// resolves which cross-section a point belongs to by NEAREST CENTRE, which is sound for a
+        /// headland peak sitting off the tunnel envelope and meaningless for a point that is 48 m
+        /// off-axis on the waterline of a 127 m-wide ellipse: half a dozen stations are all about
+        /// equally near, and the one it picks is not the one the point was generated from.
+        ///
+        /// So this asserts the property that actually matters instead. Walk the route; at every station
+        /// where the NOMINAL wall (fraction 1.0) breaks y=252, both waterline points must lie inside the
+        /// hole the mesh actually emitted. If they do, no part of the plane inside the tunnel got left
+        /// as sand - which is the whole claim - and it is checked against the emitted ring rather than
+        /// the analytic contour, so a sweep, ordering or star-shape bug cannot slip through.
+        ///
+        /// The probe half is kept as is: the outer rings span hundreds of metres, and a single triangle
+        /// can lie across the tunnel with all three vertices well clear of it. EXIT_CORRIDOR in
+        /// ExteriorReviewCapture raycasts the real renderers afterwards and is the independent check.
+        /// </summary>
+        private static bool VerifySeabedSheet(Mesh mesh, Vector2[] innerRing, out string violation)
+        {
+            if (!TryBuildRouteSampler(out Func<float, ExteriorExitCollar.Section> sample,
+                    out float endDistance, out string routeFailure))
+            {
+                violation = $"the route sampler went away between building and checking ({routeFailure})";
+                return false;
+            }
+
+            int stations = 0;
+            float worstMargin = float.PositiveInfinity;
+            for (float distance = endDistance; distance >= 0f; distance -= SeabedVerifyStationMeters)
+            {
+                ExteriorExitCollar.Section section = sample(distance);
+                float denominator = section.halfHeight * section.up.y;
+                if (Mathf.Abs(denominator) < 1e-4f)
+                    continue;
+
+                float sine = (SeabedLevel - section.centre.y) / denominator;
+                if (sine < -1f || sine > 1f)
+                    continue;
+
+                stations++;
+                float angle = Mathf.Asin(sine);
+                foreach (Vector3 wall in new[]
+                         {
+                             section.At(1f, angle), section.At(1f, Mathf.PI - angle)
+                         })
+                {
+                    var flat = new Vector2(wall.x, wall.z);
+                    float depth = DistanceToPolygon(flat, innerRing);
+                    if (!IsInsidePolygon(flat, innerRing))
+                        depth = -depth;
+
+                    if (depth < -SeabedVerifyTouchToleranceMeters)
+                    {
+                        violation = $"the carve misses the tunnel wall at {wall} (route {distance:0.#} m, " +
+                                    $"{-depth:0.##} m outside the emitted hole) - sand is left where the " +
+                                    "plane is inside the cave";
+                        return false;
+                    }
+                    worstMargin = Mathf.Min(worstMargin, depth);
+                }
+            }
+
+            if (stations == 0)
+            {
+                violation = "no station puts the nominal wall on the sand plane, so the carve is " +
+                            "describing something other than this cave";
+                return false;
+            }
+
+            ExteriorClearance skin = ExteriorClearance.Create(
+                ExitPosition, ExitDirection, 0.01f, 0.01f, 0f);
+            if (skin.IntersectsProbes(mesh.vertices, mesh.triangles, out Vector3 crossing))
+            {
+                violation = $"a sand triangle crosses a corridor probe near {crossing}";
+                return false;
+            }
+
+            Debug.Log($"EXTERIOR seabed: the carve contains the nominal waterline at all {stations} " +
+                      $"crossing stations with {worstMargin:0.##} m to spare at the tightest, and no " +
+                      "triangle crosses the corridor probes");
+            violation = null;
+            return true;
+        }
+
+        private static bool IsInsidePolygon(Vector2 point, Vector2[] polygon)
+        {
+            bool inside = false;
+            for (int i = 0, j = polygon.Length - 1; i < polygon.Length; j = i++)
+            {
+                if (polygon[i].y > point.y == polygon[j].y > point.y)
+                    continue;
+                float x = (polygon[j].x - polygon[i].x) * (point.y - polygon[i].y) /
+                    (polygon[j].y - polygon[i].y) + polygon[i].x;
+                if (point.x < x)
+                    inside = !inside;
+            }
+            return inside;
+        }
+
+        /// <summary>Shortest distance from a point to a polygon's boundary, unsigned.</summary>
+        private static float DistanceToPolygon(Vector2 point, Vector2[] polygon)
+        {
+            float best = float.PositiveInfinity;
+            for (int i = 0, j = polygon.Length - 1; i < polygon.Length; j = i++)
+            {
+                Vector2 edge = polygon[i] - polygon[j];
+                float length = edge.sqrMagnitude;
+                float t = length < 1e-9f
+                    ? 0f
+                    : Mathf.Clamp01(Vector2.Dot(point - polygon[j], edge) / length);
+                best = Mathf.Min(best, Vector2.Distance(point, polygon[j] + edge * t));
+            }
+            return best;
         }
 
         /// <summary>

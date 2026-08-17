@@ -32,6 +32,8 @@ public class HotbarUI : MonoBehaviour
     public Sprite oxygenIcon;
     [Tooltip("식량 아이콘 스프라이트")]
     public Sprite foodIcon;
+    [Tooltip("물고기 아이콘 스프라이트 (미설정 시 foodIcon 사용)")]
+    public Sprite fishIcon;
     [Tooltip("문어/오징어 아이콘 스프라이트")]
     public Sprite octopusIcon;
     [Tooltip("성게 아이콘 스프라이트")]
@@ -159,6 +161,10 @@ public class HotbarUI : MonoBehaviour
                 else if (creature.GetComponent<UrchinController>() != null || creature.itemName.ToLower().Contains("urchin"))
                     name = "Sea Urchin";
             }
+            else if (item is FishItem || item.GetComponent<FishController>() != null)
+            {
+                name = "Fish";
+            }
             else
             {
                 string rawName = item.itemName;
@@ -177,7 +183,9 @@ public class HotbarUI : MonoBehaviour
                         name = "Octopus";
                     else if (rawName.Contains("성게") || lower.Contains("urchin"))
                         name = "Sea Urchin";
-                    else if (rawName.Contains("식량") || rawName.Contains("음식") || lower.Contains("food") || lower.Contains("fish"))
+                    else if (rawName.Contains("물고기") || rawName.Contains("생선") || lower.Contains("fish"))
+                        name = "Fish";
+                    else if (rawName.Contains("식량") || rawName.Contains("음식") || lower.Contains("food"))
                         name = "Food";
                     else
                         name = rawName;
@@ -196,7 +204,17 @@ public class HotbarUI : MonoBehaviour
         if (item.icon != null) return item.icon;
 
         string itemName = item.itemName;
-        if (string.IsNullOrEmpty(itemName)) return null;
+        bool isFish = item is FishItem || item.GetComponent<FishController>() != null ||
+            (!string.IsNullOrEmpty(itemName) && (itemName.Contains("물고기") || itemName.Contains("생선") || itemName.ToLower().Contains("fish")));
+        bool isFood = item is FoodItem ||
+            (!string.IsNullOrEmpty(itemName) && (itemName.Contains("식량") || itemName.Contains("음식") || itemName.ToLower().Contains("food")));
+
+        if (string.IsNullOrEmpty(itemName))
+        {
+            if (isFish) itemName = "Fish";
+            else if (isFood) itemName = "Food";
+            else return null;
+        }
 
         // 2. 이미 로드된 적이 있으면 캐시에서 바로 반환
         if (iconCache.TryGetValue(itemName, out Sprite cached) && cached != null)
@@ -214,7 +232,8 @@ public class HotbarUI : MonoBehaviour
                 if (!string.IsNullOrEmpty(mapping.itemName) && mapping.iconSprite != null)
                 {
                     if (itemName.Equals(mapping.itemName, System.StringComparison.OrdinalIgnoreCase) ||
-                        itemName.Contains(mapping.itemName))
+                        itemName.Contains(mapping.itemName) ||
+                        (isFish && (mapping.itemName.Equals("fish", System.StringComparison.OrdinalIgnoreCase) || mapping.itemName.Contains("물고기") || mapping.itemName.Contains("생선"))))
                     {
                         loaded = mapping.iconSprite;
                         break;
@@ -235,8 +254,10 @@ public class HotbarUI : MonoBehaviour
                 loaded = ropeIcon;
             else if ((itemName.Contains("산소") || lower.Contains("oxygen")) && oxygenIcon != null)
                 loaded = oxygenIcon;
-            else if ((itemName.Contains("식량") || itemName.Contains("음식") || lower.Contains("food")) && foodIcon != null)
-                loaded = foodIcon;
+            else if (isFish && (fishIcon != null || foodIcon != null))
+                loaded = fishIcon != null ? fishIcon : foodIcon;
+            else if ((itemName.Contains("식량") || itemName.Contains("음식") || lower.Contains("food") || isFood) && (foodIcon != null || fishIcon != null))
+                loaded = foodIcon != null ? foodIcon : fishIcon;
             else if ((itemName.Contains("문어") || itemName.Contains("오징어") || lower.Contains("octopus") || lower.Contains("squid") || item.GetComponent<OctopusController>() != null) && octopusIcon != null)
                 loaded = octopusIcon;
             else if ((itemName.Contains("성게") || lower.Contains("urchin") || item.GetComponent<UrchinController>() != null) && urchinIcon != null)
@@ -260,6 +281,10 @@ public class HotbarUI : MonoBehaviour
                     loaded = Resources.Load<Sprite>("Icon/RopeIcon");
                 else if (itemName.Contains("산소") || itemName.Contains("Oxygen"))
                     loaded = Resources.Load<Sprite>("Icon/Oxygen");
+                else if (isFish || itemName.Contains("물고기") || itemName.Contains("생선") || lower.Contains("fish"))
+                    loaded = Resources.Load<Sprite>("Icon/fish") ?? Resources.Load<Sprite>("Icon/fishUI") ?? Resources.Load<Sprite>("Icon/FishIcon") ?? Resources.Load<Sprite>("Icon/Fish");
+                else if (isFood || itemName.Contains("식량") || itemName.Contains("음식") || lower.Contains("food"))
+                    loaded = Resources.Load<Sprite>("Icon/fish") ?? Resources.Load<Sprite>("Icon/fishUI") ?? Resources.Load<Sprite>("Icon/FoodIcon");
                 else if (itemName.Contains("문어") || itemName.Contains("오징어") || lower.Contains("octopus") || lower.Contains("squid"))
                     loaded = Resources.Load<Sprite>("Icon/Octopus") ?? Resources.Load<Sprite>("Icon/Squid") ?? Resources.Load<Sprite>("Icon/SquidIcon");
                 else if (itemName.Contains("성게") || lower.Contains("urchin"))
@@ -279,6 +304,10 @@ public class HotbarUI : MonoBehaviour
                 else if (itemName.Contains("해머") || itemName.Contains("망치") || itemName.Contains("Hammer")) tex = Resources.Load<Texture2D>("Icon/HammerIcon2");
                 else if (itemName.Contains("밧줄") || itemName.Contains("로프") || itemName.Contains("Rope")) tex = Resources.Load<Texture2D>("Icon/RopeIcon");
                 else if (itemName.Contains("산소") || itemName.Contains("Oxygen")) tex = Resources.Load<Texture2D>("Icon/Oxygen");
+                else if (isFish || itemName.Contains("물고기") || itemName.Contains("생선") || lower.Contains("fish"))
+                    tex = Resources.Load<Texture2D>("Icon/fish") ?? Resources.Load<Texture2D>("Icon/fishUI");
+                else if (isFood || itemName.Contains("식량") || itemName.Contains("음식") || lower.Contains("food"))
+                    tex = Resources.Load<Texture2D>("Icon/fish") ?? Resources.Load<Texture2D>("Icon/fishUI");
                 else if (itemName.Contains("문어") || itemName.Contains("오징어") || lower.Contains("octopus") || lower.Contains("squid"))
                     tex = Resources.Load<Texture2D>("Icon/Octopus") ?? Resources.Load<Texture2D>("Icon/Squid");
                 else if (itemName.Contains("성게") || lower.Contains("urchin"))
