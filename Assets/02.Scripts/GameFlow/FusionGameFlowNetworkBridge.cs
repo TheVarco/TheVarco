@@ -221,7 +221,7 @@ namespace Varco.GameFlow
             return true;
         }
 
-        // Runner 종료를 기다린 뒤 시작 화면 로드
+        // Runner에 종료를 요청하고 기다리지 않고 시작 화면 로드
         private IEnumerator ReturnToStartRoutine()
         {
             returningToStart = true;
@@ -229,13 +229,9 @@ namespace Varco.GameFlow
 
             NetworkRunner closingRunner = runner;
             if (closingRunner != null && closingRunner.IsRunning)
-            {
-                var shutdownTask = closingRunner.Shutdown();
-                while (!shutdownTask.IsCompleted)
-                    yield return null;
-            }
+                _ = closingRunner.Shutdown();
 
-            SceneManager.LoadScene("Min_Test");
+            SceneManager.LoadScene("IntroScene_final");
         }
 
         // 새 참가자에게 최신 상태 전송

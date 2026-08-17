@@ -36,6 +36,8 @@ public class RepairProgressWorldUI : MonoBehaviour
         if (worldCanvas != null)
             worldCanvas.renderMode = RenderMode.WorldSpace;
 
+        GameUIFont.Apply(promptText);
+
         if (progressFill != null)
         {
             // 왼쪽에서 오른쪽으로 차오르게 설정
@@ -188,7 +190,7 @@ public class RepairProgressWorldUI : MonoBehaviour
         textRect.sizeDelta = new Vector2(160f, 30f);
 
         Text text = textObject.AddComponent<Text>();
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        GameUIFont.Apply(text);
         text.fontSize = 16;
         text.alignment = TextAnchor.MiddleCenter;
         text.color = Color.white;

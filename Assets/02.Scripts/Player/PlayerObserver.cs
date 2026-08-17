@@ -109,7 +109,7 @@ public class PlayerObserver : NetworkBehaviour
         textObject.transform.SetParent(hudRoot.transform, false);
 
         hudLabel = textObject.AddComponent<Text>();
-        hudLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        GameUIFont.Apply(hudLabel);
         hudLabel.fontSize = 22;
         hudLabel.alignment = TextAnchor.LowerCenter;
         hudLabel.color = new Color(0.9f, 0.95f, 1f, 0.9f);

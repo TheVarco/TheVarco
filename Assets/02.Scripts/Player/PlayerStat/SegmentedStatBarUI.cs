@@ -29,6 +29,9 @@ public class SegmentedStatBarUI : MonoBehaviour
             if (fishObj == null) fishObj = transform.Find("Fish");
             if (fishObj != null) fishImage = fishObj.GetComponent<Image>();
         }
+
+        if (fillRect != null)
+            HatchedStatBarStyle.Ensure(gameObject, fillRect, lockedRect);
     }
 
     void Update()

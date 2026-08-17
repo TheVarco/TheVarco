@@ -11,6 +11,8 @@ public class InteractionPromptUI : MonoBehaviour
 
     void Start()
     {
+        GameUIFont.Apply(promptText);
+
         if (interactor != null)
             interactor.OnPromptChanged += HandlePromptChanged;
 

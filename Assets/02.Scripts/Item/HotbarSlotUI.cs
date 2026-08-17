@@ -24,6 +24,7 @@ public class HotbarSlotUI : MonoBehaviour
     void Awake()
     {
         AutoBindComponents();
+        GameUIFont.Apply(label);
     }
 
     private void SaveOriginalSprite()
