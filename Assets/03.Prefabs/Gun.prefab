@@ -166,6 +166,7 @@ MonoBehaviour:
   projectilePrefabRef:
     RawGuidValue: e835af6273f2bbc43a3c25a782916ab6
   fireCooldown: 0.3
+  fireDelay: 1.3
   muzzlePoint: {fileID: 0}
   muzzleForwardOffset: 1
 --- !u!114 &903412007100000002
