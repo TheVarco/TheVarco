@@ -27,6 +27,9 @@ public class PlayerInteractor : NetworkBehaviour
     public System.Action<string> OnPromptChanged;
     public System.Action OnInteracted;
 
+    // 현재 바라보고 있는 상호작용 대상. UI가 대상별 추가 안내를 조회할 때 사용한다.
+    public Interactable CurrentTarget => currentTarget;
+
     private Interactable currentTarget;
     private bool interactionLocked; // 서영 추가
     private string lockedPrompt; // 서영 추가
