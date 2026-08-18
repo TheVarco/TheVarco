@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7d6f38e29dedf5544b61d8032bbd78ea, type: 3}
   m_Name: OctopusSO
   m_EditorClassIdentifier: Assembly-CSharp::EnemyData
-  moveSpeed: 2
-  rotateSpeed: 1
-  ProximityDetectRadius: 3
-  ForwardDetectRadius: 3
-  loseTargetRadius: 3
+  moveSpeed: 4
+  rotateSpeed: 4
+  ProximityDetectRadius: 6
+  ForwardDetectRadius: 6
+  loseTargetRadius: 6
   damageTargetLockDuration: 1.5
   retargetInterval: 0.25
   targetSwitchDistanceMargin: 1

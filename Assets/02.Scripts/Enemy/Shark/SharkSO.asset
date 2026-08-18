@@ -14,14 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyData
   moveSpeed: 5
   rotateSpeed: 4
-  ProximityDetectRadius: 15
-  ForwardDetectRadius: 20
+  ProximityDetectRadius: 20
+  ForwardDetectRadius: 30
   loseTargetRadius: 20
   damageTargetLockDuration: 1.5
   retargetInterval: 0.25
   targetSwitchDistanceMargin: 1
   viewAngle: 90
-  patrolRadius: 25
+  patrolRadius: 20
   patrolArriveDistance: 0.5
   idleWaitMin: 1
   idleWaitMax: 5
