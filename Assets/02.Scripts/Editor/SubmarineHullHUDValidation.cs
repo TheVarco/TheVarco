@@ -36,11 +36,12 @@ public static class SubmarineHullHUDValidation
             float[] tinyDamage = new float[repairable.SlotCount];
             tinyDamage[0] = 1f;
             repairable.RestoreCheckpointDamage(tinyDamage, null, new[] { 1, 0, 0, 0, 0, 0 }, 1);
-            health.SyncFrom(99f, false);
+            health.SyncFrom(0f, false);
 
             SubmarineHullHUD hud = SubmarineHullHUD.Create(canvas.transform as RectTransform);
             Require(hud != null, "HUD 생성에 실패했습니다.");
-            EnsureHudInitialized(hud);
+            EnsureHudInterfaceBuilt(hud);
+            ValidateHealthBindingLifecycle(hud, health);
             InvokePrivate(hud, "AnimateSegments", 0f, 1f);
             Canvas.ForceUpdateCanvases();
 
@@ -169,11 +170,59 @@ public static class SubmarineHullHUDValidation
         return null;
     }
 
-    private static void EnsureHudInitialized(SubmarineHullHUD hud)
+    private static void EnsureHudInterfaceBuilt(SubmarineHullHUD hud)
     {
         if (hud.transform.Find("Total Hull Health") == null)
             InvokePrivate(hud, "BuildInterface");
-        InvokePrivate(hud, "TryBindSubmarine");
+    }
+
+    private static void ValidateHealthBindingLifecycle(SubmarineHullHUD hud, Health health)
+    {
+        InvokePrivate(hud, "OnEnable");
+        Require(GetPrivateField<Health>(hud, "health") == null,
+            "HUD가 Start 전에 초기화되지 않은 Health에 바인딩했습니다.");
+
+        InvokePrivate(health, "Awake");
+        Require(Mathf.Approximately(health.CurrentHealth, health.maxHealth),
+            $"Health Awake 초기화 실패: {health.CurrentHealth}/{health.maxHealth}");
+
+        InvokePrivate(hud, "Start");
+        InvokePrivate(hud, "Update");
+        Require(GetPrivateField<Health>(hud, "health") == health,
+            "HUD가 Start에서 잠수함 Health에 바인딩하지 못했습니다.");
+        RequireHealthDisplay(hud, 1f, "Start 초기 체력");
+
+        InvokePrivate(hud, "OnDisable");
+        health.SyncFrom(health.maxHealth * 0.37f, false);
+        InvokePrivate(hud, "OnEnable");
+        InvokePrivate(hud, "Update");
+        RequireHealthDisplay(hud, 0.37f, "HUD 재활성화 체력");
+
+        InvokePrivate(hud, "OnDisable");
+        health.SyncFrom(health.maxHealth * 0.99f, false);
+        InvokePrivate(hud, "OnEnable");
+        InvokePrivate(hud, "Update");
+        RequireHealthDisplay(hud, 0.99f, "HUD 재활성화 후 최신 체력");
+
+        health.SyncFrom(health.maxHealth * 0.7f, false);
+        Require(Mathf.Approximately(GetPrivateField<float>(hud, "targetHealthRatio"), 0.7f),
+            "체력 변경 이벤트가 목표 비율을 갱신하지 못했습니다.");
+        Require(Mathf.Approximately(GetPrivateField<float>(hud, "displayedHealthRatio"), 0.99f),
+            "일반 체력 변경 이벤트가 표시 비율을 즉시 스냅했습니다.");
+        health.SyncFrom(health.maxHealth * 0.99f, false);
+    }
+
+    private static void RequireHealthDisplay(SubmarineHullHUD hud, float expectedRatio, string label)
+    {
+        float targetRatio = GetPrivateField<float>(hud, "targetHealthRatio");
+        float displayedRatio = GetPrivateField<float>(hud, "displayedHealthRatio");
+        RectTransform fill = GetPrivateField<RectTransform>(hud, "healthFill");
+        Require(Mathf.Approximately(targetRatio, expectedRatio),
+            $"{label} 목표 비율 실패: {targetRatio:F3} != {expectedRatio:F3}");
+        Require(Mathf.Approximately(displayedRatio, expectedRatio),
+            $"{label} 표시 비율 실패: {displayedRatio:F3} != {expectedRatio:F3}");
+        Require(fill != null && Mathf.Approximately(fill.anchorMax.x, expectedRatio),
+            $"{label} Fill 비율 실패: {(fill != null ? fill.anchorMax.x : -1f):F3} != {expectedRatio:F3}");
     }
 
     private static void CaptureHud(Canvas canvas, SubmarineHullHUD hud, string fullPath, string closeupPath)
@@ -243,6 +292,13 @@ public static class SubmarineHullHUDValidation
         FieldInfo field = target.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
         Require(field != null, $"검증용 필드를 찾지 못했습니다: {fieldName}");
         field.SetValue(target, value);
+    }
+
+    private static T GetPrivateField<T>(object target, string fieldName)
+    {
+        FieldInfo field = target.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
+        Require(field != null, $"검증용 필드를 찾지 못했습니다: {fieldName}");
+        return (T)field.GetValue(target);
     }
 
     private static void RequireColor(Color actual, Color expected, string label)

@@ -57,6 +57,7 @@ public sealed class SubmarineHullHUD : MonoBehaviour
     private float lastDamageTrackWidth = -1f;
     private bool snapshotInitialized;
     private bool waitingForNetworkSnapshot;
+    private bool hasStarted;
 
     public static SubmarineHullHUD Create(RectTransform canvasRoot)
     {
@@ -122,6 +123,13 @@ public sealed class SubmarineHullHUD : MonoBehaviour
 
     private void OnEnable()
     {
+        if (hasStarted)
+            TryBindSubmarine();
+    }
+
+    private void Start()
+    {
+        hasStarted = true;
         TryBindSubmarine();
     }
 
@@ -140,6 +148,7 @@ public sealed class SubmarineHullHUD : MonoBehaviour
         else if (waitingForNetworkSnapshot && repairable.UsesNetworkAuthority)
         {
             waitingForNetworkSnapshot = false;
+            SnapHealthRatioToCurrent();
             RefreshDamageSegments(false);
         }
 
@@ -184,10 +193,7 @@ public sealed class SubmarineHullHUD : MonoBehaviour
         repairable.DamageRegionsChanged += HandleDamageRegionsChanged;
         repairable.DamageRegionsReset += HandleDamageRegionsReset;
 
-        targetHealthRatio = health.maxHealth > 0f
-            ? Mathf.Clamp01(health.CurrentHealth / health.maxHealth)
-            : 0f;
-        displayedHealthRatio = targetHealthRatio;
+        SnapHealthRatioToCurrent();
         snapshotInitialized = false;
         waitingForNetworkSnapshot = !repairable.UsesNetworkAuthority;
         RefreshDamageSegments(false);
@@ -211,7 +217,23 @@ public sealed class SubmarineHullHUD : MonoBehaviour
 
     private void HandleHealthChanged(float current, float maximum)
     {
+        ApplyHealthRatio(current, maximum, false);
+    }
+
+    private void ApplyHealthRatio(float current, float maximum, bool snapDisplayedRatio)
+    {
         targetHealthRatio = maximum > 0f ? Mathf.Clamp01(current / maximum) : 0f;
+        if (snapDisplayedRatio)
+        {
+            displayedHealthRatio = targetHealthRatio;
+            SetHorizontalFill(healthFill, displayedHealthRatio);
+        }
+    }
+
+    private void SnapHealthRatioToCurrent()
+    {
+        if (health != null)
+            ApplyHealthRatio(health.CurrentHealth, health.maxHealth, true);
     }
 
     private void HandleDamageRegionsChanged()
@@ -219,14 +241,13 @@ public sealed class SubmarineHullHUD : MonoBehaviour
         bool isInitialNetworkSnapshot = waitingForNetworkSnapshot
             && repairable != null
             && repairable.UsesNetworkAuthority;
-        if (isInitialNetworkSnapshot)
-            waitingForNetworkSnapshot = false;
+        // 체력과 손상 상태를 함께 확정할 수 있도록 대기 플래그는 Update에서만 해제한다.
         RefreshDamageSegments(!isInitialNetworkSnapshot);
     }
 
     private void HandleDamageRegionsReset()
     {
-        waitingForNetworkSnapshot = false;
+        SnapHealthRatioToCurrent();
         RefreshDamageSegments(false);
     }
 
