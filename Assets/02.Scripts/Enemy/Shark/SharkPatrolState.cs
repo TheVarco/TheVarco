@@ -64,7 +64,7 @@ public class SharkPatrolState : ISharkState
         }
 
         shark.Navigator.RotateToDirection(direction);
-        shark.Navigator.MoveToDirection(direction, shark.MoveSpeed);
+        shark.Navigator.MoveForward(shark.MoveSpeed);
     }
 
     public void Exit()

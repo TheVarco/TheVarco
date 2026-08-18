@@ -40,6 +40,15 @@ public class EnemyNavigator : MonoBehaviour
     }
 
     /// <summary>
+    /// Rigidbody가 현재 바라보는 방향으로 이동.
+    /// 회전 중인 적이 목표 방향으로 옆미끄러지는 것을 방지한다.
+    /// </summary>
+    public void MoveForward(float speed)
+    {
+        MoveToDirection(body.rotation * Vector3.forward, speed);
+    }
+
+    /// <summary>
     /// Rigidbody 이동 및 회전 속도 제거.
     /// </summary>
     public void StopMovement()

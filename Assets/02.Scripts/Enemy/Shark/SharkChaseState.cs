@@ -70,7 +70,7 @@ public class SharkChaseState : ISharkState
         }
 
         shark.Navigator.RotateToDirection(direction);
-        shark.Navigator.MoveToDirection(direction, chaseSpeed);
+        shark.Navigator.MoveForward(chaseSpeed);
     }
 
     public void Exit()
