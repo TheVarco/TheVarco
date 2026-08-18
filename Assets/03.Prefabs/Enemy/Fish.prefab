@@ -168,6 +168,7 @@ MonoBehaviour:
   giveActionName: "\uBA39\uC5EC\uC8FC\uAE30"
   holdPositionOffset: {x: 0, y: 0, z: 0}
   holdRotationOffset: {x: 0, y: 0, z: 0}
+  heldScaleMultiplier: 0.35
   storagePositionOffset: {x: 0, y: 0, z: 0}
   storageRotationOffset: {x: 0, y: 0, z: 0}
   startStoredInItemZone: 0

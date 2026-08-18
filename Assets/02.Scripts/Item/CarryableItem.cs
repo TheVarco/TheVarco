@@ -27,6 +27,9 @@ public class CarryableItem : NetworkBehaviour, Interactable
     [Header("손에 들었을 때 위치 보정")]
     public Vector3 holdPositionOffset;
     public Vector3 holdRotationOffset;
+    [SerializeField, Min(0.01f)]
+    [Tooltip("손에 들었을 때 월드 크기 배율 (1 = 월드에서의 원래 크기)")]
+    private float heldScaleMultiplier = 0.35f;
 
     [Header("Item Zone 보관 보정")]
     public Vector3 storagePositionOffset;
@@ -643,7 +646,7 @@ public class CarryableItem : NetworkBehaviour, Interactable
         transform.SetParent(handSocket, false);
         transform.localPosition = holdPositionOffset;
         transform.localRotation = Quaternion.Euler(holdRotationOffset);
-        RestoreDefaultWorldScale();
+        ApplyHeldWorldScale();
         RefreshHeldVisibility();
     }
 
@@ -908,12 +911,22 @@ public class CarryableItem : NetworkBehaviour, Interactable
 
     protected void RestoreDefaultWorldScale()
     {
+        ApplyWorldScale(defaultWorldScale);
+    }
+
+    private void ApplyHeldWorldScale()
+    {
+        ApplyWorldScale(defaultWorldScale * Mathf.Max(0.01f, heldScaleMultiplier));
+    }
+
+    private void ApplyWorldScale(Vector3 targetWorldScale)
+    {
         transform.localScale = Vector3.one;
         Vector3 inheritedWorldScale = transform.lossyScale;
         transform.localScale = new Vector3(
-            DivideScale(defaultWorldScale.x, inheritedWorldScale.x),
-            DivideScale(defaultWorldScale.y, inheritedWorldScale.y),
-            DivideScale(defaultWorldScale.z, inheritedWorldScale.z));
+            DivideScale(targetWorldScale.x, inheritedWorldScale.x),
+            DivideScale(targetWorldScale.y, inheritedWorldScale.y),
+            DivideScale(targetWorldScale.z, inheritedWorldScale.z));
     }
 
     protected void RestoreInitialColliderCollisionMask()

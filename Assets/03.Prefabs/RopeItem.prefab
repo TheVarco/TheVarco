@@ -164,6 +164,7 @@ MonoBehaviour:
   giveActionName: "\uC0AC\uC6A9\uD574\uC8FC\uAE30"
   holdPositionOffset: {x: 0, y: 0, z: 0}
   holdRotationOffset: {x: 0, y: 0, z: 0}
+  heldScaleMultiplier: 0.35
   ropeProjectilePrefabRef:
     RawGuidValue: 3d362de4b0fe3814ea68f3993b74549d
   throwDelay: 0.5
