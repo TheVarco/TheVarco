@@ -100,8 +100,10 @@ public class HotbarUI : MonoBehaviour
         // 1. 인스펙터에 직접 등록된 맨손 아이콘이 있으면 최우선 사용
         if (bareHandsIcon != null) return bareHandsIcon;
 
-        // 2. 캐시 확인
-        if (iconCache.TryGetValue("BareHands", out Sprite cached) && cached != null)
+        // 2. 캐시 확인.
+        // 찾기에 실패한 결과(null)도 캐시에 남는다. 실패를 캐시하지 않으면 아이콘이 없는 동안
+        // Update()가 매 프레임 Resources.Load를 처음부터 다시 돌게 된다
+        if (iconCache.TryGetValue("BareHands", out Sprite cached))
         {
             return cached;
         }
@@ -135,10 +137,7 @@ public class HotbarUI : MonoBehaviour
             if (loaded == null) loaded = Resources.Load<Sprite>("Icon/foot");
         }
 
-        if (loaded != null)
-        {
-            iconCache["BareHands"] = loaded;
-        }
+        iconCache["BareHands"] = loaded; // 실패(null)도 기억해서 매 프레임 재탐색을 막는다
 
         return loaded;
     }
@@ -216,8 +215,10 @@ public class HotbarUI : MonoBehaviour
             else return null;
         }
 
-        // 2. 이미 로드된 적이 있으면 캐시에서 바로 반환
-        if (iconCache.TryGetValue(itemName, out Sprite cached) && cached != null)
+        // 2. 이미 조회한 적이 있으면 캐시에서 바로 반환.
+        // 실패(null)도 캐시에 들어 있다. 아이콘을 못 찾는 아이템을 들고 있으면
+        // 매 프레임 Resources.Load를 10여 회 + Sprite.Create까지 반복하게 되기 때문
+        if (iconCache.TryGetValue(itemName, out Sprite cached))
         {
             return cached;
         }
@@ -320,9 +321,9 @@ public class HotbarUI : MonoBehaviour
             }
         }
 
+        iconCache[itemName] = loaded; // 실패(null)도 기억해서 매 프레임 재탐색을 막는다
         if (loaded != null)
         {
-            iconCache[itemName] = loaded;
             item.icon = loaded;
         }
 

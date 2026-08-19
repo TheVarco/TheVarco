@@ -2768,6 +2768,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 8771091787928289351, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 700000000000000003}
+    - targetCorrespondingSourceObject: {fileID: 8771091787928289351, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 911178360717233541}
     - targetCorrespondingSourceObject: {fileID: 2590690027949864799, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2892950543118468774}
@@ -3074,6 +3077,7 @@ MonoBehaviour:
   - {fileID: 700000000000000004}
   - {fileID: 700000000000000002}
   - {fileID: 700000000000000003}
+  - {fileID: 911178360717233541}
   - {fileID: 3612470029738488945}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &700000000000000004
@@ -3123,6 +3127,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5d8a3d77be214d82a89f4dfedbb6e9a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SubmarineHealthNetworkSync
+--- !u!114 &911178360717233541
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1874707628903329205}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de7f8fe6c751426083c6601b2423efe1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SubmarineClientMotionDriver
+  teleportThreshold: 2
 --- !u!1 &2240314211601929266 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -240290832761325120, guid: cbec52e24dd31784baf39d7e4d51855e, type: 3}

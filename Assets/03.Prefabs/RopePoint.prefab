@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 7164274872991281238}
   - component: {fileID: 1781281339721452518}
   - component: {fileID: -2965947020023206552}
+  - component: {fileID: 911178360717233562}
   m_Layer: 0
   m_Name: RopePoint
   m_TagString: Untagged
@@ -159,8 +160,6 @@ MonoBehaviour:
   speed: 15
   lifeTime: 0.9
   hitRadius: 0.3
-  owner: {fileID: 0}
-  sourceItem: {fileID: 0}
   _OwnerId:
     Raw: 0
 --- !u!120 &7164274872991281238
@@ -292,6 +291,7 @@ MonoBehaviour:
   NetworkedBehaviours:
   - {fileID: 3263033659341667388}
   - {fileID: -2965947020023206552}
+  - {fileID: 911178360717233562}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &-2965947020023206552
 MonoBehaviour:
@@ -316,3 +316,15 @@ MonoBehaviour:
     Position: 0.01
     Rotation: 0.01
     Scale: 0.01
+--- !u!114 &911178360717233562
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3498688313566668995}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46b26df281894351aa93c129cdf5ef5d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetworkPhysicsSimulationPolicy

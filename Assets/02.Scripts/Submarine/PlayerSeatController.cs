@@ -182,8 +182,13 @@ public class PlayerSeatController : NetworkBehaviour
         originalIsKinematic = body.isKinematic;
         originalDetectCollisions = body.detectCollisions;
         originalUseGravity = body.useGravity;
-        body.linearVelocity = Vector3.zero;
-        body.angularVelocity = Vector3.zero;
+        // 원격 플레이어(프록시)의 바디는 Fusion이 강제로 kinematic으로 둔다.
+        // kinematic 바디에 속도를 쓰면 Unity가 경고를 찍으므로 동적 바디일 때만 정리한다
+        if (!body.isKinematic)
+        {
+            body.linearVelocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
+        }
         body.isKinematic = true;
         body.detectCollisions = false;
         body.useGravity = false;
@@ -226,9 +231,11 @@ public class PlayerSeatController : NetworkBehaviour
         body.isKinematic = originalIsKinematic;
         body.detectCollisions = originalDetectCollisions;
         body.useGravity = originalUseGravity;
-        body.angularVelocity = Vector3.zero;
         if (!body.isKinematic)
+        {
+            body.angularVelocity = Vector3.zero;
             body.linearVelocity = inheritedVelocity;
+        }
 
         RestoreColliders();
         SetSittingAnimation(false);

@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: -1911385384842151202}
   - component: {fileID: -7552886431684348890}
   - component: {fileID: 8925225596798354666}
+  - component: {fileID: 911178360717233561}
   m_Layer: 0
   m_Name: Bullet
   m_TagString: Untagged
@@ -204,4 +205,17 @@ MonoBehaviour:
   NetworkedBehaviours:
   - {fileID: -1911385384842151202}
   - {fileID: -7552886431684348890}
+  - {fileID: 911178360717233561}
   ForceRemoteRenderTimeframe: 0
+--- !u!114 &911178360717233561
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1204494174198073114}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46b26df281894351aa93c129cdf5ef5d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetworkPhysicsSimulationPolicy

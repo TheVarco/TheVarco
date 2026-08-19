@@ -324,8 +324,17 @@ public class NetworkTestStarter : MonoBehaviour, INetworkRunnerCallbacks
         // NetworkRigidbody3D가 자동으로 붙여주는 기본값은 ClientPhysicsSimulation.Disabled 라서,
         // 클라이언트가 자기 움직임을 예측하지 못하고 호스트가 돌려준 결과를 기다리게 된다(입력 지연).
         // 직접 붙여서 클라이언트에서도 물리를 시뮬레이션(예측)하도록 설정한다.
+        //
+        // SimulateAlways가 아니라 SimulateForward인 이유:
+        // 둘 다 클라이언트 예측을 켠다(NetworkRigidbody가 _clientPrediction을 정할 때 두 값을 똑같이 취급).
+        // 차이는 재시뮬레이션(resimulation) 틱에서 무엇을 하느냐다. SimulateAlways는 재시뮬 틱마다
+        // 씬 전체 Physics.Simulate()를 다시 돌린다. 호스트는 권위자라 재시뮬이 없어 틱당 1회지만,
+        // 클라이언트는 예측 보정 때문에 렌더 프레임마다 여러 틱을 되감는다. 그래서 "씬 물리 비용 x 재시뮬 깊이"가
+        // 클라이언트에만 붙어서, 콜라이더가 몰려 있는 잠수함 안팎에서 클라이언트만 심하게 버벅였다.
+        // SimulateForward는 전진 틱에서만 Physics.Simulate()를 돌리고 재시뮬 틱에서는 SyncTransforms()만 해서
+        // 콜라이더 위치는 그대로 정확하게 유지된다(걷기/수영 판정, IsGrounded, 상호작용 레이캐스트 모두 무사).
         var physicsSimulation = gameObject.AddComponent<RunnerSimulatePhysics3D>();
-        physicsSimulation.ClientPhysicsSimulation = ClientPhysicsSimulation.SimulateAlways;
+        physicsSimulation.ClientPhysicsSimulation = ClientPhysicsSimulation.SimulateForward;
 
         var args = new StartGameArgs
         {

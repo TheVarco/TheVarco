@@ -157,6 +157,7 @@ GameObject:
   - component: {fileID: 7430485213831698140}
   - component: {fileID: 5087078921395375311}
   - component: {fileID: 6123456789012345678}
+  - component: {fileID: 911178360717233560}
   m_Layer: 3
   m_Name: Player
   m_TagString: Player
@@ -655,6 +656,7 @@ MonoBehaviour:
   - {fileID: 7430485213831698140}
   - {fileID: 5087078921395375311}
   - {fileID: 6123456789012345678}
+  - {fileID: 911178360717233560}
   - {fileID: 3102585748424028993}
   - {fileID: 2623686379042539573}
   - {fileID: 4595846022081990617}
@@ -708,6 +710,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f62a24b66cc14cc0b63f6ddb6f7ac901, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Varco.GameFlow.FusionPlayerCheckpointParticipant
+--- !u!114 &911178360717233560
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2602492756997362024}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46b26df281894351aa93c129cdf5ef5d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetworkPhysicsSimulationPolicy
 --- !u!1 &5726362792154023546
 GameObject:
   m_ObjectHideFlags: 0
